@@ -98,7 +98,39 @@ class CommandHandler:
     def list_commands(self) -> List[str]:
         """Return list of all available commands"""
         return list(self.commands.keys())
-    
+
+    def list_commands_grouped(self) -> dict:
+        """Return commands grouped by their command type.
+
+        Example return: { 'owner': ['foo'], 'admin': ['bar'], 'user': ['baz'] }
+        """
+        groups = {}
+        # Use command_types mapping when available
+        for name in self.commands.keys():
+            ctype = self.command_types.get(name, 'user')
+            groups.setdefault(ctype, []).append(name)
+        return groups
+
+    def list_commands_info(self) -> dict:
+        """Return detailed info for each registered command.
+
+        Info includes: type, callable object, and docstring (if present).
+        """
+        info = {}
+        for name, func in self.commands.items():
+            doc = None
+            try:
+                if inspect.isfunction(func):
+                    doc = inspect.getdoc(func)
+            except Exception:
+                doc = None
+            info[name] = {
+                'type': self.command_types.get(name, 'user'),
+                'callable': func,
+                'doc': doc,
+            }
+        return info
+
     def is_admin_command(self, command_name: str) -> bool:
         """Check if a command is an admin command"""
         return self.command_types.get(command_name) == 'admin'
