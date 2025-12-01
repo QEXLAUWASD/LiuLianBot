@@ -1,3 +1,5 @@
+
+{
   "help_command_title": "指令：{command}",
   "help_command_desc": "{command} 的說明",
   "help_usage_field": "用法",
@@ -9,7 +11,6 @@
   "help_type_guild_admin": "伺服器管理員指令",
   "help_type_guild_owner": "伺服器擁有者指令",
   "help_type_user": "一般使用者指令",
-{
   "setupvoice_title": "私人語音頻道設定",
   "setupvoice_description": "依照下列步驟為您的伺服器設定私人語音頻道。",
   "no_guild": "❌ 此指令只能在伺服器中使用！",
