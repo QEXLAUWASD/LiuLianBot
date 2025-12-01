@@ -1,0 +1,9 @@
+{
+    "prefix": ">",
+    "owner_id": "owner_id_here",
+    "activity": {
+        "type": "playing",
+        "name": "N/A"
+    },
+    "token": "your-token-here"
+}
