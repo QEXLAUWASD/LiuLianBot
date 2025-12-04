@@ -38,6 +38,7 @@ def init_private_voice_table():
 init_private_voice_table()
 
 def save_private_channel_config(guild_id, channel_id, owner_id, config_dict):
+    print(f"[DEBUG] Saving to MySQL: guild_id={guild_id}, channel_id={channel_id}, owner_id={owner_id}, config={config_dict}")
     conn = get_db_conn()
     try:
         with conn.cursor() as cursor:
@@ -49,6 +50,9 @@ def save_private_channel_config(guild_id, channel_id, owner_id, config_dict):
             import json
             cursor.execute(sql, (guild_id, channel_id, owner_id, json.dumps(config_dict, ensure_ascii=False)))
         conn.commit()
+    except Exception as e:
+        print(f"[ERROR] MySQL save failed: {e}")
+        raise
     finally:
         conn.close()
 
