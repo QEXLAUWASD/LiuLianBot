@@ -80,6 +80,9 @@ async def setprivatevoice(message, bot):
     # Set the trigger channel
     manager = get_manager(bot)
     manager.set_trigger_channel(message.guild.id, channel.id)
+
+    # Save the channel configuration
+    manager.save_channel_config(message.guild.id, channel.id, message.author.id, {"type": "trigger"})
     
     # Create success embed
     gid = message.guild.id
