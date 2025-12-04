@@ -1,3 +1,24 @@
+def init_private_voice_table():
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS private_voice_channels (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    guild_id BIGINT NOT NULL,
+                    channel_id BIGINT NOT NULL,
+                    owner_id BIGINT NOT NULL,
+                    config_json JSON,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                )
+            ''')
+        conn.commit()
+    finally:
+        conn.close()
+
+# 啟動時自動初始化資料表
+init_private_voice_table()
 
 import discord
 from typing import Dict, Optional
