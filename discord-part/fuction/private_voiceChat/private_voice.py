@@ -1,6 +1,68 @@
+
 import discord
 from typing import Dict, Optional
 import asyncio
+
+import pymysql
+import json
+import os
+
+# 讀取 config.json 取得 MySQL 設定
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config.json')
+with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+    config = json.load(f)
+MYSQL_CONFIG = config.get('mysql_config', {})
+
+def get_db_conn():
+    return pymysql.connect(**MYSQL_CONFIG)
+
+def save_private_channel_config(guild_id, channel_id, owner_id, config_dict):
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cursor:
+            sql = """
+            INSERT INTO private_voice_channels (guild_id, channel_id, owner_id, config_json)
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE config_json=VALUES(config_json), updated_at=NOW()
+            """
+            cursor.execute(sql, (guild_id, channel_id, owner_id, pymysql.escape_string(str(config_dict))))
+        conn.commit()
+    finally:
+        conn.close()
+
+def get_private_channel_config(channel_id):
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cursor:
+            sql = "SELECT config_json FROM private_voice_channels WHERE channel_id=%s"
+            cursor.execute(sql, (channel_id,))
+            result = cursor.fetchone()
+            if result:
+                import json
+                return json.loads(result[0])
+            return None
+    finally:
+        conn.close()
+
+def update_private_channel_config(channel_id, config_dict):
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cursor:
+            sql = "UPDATE private_voice_channels SET config_json=%s, updated_at=NOW() WHERE channel_id=%s"
+            cursor.execute(sql, (pymysql.escape_string(str(config_dict)), channel_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+def delete_private_channel_config(channel_id):
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cursor:
+            sql = "DELETE FROM private_voice_channels WHERE channel_id=%s"
+            cursor.execute(sql, (channel_id,))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 class PrivateVoiceManager:
@@ -9,20 +71,29 @@ class PrivateVoiceManager:
         self.trigger_channels: Dict[int, int] = {}  # {guild_id: trigger_channel_id}
         self.private_channels: Dict[int, int] = {}  # {channel_id: owner_id}
         self.user_channels: Dict[int, int] = {}  # {user_id: channel_id}
-    
+
     def set_trigger_channel(self, guild_id: int, channel_id: int):
-        """Set the trigger channel for a guild"""
         self.trigger_channels[guild_id] = channel_id
-    
+
     def remove_trigger_channel(self, guild_id: int):
-        """Remove the trigger channel for a guild"""
         if guild_id in self.trigger_channels:
             del self.trigger_channels[guild_id]
-    
+
     def get_trigger_channel(self, guild_id: int) -> Optional[int]:
-        """Get the trigger channel ID for a guild"""
         return self.trigger_channels.get(guild_id)
-    
+
+    def save_channel_config(self, guild_id, channel_id, owner_id, config_dict):
+        save_private_channel_config(guild_id, channel_id, owner_id, config_dict)
+
+    def get_channel_config(self, channel_id):
+        return get_private_channel_config(channel_id)
+
+    def update_channel_config(self, channel_id, config_dict):
+        update_private_channel_config(channel_id, config_dict)
+
+    def delete_channel_config(self, channel_id):
+        delete_private_channel_config(channel_id)
+
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         """Handle voice state updates"""
         # User joined a voice channel
