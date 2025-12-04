@@ -43,8 +43,11 @@ async def setupvoice(message, bot):
     
     if trigger_id:
         trigger_channel = message.guild.get_channel(trigger_id)
+        db_config = manager.get_channel_config(trigger_id)
         if trigger_channel:
             current_status = get_translation('pv_current_trigger', gid).replace('{channel}', trigger_channel.mention)
+            if db_config:
+                current_status += f"\n[MySQL] type: {db_config.get('type', '')}"
         else:
             current_status = get_translation('pv_trigger_missing', gid)
     else:
