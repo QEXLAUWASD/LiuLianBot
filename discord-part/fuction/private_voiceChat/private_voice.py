@@ -1,3 +1,20 @@
+import discord
+from typing import Dict, Optional
+import asyncio
+
+import pymysql
+import json
+import os
+
+# 讀取 config.json 取得 MySQL 設定
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config.json')
+with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+    config = json.load(f)
+MYSQL_CONFIG = config.get('mysql_config', {})
+
+def get_db_conn():
+    return pymysql.connect(**MYSQL_CONFIG)
+
 def init_private_voice_table():
     conn = get_db_conn()
     try:
@@ -19,23 +36,6 @@ def init_private_voice_table():
 
 # 啟動時自動初始化資料表
 init_private_voice_table()
-
-import discord
-from typing import Dict, Optional
-import asyncio
-
-import pymysql
-import json
-import os
-
-# 讀取 config.json 取得 MySQL 設定
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config.json')
-with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-    config = json.load(f)
-MYSQL_CONFIG = config.get('mysql_config', {})
-
-def get_db_conn():
-    return pymysql.connect(**MYSQL_CONFIG)
 
 def save_private_channel_config(guild_id, channel_id, owner_id, config_dict):
     conn = get_db_conn()
