@@ -46,7 +46,8 @@ def save_private_channel_config(guild_id, channel_id, owner_id, config_dict):
             VALUES (%s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE config_json=VALUES(config_json), updated_at=NOW()
             """
-            cursor.execute(sql, (guild_id, channel_id, owner_id, pymysql.escape_string(str(config_dict))))
+            import json
+            cursor.execute(sql, (guild_id, channel_id, owner_id, json.dumps(config_dict, ensure_ascii=False)))
         conn.commit()
     finally:
         conn.close()
@@ -70,7 +71,8 @@ def update_private_channel_config(channel_id, config_dict):
     try:
         with conn.cursor() as cursor:
             sql = "UPDATE private_voice_channels SET config_json=%s, updated_at=NOW() WHERE channel_id=%s"
-            cursor.execute(sql, (pymysql.escape_string(str(config_dict)), channel_id))
+            import json
+            cursor.execute(sql, (json.dumps(config_dict, ensure_ascii=False), channel_id))
         conn.commit()
     finally:
         conn.close()
