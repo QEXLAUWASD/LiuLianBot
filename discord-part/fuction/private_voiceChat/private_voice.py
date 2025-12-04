@@ -182,6 +182,8 @@ class PrivateVoiceManager:
             # Track the channel
             self.private_channels[private_channel.id] = member.id
             self.user_channels[member.id] = private_channel.id
+            # 寫入 MySQL
+            self.save_channel_config(member.guild.id, private_channel.id, member.id, {"type": "private", "name": private_channel.name})
             
         except discord.Forbidden:
             print(f"Missing permissions to create voice channel in {member.guild.name}")
