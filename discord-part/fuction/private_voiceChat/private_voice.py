@@ -35,16 +35,6 @@ def init_private_voice_table():
         conn.close()
 
 
-# 印出目前連線的 MySQL 資料庫名稱
-try:
-    conn = get_db_conn()
-    with conn.cursor() as cursor:
-        cursor.execute('SELECT DATABASE()')
-        db_name = cursor.fetchone()[0]
-        print(f"[INFO] Connected to MySQL database: {db_name}")
-    conn.close()
-except Exception as e:
-    print(f"[ERROR] MySQL connection failed: {e}")
 
 # 啟動時自動初始化資料表
 init_private_voice_table()

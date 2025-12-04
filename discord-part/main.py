@@ -4,10 +4,12 @@ import os
 import json
 from datetime import datetime
 
+
 import command.commandHandler as cmd_handler
 import uilts.logger as logger
 from fuction.private_voiceChat.private_voice import get_manager
 from command.language_manager import get_translation
+import pymysql
 
 logger = logger.setup_logger(__name__, level=logger.logging.DEBUG)
 cmd_handler = cmd_handler.handler
@@ -27,8 +29,21 @@ root_folder = get_root_folder()
 # Load configuration from config.json
 
 
+
 with open(os.path.join(root_folder, 'config.json'), 'r') as f:
     config = json.load(f)
+
+# 印出目前連線的 MySQL 資料庫名稱
+mysql_config = config.get('mysql_config', {})
+try:
+    conn = pymysql.connect(**mysql_config)
+    with conn.cursor() as cursor:
+        cursor.execute('SELECT DATABASE()')
+        db_name = cursor.fetchone()[0]
+        print(f"[INFO] Connected to MySQL database: {db_name}")
+    conn.close()
+except Exception as e:
+    print(f"[ERROR] MySQL connection failed: {e}")
 
 # get all onwer and admin IDs from config
 bot_owners = config.get("bot_owner", [])
