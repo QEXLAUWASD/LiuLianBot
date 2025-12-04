@@ -94,12 +94,42 @@ def delete_private_channel_config(channel_id):
         conn.close()
 
 
+
 class PrivateVoiceManager:
     def __init__(self, bot):
         self.bot = bot
         self.trigger_channels: Dict[int, int] = {}  # {guild_id: trigger_channel_id}
         self.private_channels: Dict[int, int] = {}  # {channel_id: owner_id}
         self.user_channels: Dict[int, int] = {}  # {user_id: channel_id}
+        self.load_trigger_channels_from_db()
+
+    def load_trigger_channels_from_db(self):
+        conn = get_db_conn()
+        try:
+            with conn.cursor() as cursor:
+                sql = "SELECT id, guild_id, channel_id, config_json FROM private_voice_channels WHERE JSON_EXTRACT(config_json, '$.type') = 'trigger' ORDER BY updated_at DESC"
+                cursor.execute(sql)
+                rows = cursor.fetchall()
+                seen_guilds = set()
+                duplicate_ids = []
+                for row in rows:
+                    id_, guild_id, channel_id, config_json = row
+                    guild_id = int(guild_id)
+                    channel_id = int(channel_id)
+                    if guild_id not in seen_guilds:
+                        self.trigger_channels[guild_id] = channel_id
+                        seen_guilds.add(guild_id)
+                    else:
+                        duplicate_ids.append(id_)
+                # 刪除重複的 trigger config
+                if duplicate_ids:
+                    format_ids = ','.join(str(i) for i in duplicate_ids)
+                    del_sql = f"DELETE FROM private_voice_channels WHERE id IN ({format_ids})"
+                    cursor.execute(del_sql)
+                    conn.commit()
+                    print(f"[INFO] Removed duplicate trigger configs: {duplicate_ids}")
+        finally:
+            conn.close()
 
     def set_trigger_channel(self, guild_id: int, channel_id: int):
         self.trigger_channels[guild_id] = channel_id
