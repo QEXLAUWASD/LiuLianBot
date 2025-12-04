@@ -41,6 +41,10 @@ try:
         cursor.execute('SELECT DATABASE()')
         db_name = cursor.fetchone()[0]
         print(f"[INFO] Connected to MySQL database: {db_name}")
+        # print all tables in the database for debugging
+        cursor.execute('SHOW TABLES')
+        tables = cursor.fetchall()
+        print(f"[INFO] Tables in database '{db_name}': {[table[0] for table in tables]}")
     conn.close()
 except Exception as e:
     print(f"[ERROR] MySQL connection failed: {e}")
