@@ -8,10 +8,12 @@ from datetime import datetime
 import command.commandHandler as cmd_handler
 import uilts.logger as logger
 from fuction.private_voiceChat.private_voice import get_manager
+from fuction.messagelogger import modify as msglog
+from fuction.userLogger import voicechanneleventlogger as voicelogger
 from command.language_manager import get_translation
 import pymysql
 
-logger = logger.setup_logger(__name__, level=logger.logging.DEBUG)
+logger = logger.setup_logger(__name__, level=logger.logging.WARNING)
 cmd_handler = cmd_handler.handler
 
 intents = discord.Intents.default()
@@ -79,6 +81,7 @@ class MyClient(discord.Client):
         self.start_time = datetime.now()
         # Initialize private voice manager
         self.private_voice_manager = get_manager(self)
+        self.private_voice_manager.start_cleanup_task()
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
         logger.info('------')
         await self.change_presence(activity=discord.Game(name="with discord.py"))
@@ -87,6 +90,13 @@ class MyClient(discord.Client):
         """Handle voice state updates for private voice channels"""
         if hasattr(self, 'private_voice_manager'):
             await self.private_voice_manager.on_voice_state_update(member, before, after)
+        await voicelogger.on_voice_state_update(member, before, after)
+
+    async def on_message_edit(self, before, after):
+        await msglog.on_message_edit(before, after)
+
+    async def on_message_delete(self, message):
+        await msglog.on_message_delete(message)
     
     @bot.event
     async def on_message(self, message):

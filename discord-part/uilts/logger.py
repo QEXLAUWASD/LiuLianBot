@@ -18,7 +18,7 @@ class ColoredFormatter(logging.Formatter):
         'CRITICAL': Fore.RED + Style.BRIGHT,
     }
 
-    def format(self, record):
+    def format(self, record) -> str:
         log_color = self.COLORS.get(record.levelname, '')
         # Format timestamp
         timestamp = self.formatTime(record, self.datefmt)

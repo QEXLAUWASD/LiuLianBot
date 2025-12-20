@@ -94,6 +94,24 @@ def delete_private_channel_config(channel_id):
         conn.close()
 
 
+def cleanup_old_private_configs(retention_days: int = 30) -> int:
+    """Remove private channel configs older than the retention window."""
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cursor:
+            sql = """
+                DELETE FROM private_voice_channels
+                WHERE JSON_EXTRACT(config_json, '$.type') = 'private'
+                  AND updated_at < DATE_SUB(NOW(), INTERVAL %s DAY)
+            """
+            cursor.execute(sql, (retention_days,))
+            deleted = cursor.rowcount
+        conn.commit()
+        return deleted
+    finally:
+        conn.close()
+
+
 
 class PrivateVoiceManager:
     def __init__(self, bot):
@@ -101,7 +119,25 @@ class PrivateVoiceManager:
         self.trigger_channels: Dict[int, int] = {}  # {guild_id: trigger_channel_id}
         self.private_channels: Dict[int, int] = {}  # {channel_id: owner_id}
         self.user_channels: Dict[int, int] = {}  # {user_id: channel_id}
+        self.cleanup_task: Optional[asyncio.Task] = None
+        self.cleanup_interval_seconds = 24 * 60 * 60
         self.load_trigger_channels_from_db()
+
+    def start_cleanup_task(self, retention_days: int = 30):
+        if self.cleanup_task is None:
+            self.cleanup_task = self.bot.loop.create_task(
+                self._cleanup_loop(retention_days)
+            )
+
+    async def _cleanup_loop(self, retention_days: int):
+        while True:
+            try:
+                removed = cleanup_old_private_configs(retention_days)
+                if removed:
+                    print(f"[INFO] Removed {removed} stale private voice configs older than {retention_days} days")
+            except Exception as e:
+                print(f"[ERROR] Failed to cleanup private voice configs: {e}")
+            await asyncio.sleep(self.cleanup_interval_seconds)
 
     def load_trigger_channels_from_db(self):
         conn = get_db_conn()
