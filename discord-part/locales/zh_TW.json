@@ -24,6 +24,7 @@
   "cmd_desc_setprivatevoice": "將語音頻道設為創建私人頻道的觸發頻道。",
   "cmd_desc_removeprivatevoice": "移除私人語音觸發頻道的設定。",
   "cmd_desc_setlogchannel": "設定文字頻道以接收訊息編輯/刪除紀錄。",
+  "cmd_desc_r6opsroll": "隨機抽取一名彩虹六號幹員與裝備，可選 att/def 陣營。",
   "reload_commands_success": "✅ 指令已重新載入。",
   "reload_commands_error": "❌ 重新載入指令失敗：{error}",
   "cmd_desc_getlang": "顯示目前伺服器使用的語言與可用語言清單。",

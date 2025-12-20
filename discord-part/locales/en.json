@@ -24,6 +24,7 @@
   "cmd_desc_setprivatevoice": "Set a voice channel as the trigger for creating private channels.",
   "cmd_desc_removeprivatevoice": "Remove the private voice trigger channel setting.",
   "cmd_desc_setlogchannel": "Set which text channel receives edit/delete logs.",
+  "cmd_desc_r6opsroll": "Roll a random Rainbow Six operator with weapons and gadget (optionally specify att/def).",
   "reload_commands_success": "✅ Commands reloaded successfully.",
   "reload_commands_error": "❌ Failed to reload commands: {error}",
   "cmd_desc_getlang": "Show the current guild language and available languages.",

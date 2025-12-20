@@ -61,14 +61,7 @@ class CommandHandler:
                 
                 except Exception as e:
                     print(f"Error loading {file_path.name}: {e}")
-    
-    def add_bot_owner(self, owner_id: str) -> None:
-        """Add a bot owner ID"""
-        self.bot_owners.add(owner_id)
-    
-    def add_bot_admin(self, admin_id: str) -> None:
-        """Add a bot admin ID"""
-        self.bot_admins.add(admin_id)
+
     
     def add_guild_admin(self, guild_id: int, user_id: str) -> None:
         """Add a guild-specific admin"""

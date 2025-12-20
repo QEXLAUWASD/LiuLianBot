@@ -1,0 +1,551 @@
+{
+    "Border | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Border | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/border",
+        "location": "MIDDLE EAST",
+        "released": "Dust Line (May 2016)",
+        "playlists": [
+            "Quick Match",
+            "Ranked",
+            "Team Deathmatch",
+            "Unranked"
+        ],
+        "reworked": "Siege X - June 2025",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-border-blueprints.zip",
+        "floors": [
+            "GROUND",
+            "1ST",
+            "FLOOR",
+            "ROOF"
+        ]
+    },
+    "District | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "District | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/district",
+        "location": "DETROIT, MICHIGAN",
+        "released": "Operation Daybreak (June 2025)",
+        "playlists": [
+            "Dual Front"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://ubistatic-a.ubisoft.com/0106/gamesites/rainbow6/blueprints/r6-maps-district-blueprints.zip",
+        "floors": [
+            "ROOF"
+        ]
+    },
+    "Bank | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Bank | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/bank",
+        "location": "LOS ANGELES, CALIFORNIA",
+        "released": "Base game (December 2015)",
+        "playlists": [
+            "Quick Match",
+            "Ranked",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-bank-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "GROUND",
+            "1ST",
+            "FLOOR",
+            "ROOF"
+        ]
+    },
+    "Kafe Dostoyevsky | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Kafe Dostoyevsky | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/kafe-dostoyevsky",
+        "location": "MOSCOW, RUSSIA",
+        "released": "Base game (December 2015)",
+        "playlists": [
+            "Quick Match",
+            "Ranked",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-kafe-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "GROUND",
+            "1ST",
+            "FLOOR",
+            "ROOF"
+        ]
+    },
+    "Chalet | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Chalet | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/chalet",
+        "location": "COURCHEVEL, France",
+        "released": "Base game (December 2015)",
+        "playlists": [
+            "Quick Match",
+            "Ranked",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-chalet-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "GROUND",
+            "1ST",
+            "FLOOR",
+            "ROOF"
+        ]
+    },
+    "Clubhouse | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Clubhouse | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/clubhouse",
+        "location": "HANOVER, GERMANY",
+        "released": "Base game (December 2015)",
+        "playlists": [
+            "Quick Match",
+            "Ranked",
+            "Team Deathmatch",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-clubhouse-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "GROUND",
+            "2ND",
+            "FLOOR",
+            "ROOF"
+        ]
+    },
+    "Stadium Alpha | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Stadium Alpha | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/stadium-alpha",
+        "location": "Greece",
+        "released": "Operation Brutal Swarm (September 2022)",
+        "playlists": [
+            "Unranked",
+            "Quick Match",
+            "Team Deathmatch"
+        ],
+        "reworked": "June 2024",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://ubistatic-a.ubisoft.com/0106/gamesites/rainbow6/blueprints/r6-maps-stadiumalpha-blueprints.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Stadium Bravo | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Stadium Bravo | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/stadium-bravo",
+        "location": "Greece",
+        "released": "Operation Brutal Swarm (September 2022)",
+        "playlists": [
+            "Unranked",
+            "Quick Match"
+        ],
+        "reworked": "June 2024",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://ubistatic-a.ubisoft.com/0106/gamesites/rainbow6/blueprints/r6-maps-stadiumbravo-blueprints.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Lair | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Lair | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/lair",
+        "location": "Portugal",
+        "released": "Operation Deep Freeze (November 2023)",
+        "playlists": [
+            "Unranked",
+            "Quick Match",
+            "Ranked",
+            "Team Deathmatch"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://ubistatic-a.ubisoft.com/0106/gamesites/rainbow6/blueprints/r6-maps-lair-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Nighthaven Labs | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Nighthaven Labs | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/nighthaven-labs",
+        "location": "Offshore",
+        "released": "Operation Solar Raid (December 2022)",
+        "playlists": [
+            "Unranked",
+            "Ranked",
+            "Quick Match",
+            "Team Deathmatch"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://ubistatic-a.ubisoft.com/0106/gamesites/rainbow6/blueprints/r6-maps-nighthavenlabs-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Close Quarter | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Close Quarter | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/close-quarter",
+        "location": "Greece",
+        "released": "Operation Vector Glare (June 2022)",
+        "playlists": [
+            "Team Deathmatch"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://ubistatic-a.ubisoft.com/0106/gamesites/rainbow6/blueprints/r6-maps-closequarter-blueprints_june22.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND"
+        ]
+    },
+    "Emerald Plains | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Emerald Plains | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/emerald-plains",
+        "location": "Ireland",
+        "released": "Demon Veil (April 2022)",
+        "playlists": [
+            "Quick Match",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://ubistatic-a.ubisoft.com/0106/gamesites/rainbow6/blueprints/r6-maps-emeraldplains-blueprints.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Coastline | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Coastline | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/coastline",
+        "location": "IBIZA, SPAIN",
+        "released": "Velvet Shell (February 2017)",
+        "playlists": [
+            "Quick Match",
+            "Ranked",
+            "Unranked"
+        ],
+        "reworked": "Small rework - September 2021",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-coastline-blueprints.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Consulate | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Consulate | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/consulate",
+        "location": "ABIDJAN, IVORY COAST",
+        "released": "Base game (December 2015)",
+        "playlists": [
+            "Quick Match",
+            "Ranked",
+            "Team Deathmatch",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://ubistatic-a.ubisoft.com/0106/gamesites/rainbow6/blueprints/r6-maps-consulate-blueprints_may23.zip",
+        "floors": [
+            "BASEMENT",
+            "GROUND",
+            "1ST",
+            "FLOOR",
+            "ROOF"
+        ]
+    },
+    "Favela | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Favela | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/favela",
+        "location": "BRAZIL",
+        "released": "Skull Rain (August 2016)",
+        "playlists": [
+            "Quick Match",
+            "Unranked"
+        ],
+        "reworked": "June 2021",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-favela-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "GROUND",
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Fortress | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Fortress | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/fortress",
+        "location": "MOROCCO",
+        "released": "Wind bastion (December 2018)",
+        "playlists": [
+            "Quick Match",
+            "Unranked",
+            "Ranked"
+        ],
+        "reworked": "December 2025",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-fortress-blueprints.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "3RD",
+            "ROOF"
+        ]
+    },
+    "Hereford Base | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Hereford Base | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/hereford-base",
+        "location": "UNITED KINGDOM",
+        "released": "Base game (December 2015)",
+        "playlists": [],
+        "reworked": "September 2018",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-hereford-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "GROUND",
+            "2ND",
+            "FLOOR",
+            "3RD",
+            "ROOF"
+        ]
+    },
+    "House | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "House | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/house",
+        "location": "LOS ANGELES, CALIFORNIA",
+        "released": "Base game (December 2015)",
+        "playlists": [
+            "Quick Match",
+            "Unranked"
+        ],
+        "reworked": "June 2020",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-house-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "GROUND",
+            "1ST",
+            "FLOOR",
+            "ROOF"
+        ]
+    },
+    "Kanal | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Kanal | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/kanal",
+        "location": "HAMBURG, GERMANY",
+        "released": "Launch (December 2015)",
+        "playlists": [
+            "Quick Match",
+            "Ranked",
+            "Unranked"
+        ],
+        "reworked": "September 2019",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-kanal-blueprints.zip",
+        "floors": [
+            "GROUND",
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Oregon | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Oregon | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/oregon",
+        "location": "REDMOND, OREGON",
+        "released": "Base game (December 2015)",
+        "playlists": [
+            "Ranked",
+            "Quick Match",
+            "Unranked"
+        ],
+        "reworked": "March 2020",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-oregon-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "GROUND",
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Outback | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Outback | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/outback",
+        "location": "AUSTRALIA",
+        "released": "Burnt Horizon (March 2019)",
+        "playlists": [
+            "Quick Match",
+            "Ranked",
+            "Unranked"
+        ],
+        "reworked": "November 2021",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-outback-blueprints.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Presidential Plane | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Presidential Plane | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/presidential-plane",
+        "location": "LONDON, UNITED KINGDOM",
+        "released": "Base game (December 2015)",
+        "playlists": [
+            "Quick Match",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-plane-blueprints.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "3RD",
+            "ROOF"
+        ]
+    },
+    "Skyscraper | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Skyscraper | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/skyscraper",
+        "location": "NAGOYA, JAPAN",
+        "released": "Red Crow (November 2016)",
+        "playlists": [
+            "Ranked",
+            "Team Deathmatch",
+            "Quick Match",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-skyscraper-blueprints.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Theme Park | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Theme Park | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/theme-park",
+        "location": "HONG KONG",
+        "released": "Blood Orchid (August 2017)",
+        "playlists": [
+            "Ranked",
+            "Team Deathmatch",
+            "Quick Match",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-themepark-blueprints.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Tower | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Tower | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/tower",
+        "location": "SEOUL, SOUTH KOREA",
+        "released": "White Noise (November 2017)",
+        "playlists": [
+            "Quick Match",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-tower-blueprints.zip",
+        "floors": [
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Villa | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Villa | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/villa",
+        "location": "TUSCANY, ITALY",
+        "released": "Para Bellum (June 2018)",
+        "playlists": [
+            "Ranked",
+            "Team Deathmatch",
+            "Quick Match",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-villa-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    },
+    "Yacht | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)": {
+        "name": "Yacht | Maps | Tom Clancy's Rainbow Six Siege | Ubisoft (EU / UK)",
+        "url": "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/maps/yacht",
+        "location": "BAFFIN BAY",
+        "released": "Black Ice (February 2016)",
+        "playlists": [
+            "Quick Match",
+            "Unranked"
+        ],
+        "reworked": "",
+        "description": "© 2015–2020 Ubisoft Entertainment. All Rights Reserved. Tom Clancy’s, Rainbow Six, the Soldier Icon, Ubisoft, and the Ubisoft logo are registered or unregistered trademarks of Ubisoft Entertainment in the US and/or other countries. ©2025 Sony Interactive Entertainment LLC. \"PlayStation Family Mark\", \"PlayStation\", \"PS5 logo\", \"PS5\", \"PS4 logo\", \"PS4\", \"PlayStation Shapes Logo\" and \"Play Has No Limits\" are registered trademarks or trademarks of Sony Interactive Entertainment Inc.",
+        "blueprint_zip": "https://static2.cdn.ubi.com/gamesites/rainbow6/blueprints/r6-maps-yacht-blueprints.zip",
+        "floors": [
+            "BASEMENT",
+            "GROUND",
+            "1ST",
+            "FLOOR",
+            "2ND",
+            "ROOF"
+        ]
+    }
+}
