@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 import os
 import json
@@ -17,9 +18,9 @@ logger = logger.setup_logger(__name__, level=logger.logging.WARNING)
 cmd_handler = cmd_handler.handler
 
 intents = discord.Intents.default()
-intents.message_content = True # Required to access message content
-intents.members = True # Required to access member permissions
-intents.voice_states = True # Required for voice channel events
+intents.message_content = True  # Keep for legacy prefix commands
+intents.members = True
+intents.voice_states = True
 
 
 # get root folder path
@@ -77,6 +78,47 @@ bot = commands.Bot(command_prefix=command_prefix, intents=intents)
 
 
 class MyClient(discord.Client):
+    def __init__(self, *, intents: discord.Intents):
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
+
+    async def setup_hook(self):
+        # Register a slash command for each loaded command
+        for cmd_name, info in cmd_handler.list_commands_info().items():
+            desc = (info.get("doc") or f"Run {cmd_name}")[:99]
+
+            async def wrapper(interaction: discord.Interaction, args: str = "", _cmd: str = cmd_name):
+                class InteractionMessage:
+                    def __init__(self, interaction: discord.Interaction, content: str):
+                        self.content = content
+                        self.author = interaction.user
+                        self.channel = interaction.channel
+                        self.guild = interaction.guild
+
+                full_content = f"{command_prefix}{_cmd}" + (f" {args}" if args else "")
+                msg = InteractionMessage(interaction, full_content)
+
+                async def send_response(content: str | None = None, embed: discord.Embed | None = None):
+                    if interaction.response.is_done():
+                        await interaction.followup.send(content=content, embed=embed)
+                    else:
+                        await interaction.response.send_message(content=content, embed=embed)
+
+                await self._process_command(msg, responder=send_response)
+
+            command = app_commands.Command(
+                name=cmd_name,
+                description=desc or "Run command",
+                callback=wrapper,
+            )
+            try:
+                self.tree.add_command(command)
+            except Exception as e:
+                logger.error(f"Failed to register slash command {cmd_name}: {e}")
+
+        # Sync slash commands on startup
+        await self.tree.sync()
+
     async def on_ready(self):
         self.start_time = datetime.now()
         # Initialize private voice manager
@@ -98,59 +140,64 @@ class MyClient(discord.Client):
     async def on_message_delete(self, message):
         await msglog.on_message_delete(message)
     
-    @bot.event
     async def on_message(self, message):
         # Ignore messages from the bot itself
         if message.author == self.user:
             return
-        
-        # Check if the message starts with the command prefix
+
+        # Maintain legacy prefix command handling
         if message.content.startswith(command_prefix):
-            command_name = message.content[len(command_prefix):].split()[0]
-            command_func = cmd_handler.get_command(command_name)
-            
-            if command_func:
-                # Log command attempt
-                command_type = cmd_handler.get_command_type(command_name)
-                logger.info(f"Command '{command_name}' ({command_type}) requested by {message.author} (ID: {message.author.id}) in {message.guild.name if message.guild else 'DM'}")
-                
-                # Check if user has permission to run this command
-                has_permission, error_message = cmd_handler.check_permission(
-                    command_name, 
-                    message.author,
-                    BOT_OWNER_ID
-                )
-                
-                if has_permission:
-                    logger.info(f"Executing command '{command_name}' for {message.author}")
-                    try:
-                        # Check if command is async and call accordingly
-                        import inspect
-                        if inspect.iscoroutinefunction(command_func):
-                            response = await command_func(message, self)
-                        else:
-                            response = command_func(message, self)
-                        
-                        # Send response (could be text, embed, or None)
-                        if response is not None:
-                            if isinstance(response, discord.Embed):
-                                await message.channel.send(embed=response)
-                            else:
-                                await message.channel.send(response)
-                        logger.info(f"Command '{command_name}' executed successfully")
-                    except Exception as e:
-                        logger.error(f"Error executing command '{command_name}': {e}", exc_info=True)
-                        guild_id = message.guild.id if message.guild else None
-                        await message.channel.send(get_translation("error_executing_command", guild_id).replace("{error}", str(e)))
-                else:
-                    logger.warning(f"Permission denied for {message.author} to run '{command_name}': {error_message}")
-                    guild_id = message.guild.id if message.guild else None
-                    # If error_message already localized, insert into generic permission_denied template
-                    await message.channel.send(get_translation("permission_denied", guild_id).replace("{error}", error_message))
+            await self._process_command(message, responder=message.channel.send)
+
+
+    async def _process_command(self, message, responder):
+        command_name = message.content[len(command_prefix):].split()[0]
+        command_func = cmd_handler.get_command(command_name)
+
+        if not command_func:
+            logger.warning(f"Unknown command '{command_name}' requested by {message.author}")
+            guild_id = message.guild.id if message.guild else None
+            await responder(content=get_translation("cmd_not_found", guild_id).replace("{command}", command_name))
+            return
+
+        command_type = cmd_handler.get_command_type(command_name)
+        logger.info(
+            f"Command '{command_name}' ({command_type}) requested by {message.author} (ID: {message.author.id}) in {message.guild.name if message.guild else 'DM'}"
+        )
+
+        has_permission, error_message = cmd_handler.check_permission(
+            command_name,
+            message.author,
+            BOT_OWNER_ID,
+        )
+
+        if not has_permission:
+            logger.warning(f"Permission denied for {message.author} to run '{command_name}': {error_message}")
+            guild_id = message.guild.id if message.guild else None
+            await responder(content=get_translation("permission_denied", guild_id).replace("{error}", error_message))
+            return
+
+        logger.info(f"Executing command '{command_name}' for {message.author}")
+        try:
+            import inspect
+
+            if inspect.iscoroutinefunction(command_func):
+                response = await command_func(message, self)
             else:
-                logger.warning(f"Unknown command '{command_name}' requested by {message.author}")
-                guild_id = message.guild.id if message.guild else None
-                await message.channel.send(get_translation("cmd_not_found", guild_id).replace("{command}", command_name))
+                response = command_func(message, self)
+
+            if response is not None:
+                if isinstance(response, discord.Embed):
+                    await responder(embed=response)
+                else:
+                    await responder(content=response)
+            logger.info(f"Command '{command_name}' executed successfully")
+        except Exception as e:
+            logger.error(f"Error executing command '{command_name}': {e}", exc_info=True)
+            guild_id = message.guild.id if message.guild else None
+            await responder(content=get_translation("error_executing_command", guild_id).replace("{error}", str(e)))
+
+
 bot = MyClient(intents=intents)
 
 if __name__ == '__main__':

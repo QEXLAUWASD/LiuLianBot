@@ -1,6 +1,8 @@
 {
     "prefix": ">",
-    "owner_id": "owner_id_here",
+    "bot_owner": [
+        "480338992991305738"
+    ],
     "activity": {
         "type": "playing",
         "name": "N/A"
