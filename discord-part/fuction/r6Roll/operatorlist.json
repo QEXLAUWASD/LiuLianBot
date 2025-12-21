@@ -1,24 +1,5 @@
 {
-    "Att": {},
-    "Def": {
-        "Denari": {
-            "name": "Denari",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/17XNHqqrkLQ7lYFqciEwmP/21d50fb6c296d26a47f8dd84dd19298b/r6s-operators-badge-denari.png",
-            "weapon": {
-                "primary": [
-                    "Scorpion EVO 3 A1",
-                    "FMG-9"
-                ],
-                "secondary": [
-                    "Glaive-12",
-                    "P226 Mk 25"
-                ],
-                "gadget": [
-                    "Observation Blocker",
-                    "Deployable Shield"
-                ]
-            }
-        },
+    "Att": {
         "Rauora": {
             "name": "Rauora",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/T2BrSyMgBBSjM7rs8T53b/0f8d6842d4440fc06d450789c273381b/r6s-operators-badge-rauora.png",
@@ -34,46 +15,6 @@
                 "gadget": [
                     "Smoke Grenade",
                     "Breach Charge"
-                ]
-            }
-        },
-        "Skopós": {
-            "name": "Skopós",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/k0AOat3ISkt7WMR6X4dJg/aa4596095d3861f7de24e007730e3f89/r6s-operators-badge-skopos.png",
-            "weapon": {
-                "primary": [
-                    "PCX-33"
-                ],
-                "secondary": [
-                    "P229"
-                ],
-                "gadget": [
-                    "Impact Grenade",
-                    "PROXIMITY ALARM"
-                ]
-            }
-        },
-        "Sentry": {
-            "name": "Sentry",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/3RhB8rT969t71r0b3iiiQo/3bf85d17ade85b4e5943712b664b6166/r6s-operators-badge-sentry.png",
-            "weapon": {
-                "primary": [
-                    "Commando 9",
-                    "M870",
-                    "TCSG12"
-                ],
-                "secondary": [
-                    "C75 Auto",
-                    "Super Shorty"
-                ],
-                "gadget": [
-                    "Barbed Wire",
-                    "Bulletproof camera",
-                    "Deployable Shield",
-                    "Observation Blocker",
-                    "Impact Grenade",
-                    "Nitro Cell",
-                    "PROXIMITY ALARM"
                 ]
             }
         },
@@ -118,23 +59,6 @@
                 ]
             }
         },
-        "Tubarão": {
-            "name": "Tubarão",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/43VtYmfmTtLwwKDGhalSCO/9673bb50e981ba2684cd649534f00de7/r6s-operators-badge-tubarao.png",
-            "weapon": {
-                "primary": [
-                    "MPX",
-                    "AR-15.50"
-                ],
-                "secondary": [
-                    "P226 Mk 25"
-                ],
-                "gadget": [
-                    "Nitro Cell",
-                    "PROXIMITY ALARM"
-                ]
-            }
-        },
         "Ram": {
             "name": "Ram",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/3YQiStwC1Qo4wKWmgK6XCH/ac8a0fea30f2996f96ca31b17a0039fa/r6s-operators-badge-ram.png",
@@ -149,23 +73,6 @@
                 "gadget": [
                     "Smoke Grenade",
                     "Stun Grenade"
-                ]
-            }
-        },
-        "Fenrir": {
-            "name": "Fenrir",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/4vtvBhY56S2slW3y0eKsMp/6a0f41807549ad1aa503112d4ad05a52/r6s-operators-badge-fenrir.png",
-            "weapon": {
-                "primary": [
-                    "MP7",
-                    "SASG-12"
-                ],
-                "secondary": [
-                    "5.7 USG"
-                ],
-                "gadget": [
-                    "Bulletproof camera",
-                    "Observation Blocker"
                 ]
             }
         },
@@ -184,23 +91,6 @@
                 "gadget": [
                     "Smoke Grenade",
                     "Claymore"
-                ]
-            }
-        },
-        "Solis": {
-            "name": "Solis",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/6YOBUP5JMskklFx9nDJQ49/d9d4b0968f581597feaa0ef4ec0891f3/r6s-operators-badge-solis.png",
-            "weapon": {
-                "primary": [
-                    "ITA12L",
-                    "P90"
-                ],
-                "secondary": [
-                    "SMG-11"
-                ],
-                "gadget": [
-                    "Bulletproof camera",
-                    "PROXIMITY ALARM"
                 ]
             }
         },
@@ -241,41 +131,6 @@
                 ]
             }
         },
-        "Azami": {
-            "name": "Azami",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/7KWTXHTk8rxLS5qtyX4Xu4/b51f8691b932fd2b83260ef3fbcd1154/r6s-operators-badge-azami.png",
-            "weapon": {
-                "primary": [
-                    "9X19SVN",
-                    "ACS12"
-                ],
-                "secondary": [
-                    "D-50"
-                ],
-                "gadget": [
-                    "Impact Grenade",
-                    "Barbed Wire"
-                ]
-            }
-        },
-        "Thorn": {
-            "name": "Thorn",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/1pzBJsbL1vQT8is7B0Xjxz/440335c080e54ca28eba24858361a03a/r6s-operators-badge-thorn.png",
-            "weapon": {
-                "primary": [
-                    "UZK50Gi",
-                    "M870"
-                ],
-                "secondary": [
-                    "1911 TACOPS",
-                    "C75 Auto"
-                ],
-                "gadget": [
-                    "Deployable Shield",
-                    "Barbed Wire"
-                ]
-            }
-        },
         "Osa": {
             "name": "Osa",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/5tt27EFHYjiDLo2qbYEgXG/2f1acbb8209e45b136ca7b0e2e5eb1f9/r6s-operators-badge-osa.png",
@@ -294,26 +149,6 @@
                 ]
             }
         },
-        "Thunderbird": {
-            "name": "Thunderbird",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/YQfDJ42B2IKcKnb0lRaXq/0cedb53c439b0fe448be95713a836b29/r6s-operators-badge-thunderbird.png",
-            "weapon": {
-                "primary": [
-                    "SPAS-15",
-                    "Spear .308"
-                ],
-                "secondary": [
-                    "Bearing 9",
-                    "Q-929",
-                    "ITA12S"
-                ],
-                "gadget": [
-                    "Barbed Wire",
-                    "Bulletproof camera",
-                    "Deployable Shield"
-                ]
-            }
-        },
         "Flores": {
             "name": "Flores",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/75vqJXXKCM2EDO0iiNqRDe/d6289dc9a4fed72ef72b9c1e11738456/Y6S1_BADGE_Flores_L.png",
@@ -328,23 +163,6 @@
                 "gadget": [
                     "Stun Grenade",
                     "Claymore"
-                ]
-            }
-        },
-        "Aruni": {
-            "name": "Aruni",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/5rOLCYQOh5HH0Nv6NHe38H/29681f901ff71ae5decb5ccb1b9f8a29/Y5S4_BADGE_Aruni_L.png",
-            "weapon": {
-                "primary": [
-                    "P10 RONI",
-                    "Mk 14 EBR"
-                ],
-                "secondary": [
-                    "PRB92"
-                ],
-                "gadget": [
-                    "Bulletproof camera",
-                    "Barbed Wire"
                 ]
             }
         },
@@ -383,43 +201,6 @@
                 ]
             }
         },
-        "Melusi": {
-            "name": "Melusi",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/74H52a9GMql8wamIy6WqH5/9fddba49258152835da7cdac8c566663/Y5S2_BADGE_Melusi_L.png",
-            "weapon": {
-                "primary": [
-                    "MP5",
-                    "Super 90"
-                ],
-                "secondary": [
-                    "ITA12S",
-                    "RG15"
-                ],
-                "gadget": [
-                    "Bulletproof camera",
-                    "Impact Grenade"
-                ]
-            }
-        },
-        "Oryx": {
-            "name": "Oryx",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/7mLA8GY9ZKlUfDXrfo9Nek/e3dfd0759414f36866a8c80b61a67722/Y5S1_BADGE_Oryx_L.png",
-            "weapon": {
-                "primary": [
-                    "SPAS-12",
-                    "T-5 SMG"
-                ],
-                "secondary": [
-                    "Bailiff 410",
-                    "Reaper MK2",
-                    "USP40"
-                ],
-                "gadget": [
-                    "Barbed Wire",
-                    "PROXIMITY ALARM"
-                ]
-            }
-        },
         "Iana": {
             "name": "Iana",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/6deSi1vse5iJTkErFksrGq/75bf1038e9698b6b2be75aa0493b092d/Y5S1_BADGE_Iana_L.png",
@@ -435,25 +216,6 @@
                 "gadget": [
                     "Impact EMP Grenade",
                     "Smoke Grenade"
-                ]
-            }
-        },
-        "Wamai": {
-            "name": "Wamai",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/1vQZ4WsAjhc6M7qNOS4ahQ/92fc4d89632fb87aec0f102d7adbfe26/Y4S4_BADGE_Wamai_L.png",
-            "weapon": {
-                "primary": [
-                    "AUG A2",
-                    "MP5K"
-                ],
-                "secondary": [
-                    "Super Shorty",
-                    "P12",
-                    "Keratos .357"
-                ],
-                "gadget": [
-                    "PROXIMITY ALARM",
-                    "Impact Grenade"
                 ]
             }
         },
@@ -495,24 +257,6 @@
                 ]
             }
         },
-        "Goyo": {
-            "name": "Goyo",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/6AAY4FZt5piHdabOdDokE4/f7f8bd90c20b8a429c78a08684b75aca/Y4S3_BADGE_Goyo_L.png",
-            "weapon": {
-                "primary": [
-                    "Vector .45 ACP",
-                    "TCSG12"
-                ],
-                "secondary": [
-                    "P229"
-                ],
-                "gadget": [
-                    "PROXIMITY ALARM",
-                    "Bulletproof camera",
-                    "Impact Grenade"
-                ]
-            }
-        },
         "NØKK": {
             "name": "NØKK",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/2qfSHHTdCRVhx9EWycVDNr/9e361e73fb91e571f7470de21edf5c7a/Y4S2_BADGE_Nokk_L.png",
@@ -530,43 +274,6 @@
                     "HARD BREACH CHARGE",
                     "Frag Grenade",
                     "Impact EMP Grenade"
-                ]
-            }
-        },
-        "Warden": {
-            "name": "Warden",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/hx1Ljf1qIWbjpgCNmfJbu/2217283b569ef316dc12b93e86649f8f/Y4S2_BADGE_Warden_L.png",
-            "weapon": {
-                "primary": [
-                    "M590A1",
-                    "MPX"
-                ],
-                "secondary": [
-                    "P-10C",
-                    "SMG-12"
-                ],
-                "gadget": [
-                    "Deployable Shield",
-                    "Nitro Cell",
-                    "Observation Blocker"
-                ]
-            }
-        },
-        "Mozzie": {
-            "name": "Mozzie",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/15hUu2PsypX2c1LIJFQNUT/8538c52057420dbf3995cf3117b155c5/Y4S1_BADGE_Mozzie_L.png",
-            "weapon": {
-                "primary": [
-                    "Commando 9",
-                    "P10 RONI"
-                ],
-                "secondary": [
-                    "SDP 9mm"
-                ],
-                "gadget": [
-                    "Barbed Wire",
-                    "Nitro Cell",
-                    "Impact Grenade"
                 ]
             }
         },
@@ -607,43 +314,6 @@
                 ]
             }
         },
-        "Kaid": {
-            "name": "Kaid",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/5Qblb1ZqAqkN3Wa0Qw5qBq/05630c80672105a1195282d276e8eb05/Y3S4_BADGE_L.png",
-            "weapon": {
-                "primary": [
-                    "AUG A3",
-                    "TCSG12"
-                ],
-                "secondary": [
-                    ".44 MAG SEMI-AUTO",
-                    "LFP586"
-                ],
-                "gadget": [
-                    "Barbed Wire",
-                    "Nitro Cell",
-                    "Observation Blocker"
-                ]
-            }
-        },
-        "Clash": {
-            "name": "Clash",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/7G4lGl5HPLFTTUdcZW8UOK/3901b44cf2a9423486ffd78531e42f87/Y3S3_BADGE_Clash_L.png",
-            "weapon": {
-                "primary": [
-                    "CCE SHIELD MK2"
-                ],
-                "secondary": [
-                    "P-10C",
-                    "SPSMG9",
-                    "Super Shorty"
-                ],
-                "gadget": [
-                    "Barbed Wire",
-                    "Impact Grenade"
-                ]
-            }
-        },
         "Maverick": {
             "name": "Maverick",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/3DXiYgVT71qGscYmFMgayj/d6c40a7dabdfecb92b637bec83003a58/Y3S3_BADGE_Maverick_L.png",
@@ -662,43 +332,6 @@
                     "Smoke Grenade",
                     "Stun Grenade",
                     "Frag Grenade"
-                ]
-            }
-        },
-        "Maestro": {
-            "name": "Maestro",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/XK43imgD0tc0xrk0tgTCQ/0402cc95cbd525debafa1aab0fdd8385/Y3S2_BADGE_Maestro_L.png",
-            "weapon": {
-                "primary": [
-                    "ALDA 5.56",
-                    "ACS12"
-                ],
-                "secondary": [
-                    "Keratos .357",
-                    "Bailiff 410"
-                ],
-                "gadget": [
-                    "Barbed Wire",
-                    "Impact Grenade",
-                    "Observation Blocker"
-                ]
-            }
-        },
-        "Alibi": {
-            "name": "Alibi",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/3DgGV3hETnXiEvVFOYZrbm/55a6be47761b5cf2c7ff8aaa7991cc7f/Y3S2_BADGE_Alibi_L.png",
-            "weapon": {
-                "primary": [
-                    "Mx4 Storm",
-                    "ACS12"
-                ],
-                "secondary": [
-                    "Keratos .357",
-                    "Bailiff 410"
-                ],
-                "gadget": [
-                    "PROXIMITY ALARM",
-                    "Observation Blocker"
                 ]
             }
         },
@@ -742,24 +375,6 @@
                 ]
             }
         },
-        "Vigil": {
-            "name": "Vigil",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/56A3hXhWZdwO623g3ejeku/a40a0582a7841abfeed723d8fbe238d3/Y2S4_BADGE_Vigil_L.png",
-            "weapon": {
-                "primary": [
-                    "K1A",
-                    "BOSG.12.2"
-                ],
-                "secondary": [
-                    "C75 Auto",
-                    "SMG-12"
-                ],
-                "gadget": [
-                    "Bulletproof camera",
-                    "Impact Grenade"
-                ]
-            }
-        },
         "Dokkaebi": {
             "name": "Dokkaebi",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/aoQeHLohcuqvubBoyrzsM/d4a230ecba495c58c5521e10d5d84baa/Y2S4_BADGE_Dokkaebi_L.png",
@@ -797,24 +412,6 @@
                 ]
             }
         },
-        "Ela": {
-            "name": "Ela",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/7zbkJJWMCOj04DNhYDz994/d2cba213d30d7b8cf2ba8cd568c78f20/Y2S3_BADGE_Ela_L.png",
-            "weapon": {
-                "primary": [
-                    "Scorpion EVO 3 A1",
-                    "FO-12"
-                ],
-                "secondary": [
-                    "RG15"
-                ],
-                "gadget": [
-                    "Barbed Wire",
-                    "Deployable Shield",
-                    "Impact Grenade"
-                ]
-            }
-        },
         "Ying": {
             "name": "Ying",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/6ZVB1OJxNgs0pR0Fd7Kzt0/74721fe9fd743167508f98dc280a17a3/Y2S2_BADGE_Ying_L.png",
@@ -830,42 +427,6 @@
                 "gadget": [
                     "HARD BREACH CHARGE",
                     "Smoke Grenade"
-                ]
-            }
-        },
-        "Lesion": {
-            "name": "Lesion",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/2CWYSySnPAhsOHdq2OLSjv/f9e54debcfa0c8fe76012d9097b98e6e/Y2S2_BADGE_Lesion_L.png",
-            "weapon": {
-                "primary": [
-                    "SIX12 SD",
-                    "T-5 SMG"
-                ],
-                "secondary": [
-                    "Q-929",
-                    "Super Shorty"
-                ],
-                "gadget": [
-                    "Observation Blocker",
-                    "Bulletproof camera"
-                ]
-            }
-        },
-        "Mira": {
-            "name": "Mira",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/u1KR6aogjLncAtaVOciTc/ba730583f9c20cad6d3ca996d366a707/Y2S1_BADGE_Mira_L.png",
-            "weapon": {
-                "primary": [
-                    "Vector .45 ACP",
-                    "ITA12L"
-                ],
-                "secondary": [
-                    "USP40",
-                    "ITA12S"
-                ],
-                "gadget": [
-                    "PROXIMITY ALARM",
-                    "Nitro Cell"
                 ]
             }
         },
@@ -908,42 +469,6 @@
                 ]
             }
         },
-        "Echo": {
-            "name": "Echo",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/3MRqAdUybJ7GR9gX4wPAI4/992938a70a4e53b91478358634e77ca7/Y1S4_BADGE_Echo_L.png",
-            "weapon": {
-                "primary": [
-                    "MP5SD",
-                    "SuperNova"
-                ],
-                "secondary": [
-                    "Bearing 9",
-                    "P229"
-                ],
-                "gadget": [
-                    "Impact Grenade",
-                    "Deployable Shield"
-                ]
-            }
-        },
-        "Caveira": {
-            "name": "Caveira",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/4H1dOkcdZIKblKkAWjD390/10e57f4829eabda30f4aa1044e49893d/Y1S3_BADGE_Caveira_L.png",
-            "weapon": {
-                "primary": [
-                    "M12",
-                    "SPAS-15"
-                ],
-                "secondary": [
-                    "Luison"
-                ],
-                "gadget": [
-                    "PROXIMITY ALARM",
-                    "Impact Grenade",
-                    "Observation Blocker"
-                ]
-            }
-        },
         "CAPITÃO": {
             "name": "CAPITÃO",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/73R4IrWJyn0xdkJ0fjOODA/fc70d200a7530dccae2847ab7962e394/Y1S3_BADGE_Capitao_L.png",
@@ -979,23 +504,6 @@
                 ]
             }
         },
-        "Valkyrie": {
-            "name": "Valkyrie",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/44qXJmZmAwaD4w44JnPuOx/c54c8b9d3a6813ab8ce3e3f1dd4ef408/Y1S2_BADGE_Valkyrie_L.png",
-            "weapon": {
-                "primary": [
-                    "MPX",
-                    "SPAS-12"
-                ],
-                "secondary": [
-                    "D-50"
-                ],
-                "gadget": [
-                    "Impact Grenade",
-                    "Nitro Cell"
-                ]
-            }
-        },
         "Buck": {
             "name": "Buck",
             "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/2oZZBEZzVLFpRY7Mp85MWq/f62287872dd61b4e0697a93d703b2beb/Y1S1_BADGE_Buck_L.png",
@@ -1010,42 +518,6 @@
                 "gadget": [
                     "Stun Grenade",
                     "Claymore"
-                ]
-            }
-        },
-        "Frost": {
-            "name": "Frost",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/1OWFtfiEXleLSENciCSQQR/8fcced59c0125073e506f2dee0201015/Y1S1_BADGE_Frost_L.png",
-            "weapon": {
-                "primary": [
-                    "Super 90",
-                    "9mm C1"
-                ],
-                "secondary": [
-                    "Mk1 9mm",
-                    "ITA12S"
-                ],
-                "gadget": [
-                    "Bulletproof camera",
-                    "Deployable Shield"
-                ]
-            }
-        },
-        "Mute": {
-            "name": "Mute",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/3exeHnxH1tmUmQTequWRKa/e1b6c6f057eb24722dd7860af0276316/Y0R6_BADGE_Mute_L.png",
-            "weapon": {
-                "primary": [
-                    "MP5K",
-                    "M590A1"
-                ],
-                "secondary": [
-                    "P226 Mk 25",
-                    "SMG-11"
-                ],
-                "gadget": [
-                    "Bulletproof camera",
-                    "Nitro Cell"
                 ]
             }
         },
@@ -1065,24 +537,6 @@
                     "Frag Grenade",
                     "Stun Grenade",
                     "Impact EMP Grenade"
-                ]
-            }
-        },
-        "Smoke": {
-            "name": "Smoke",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/6mOMxoc3t27R9Gr9wFtt6T/f5f90a6be6a6710bee686ce69df29906/Y0R6_BADGE_Smoke_L.png",
-            "weapon": {
-                "primary": [
-                    "M590A1",
-                    "FMG-9"
-                ],
-                "secondary": [
-                    "P226 Mk 25",
-                    "SMG-11"
-                ],
-                "gadget": [
-                    "Barbed Wire",
-                    "PROXIMITY ALARM"
                 ]
             }
         },
@@ -1120,45 +574,6 @@
                 "gadget": [
                     "Breach Charge",
                     "Claymore"
-                ]
-            }
-        },
-        "Castle": {
-            "name": "Castle",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/kzznLctjOsXJZAg0F2HPB/dea28fa008515d6ddaa0d2659f4dc253/Y0R6_BADGE_Castle_L.png",
-            "weapon": {
-                "primary": [
-                    "UMP45",
-                    "M1014"
-                ],
-                "secondary": [
-                    "5.7 USG",
-                    "Super Shorty",
-                    "M45 MEUSOC"
-                ],
-                "gadget": [
-                    "PROXIMITY ALARM",
-                    "Bulletproof camera"
-                ]
-            }
-        },
-        "Pulse": {
-            "name": "Pulse",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/ChAeJzdmwxuvhZTrV81rK/8c16116f4c719a3df864df6639e2f52e/Y0R6_BADGE_Pulse_L.png",
-            "weapon": {
-                "primary": [
-                    "UMP45",
-                    "M1014"
-                ],
-                "secondary": [
-                    "5.7 USG",
-                    "M45 MEUSOC",
-                    "Reaper MK2"
-                ],
-                "gadget": [
-                    "Nitro Cell",
-                    "Deployable Shield",
-                    "Observation Blocker"
                 ]
             }
         },
@@ -1215,6 +630,666 @@
                 "gadget": [
                     "Smoke Grenade",
                     "Claymore"
+                ]
+            }
+        },
+        "Blitz": {
+            "name": "Blitz",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/2YTGfm1Df9PtldLcGodcTV/9a235b550cdf5066d686cef750eba090/Y0R6_BADGE_Blitz_L.png",
+            "weapon": {
+                "primary": [
+                    "G52-Tactical Shield"
+                ],
+                "secondary": [
+                    "P12"
+                ],
+                "gadget": [
+                    "Smoke Grenade",
+                    "Breach Charge"
+                ]
+            }
+        },
+        "IQ": {
+            "name": "IQ",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/4xnVj2iZB8Otchiw7j69UO/13c864a4e2eb976c1978dc79411b450c/Y0R6_BADGE_IQ_L.png",
+            "weapon": {
+                "primary": [
+                    "AUG A2",
+                    "552 Commando",
+                    "G8A1"
+                ],
+                "secondary": [
+                    "P12"
+                ],
+                "gadget": [
+                    "Breach Charge",
+                    "Frag Grenade",
+                    "Claymore"
+                ]
+            }
+        },
+        "Fuze": {
+            "name": "Fuze",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/1wkdQ0viuTEguji14qXMJG/5858418baa8cca04a6e42a2d6256c093/Y0R6_BADGE_Fuze_L.png",
+            "weapon": {
+                "primary": [
+                    "AK-12",
+                    "6P41",
+                    "Ballistic Shield"
+                ],
+                "secondary": [
+                    "PMM",
+                    "GSh-18"
+                ],
+                "gadget": [
+                    "Breach Charge",
+                    "HARD BREACH CHARGE",
+                    "Smoke Grenade"
+                ]
+            }
+        },
+        "Glaz": {
+            "name": "Glaz",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/5UAZVgyOutPh6bLTV3fGXf/c59d484fd599d09a947ec423b2119620/Y0R6_BADGE_Glaz_L.png",
+            "weapon": {
+                "primary": [
+                    "OTs-03"
+                ],
+                "secondary": [
+                    "PMM",
+                    "Gonne-6",
+                    "Bearing 9"
+                ],
+                "gadget": [
+                    "Smoke Grenade",
+                    "Frag Grenade",
+                    "Claymore"
+                ]
+            }
+        }
+    },
+    "Def": {
+        "Denari": {
+            "name": "Denari",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/17XNHqqrkLQ7lYFqciEwmP/21d50fb6c296d26a47f8dd84dd19298b/r6s-operators-badge-denari.png",
+            "weapon": {
+                "primary": [
+                    "Scorpion EVO 3 A1",
+                    "FMG-9"
+                ],
+                "secondary": [
+                    "Glaive-12",
+                    "P226 Mk 25"
+                ],
+                "gadget": [
+                    "Observation Blocker",
+                    "Deployable Shield"
+                ]
+            }
+        },
+        "Skopós": {
+            "name": "Skopós",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/k0AOat3ISkt7WMR6X4dJg/aa4596095d3861f7de24e007730e3f89/r6s-operators-badge-skopos.png",
+            "weapon": {
+                "primary": [
+                    "PCX-33"
+                ],
+                "secondary": [
+                    "P229"
+                ],
+                "gadget": [
+                    "Impact Grenade",
+                    "PROXIMITY ALARM"
+                ]
+            }
+        },
+        "Sentry": {
+            "name": "Sentry",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/3RhB8rT969t71r0b3iiiQo/3bf85d17ade85b4e5943712b664b6166/r6s-operators-badge-sentry.png",
+            "weapon": {
+                "primary": [
+                    "Commando 9",
+                    "M870",
+                    "TCSG12"
+                ],
+                "secondary": [
+                    "C75 Auto",
+                    "Super Shorty"
+                ],
+                "gadget": [
+                    "Barbed Wire",
+                    "Bulletproof camera",
+                    "Deployable Shield",
+                    "Observation Blocker",
+                    "Impact Grenade",
+                    "Nitro Cell",
+                    "PROXIMITY ALARM"
+                ]
+            }
+        },
+        "Tubarão": {
+            "name": "Tubarão",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/43VtYmfmTtLwwKDGhalSCO/9673bb50e981ba2684cd649534f00de7/r6s-operators-badge-tubarao.png",
+            "weapon": {
+                "primary": [
+                    "MPX",
+                    "AR-15.50"
+                ],
+                "secondary": [
+                    "P226 Mk 25"
+                ],
+                "gadget": [
+                    "Nitro Cell",
+                    "PROXIMITY ALARM"
+                ]
+            }
+        },
+        "Fenrir": {
+            "name": "Fenrir",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/4vtvBhY56S2slW3y0eKsMp/6a0f41807549ad1aa503112d4ad05a52/r6s-operators-badge-fenrir.png",
+            "weapon": {
+                "primary": [
+                    "MP7",
+                    "SASG-12"
+                ],
+                "secondary": [
+                    "5.7 USG"
+                ],
+                "gadget": [
+                    "Bulletproof camera",
+                    "Observation Blocker"
+                ]
+            }
+        },
+        "Solis": {
+            "name": "Solis",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/6YOBUP5JMskklFx9nDJQ49/d9d4b0968f581597feaa0ef4ec0891f3/r6s-operators-badge-solis.png",
+            "weapon": {
+                "primary": [
+                    "ITA12L",
+                    "P90"
+                ],
+                "secondary": [
+                    "SMG-11"
+                ],
+                "gadget": [
+                    "Bulletproof camera",
+                    "PROXIMITY ALARM"
+                ]
+            }
+        },
+        "Azami": {
+            "name": "Azami",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/7KWTXHTk8rxLS5qtyX4Xu4/b51f8691b932fd2b83260ef3fbcd1154/r6s-operators-badge-azami.png",
+            "weapon": {
+                "primary": [
+                    "9X19SVN",
+                    "ACS12"
+                ],
+                "secondary": [
+                    "D-50"
+                ],
+                "gadget": [
+                    "Impact Grenade",
+                    "Barbed Wire"
+                ]
+            }
+        },
+        "Thorn": {
+            "name": "Thorn",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/1pzBJsbL1vQT8is7B0Xjxz/440335c080e54ca28eba24858361a03a/r6s-operators-badge-thorn.png",
+            "weapon": {
+                "primary": [
+                    "UZK50Gi",
+                    "M870"
+                ],
+                "secondary": [
+                    "1911 TACOPS",
+                    "C75 Auto"
+                ],
+                "gadget": [
+                    "Deployable Shield",
+                    "Barbed Wire"
+                ]
+            }
+        },
+        "Thunderbird": {
+            "name": "Thunderbird",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/YQfDJ42B2IKcKnb0lRaXq/0cedb53c439b0fe448be95713a836b29/r6s-operators-badge-thunderbird.png",
+            "weapon": {
+                "primary": [
+                    "SPAS-15",
+                    "Spear .308"
+                ],
+                "secondary": [
+                    "Bearing 9",
+                    "Q-929",
+                    "ITA12S"
+                ],
+                "gadget": [
+                    "Barbed Wire",
+                    "Bulletproof camera",
+                    "Deployable Shield"
+                ]
+            }
+        },
+        "Aruni": {
+            "name": "Aruni",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/5rOLCYQOh5HH0Nv6NHe38H/29681f901ff71ae5decb5ccb1b9f8a29/Y5S4_BADGE_Aruni_L.png",
+            "weapon": {
+                "primary": [
+                    "P10 RONI",
+                    "Mk 14 EBR"
+                ],
+                "secondary": [
+                    "PRB92"
+                ],
+                "gadget": [
+                    "Bulletproof camera",
+                    "Barbed Wire"
+                ]
+            }
+        },
+        "Melusi": {
+            "name": "Melusi",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/74H52a9GMql8wamIy6WqH5/9fddba49258152835da7cdac8c566663/Y5S2_BADGE_Melusi_L.png",
+            "weapon": {
+                "primary": [
+                    "MP5",
+                    "Super 90"
+                ],
+                "secondary": [
+                    "ITA12S",
+                    "RG15"
+                ],
+                "gadget": [
+                    "Bulletproof camera",
+                    "Impact Grenade"
+                ]
+            }
+        },
+        "Oryx": {
+            "name": "Oryx",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/7mLA8GY9ZKlUfDXrfo9Nek/e3dfd0759414f36866a8c80b61a67722/Y5S1_BADGE_Oryx_L.png",
+            "weapon": {
+                "primary": [
+                    "SPAS-12",
+                    "T-5 SMG"
+                ],
+                "secondary": [
+                    "Bailiff 410",
+                    "Reaper MK2",
+                    "USP40"
+                ],
+                "gadget": [
+                    "Barbed Wire",
+                    "PROXIMITY ALARM"
+                ]
+            }
+        },
+        "Wamai": {
+            "name": "Wamai",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/1vQZ4WsAjhc6M7qNOS4ahQ/92fc4d89632fb87aec0f102d7adbfe26/Y4S4_BADGE_Wamai_L.png",
+            "weapon": {
+                "primary": [
+                    "AUG A2",
+                    "MP5K"
+                ],
+                "secondary": [
+                    "Super Shorty",
+                    "P12",
+                    "Keratos .357"
+                ],
+                "gadget": [
+                    "PROXIMITY ALARM",
+                    "Impact Grenade"
+                ]
+            }
+        },
+        "Goyo": {
+            "name": "Goyo",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/6AAY4FZt5piHdabOdDokE4/f7f8bd90c20b8a429c78a08684b75aca/Y4S3_BADGE_Goyo_L.png",
+            "weapon": {
+                "primary": [
+                    "Vector .45 ACP",
+                    "TCSG12"
+                ],
+                "secondary": [
+                    "P229"
+                ],
+                "gadget": [
+                    "PROXIMITY ALARM",
+                    "Bulletproof camera",
+                    "Impact Grenade"
+                ]
+            }
+        },
+        "Warden": {
+            "name": "Warden",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/hx1Ljf1qIWbjpgCNmfJbu/2217283b569ef316dc12b93e86649f8f/Y4S2_BADGE_Warden_L.png",
+            "weapon": {
+                "primary": [
+                    "M590A1",
+                    "MPX"
+                ],
+                "secondary": [
+                    "P-10C",
+                    "SMG-12"
+                ],
+                "gadget": [
+                    "Deployable Shield",
+                    "Nitro Cell",
+                    "Observation Blocker"
+                ]
+            }
+        },
+        "Mozzie": {
+            "name": "Mozzie",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/15hUu2PsypX2c1LIJFQNUT/8538c52057420dbf3995cf3117b155c5/Y4S1_BADGE_Mozzie_L.png",
+            "weapon": {
+                "primary": [
+                    "Commando 9",
+                    "P10 RONI"
+                ],
+                "secondary": [
+                    "SDP 9mm"
+                ],
+                "gadget": [
+                    "Barbed Wire",
+                    "Nitro Cell",
+                    "Impact Grenade"
+                ]
+            }
+        },
+        "Kaid": {
+            "name": "Kaid",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/5Qblb1ZqAqkN3Wa0Qw5qBq/05630c80672105a1195282d276e8eb05/Y3S4_BADGE_L.png",
+            "weapon": {
+                "primary": [
+                    "AUG A3",
+                    "TCSG12"
+                ],
+                "secondary": [
+                    ".44 MAG SEMI-AUTO",
+                    "LFP586"
+                ],
+                "gadget": [
+                    "Barbed Wire",
+                    "Nitro Cell",
+                    "Observation Blocker"
+                ]
+            }
+        },
+        "Clash": {
+            "name": "Clash",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/7G4lGl5HPLFTTUdcZW8UOK/3901b44cf2a9423486ffd78531e42f87/Y3S3_BADGE_Clash_L.png",
+            "weapon": {
+                "primary": [
+                    "CCE SHIELD MK2"
+                ],
+                "secondary": [
+                    "P-10C",
+                    "SPSMG9",
+                    "Super Shorty"
+                ],
+                "gadget": [
+                    "Barbed Wire",
+                    "Impact Grenade"
+                ]
+            }
+        },
+        "Maestro": {
+            "name": "Maestro",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/XK43imgD0tc0xrk0tgTCQ/0402cc95cbd525debafa1aab0fdd8385/Y3S2_BADGE_Maestro_L.png",
+            "weapon": {
+                "primary": [
+                    "ALDA 5.56",
+                    "ACS12"
+                ],
+                "secondary": [
+                    "Keratos .357",
+                    "Bailiff 410"
+                ],
+                "gadget": [
+                    "Barbed Wire",
+                    "Impact Grenade",
+                    "Observation Blocker"
+                ]
+            }
+        },
+        "Alibi": {
+            "name": "Alibi",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/3DgGV3hETnXiEvVFOYZrbm/55a6be47761b5cf2c7ff8aaa7991cc7f/Y3S2_BADGE_Alibi_L.png",
+            "weapon": {
+                "primary": [
+                    "Mx4 Storm",
+                    "ACS12"
+                ],
+                "secondary": [
+                    "Keratos .357",
+                    "Bailiff 410"
+                ],
+                "gadget": [
+                    "PROXIMITY ALARM",
+                    "Observation Blocker"
+                ]
+            }
+        },
+        "Vigil": {
+            "name": "Vigil",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/56A3hXhWZdwO623g3ejeku/a40a0582a7841abfeed723d8fbe238d3/Y2S4_BADGE_Vigil_L.png",
+            "weapon": {
+                "primary": [
+                    "K1A",
+                    "BOSG.12.2"
+                ],
+                "secondary": [
+                    "C75 Auto",
+                    "SMG-12"
+                ],
+                "gadget": [
+                    "Bulletproof camera",
+                    "Impact Grenade"
+                ]
+            }
+        },
+        "Ela": {
+            "name": "Ela",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/7zbkJJWMCOj04DNhYDz994/d2cba213d30d7b8cf2ba8cd568c78f20/Y2S3_BADGE_Ela_L.png",
+            "weapon": {
+                "primary": [
+                    "Scorpion EVO 3 A1",
+                    "FO-12"
+                ],
+                "secondary": [
+                    "RG15"
+                ],
+                "gadget": [
+                    "Barbed Wire",
+                    "Deployable Shield",
+                    "Impact Grenade"
+                ]
+            }
+        },
+        "Lesion": {
+            "name": "Lesion",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/2CWYSySnPAhsOHdq2OLSjv/f9e54debcfa0c8fe76012d9097b98e6e/Y2S2_BADGE_Lesion_L.png",
+            "weapon": {
+                "primary": [
+                    "SIX12 SD",
+                    "T-5 SMG"
+                ],
+                "secondary": [
+                    "Q-929",
+                    "Super Shorty"
+                ],
+                "gadget": [
+                    "Observation Blocker",
+                    "Bulletproof camera"
+                ]
+            }
+        },
+        "Mira": {
+            "name": "Mira",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/u1KR6aogjLncAtaVOciTc/ba730583f9c20cad6d3ca996d366a707/Y2S1_BADGE_Mira_L.png",
+            "weapon": {
+                "primary": [
+                    "Vector .45 ACP",
+                    "ITA12L"
+                ],
+                "secondary": [
+                    "USP40",
+                    "ITA12S"
+                ],
+                "gadget": [
+                    "PROXIMITY ALARM",
+                    "Nitro Cell"
+                ]
+            }
+        },
+        "Echo": {
+            "name": "Echo",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/3MRqAdUybJ7GR9gX4wPAI4/992938a70a4e53b91478358634e77ca7/Y1S4_BADGE_Echo_L.png",
+            "weapon": {
+                "primary": [
+                    "MP5SD",
+                    "SuperNova"
+                ],
+                "secondary": [
+                    "Bearing 9",
+                    "P229"
+                ],
+                "gadget": [
+                    "Impact Grenade",
+                    "Deployable Shield"
+                ]
+            }
+        },
+        "Caveira": {
+            "name": "Caveira",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/4H1dOkcdZIKblKkAWjD390/10e57f4829eabda30f4aa1044e49893d/Y1S3_BADGE_Caveira_L.png",
+            "weapon": {
+                "primary": [
+                    "M12",
+                    "SPAS-15"
+                ],
+                "secondary": [
+                    "Luison"
+                ],
+                "gadget": [
+                    "PROXIMITY ALARM",
+                    "Impact Grenade",
+                    "Observation Blocker"
+                ]
+            }
+        },
+        "Valkyrie": {
+            "name": "Valkyrie",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/44qXJmZmAwaD4w44JnPuOx/c54c8b9d3a6813ab8ce3e3f1dd4ef408/Y1S2_BADGE_Valkyrie_L.png",
+            "weapon": {
+                "primary": [
+                    "MPX",
+                    "SPAS-12"
+                ],
+                "secondary": [
+                    "D-50"
+                ],
+                "gadget": [
+                    "Impact Grenade",
+                    "Nitro Cell"
+                ]
+            }
+        },
+        "Frost": {
+            "name": "Frost",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/1OWFtfiEXleLSENciCSQQR/8fcced59c0125073e506f2dee0201015/Y1S1_BADGE_Frost_L.png",
+            "weapon": {
+                "primary": [
+                    "Super 90",
+                    "9mm C1"
+                ],
+                "secondary": [
+                    "Mk1 9mm",
+                    "ITA12S"
+                ],
+                "gadget": [
+                    "Bulletproof camera",
+                    "Deployable Shield"
+                ]
+            }
+        },
+        "Mute": {
+            "name": "Mute",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/3exeHnxH1tmUmQTequWRKa/e1b6c6f057eb24722dd7860af0276316/Y0R6_BADGE_Mute_L.png",
+            "weapon": {
+                "primary": [
+                    "MP5K",
+                    "M590A1"
+                ],
+                "secondary": [
+                    "P226 Mk 25",
+                    "SMG-11"
+                ],
+                "gadget": [
+                    "Bulletproof camera",
+                    "Nitro Cell"
+                ]
+            }
+        },
+        "Smoke": {
+            "name": "Smoke",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/6mOMxoc3t27R9Gr9wFtt6T/f5f90a6be6a6710bee686ce69df29906/Y0R6_BADGE_Smoke_L.png",
+            "weapon": {
+                "primary": [
+                    "M590A1",
+                    "FMG-9"
+                ],
+                "secondary": [
+                    "P226 Mk 25",
+                    "SMG-11"
+                ],
+                "gadget": [
+                    "Barbed Wire",
+                    "PROXIMITY ALARM"
+                ]
+            }
+        },
+        "Castle": {
+            "name": "Castle",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/kzznLctjOsXJZAg0F2HPB/dea28fa008515d6ddaa0d2659f4dc253/Y0R6_BADGE_Castle_L.png",
+            "weapon": {
+                "primary": [
+                    "UMP45",
+                    "M1014"
+                ],
+                "secondary": [
+                    "5.7 USG",
+                    "Super Shorty",
+                    "M45 MEUSOC"
+                ],
+                "gadget": [
+                    "PROXIMITY ALARM",
+                    "Bulletproof camera"
+                ]
+            }
+        },
+        "Pulse": {
+            "name": "Pulse",
+            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/ChAeJzdmwxuvhZTrV81rK/8c16116f4c719a3df864df6639e2f52e/Y0R6_BADGE_Pulse_L.png",
+            "weapon": {
+                "primary": [
+                    "UMP45",
+                    "M1014"
+                ],
+                "secondary": [
+                    "5.7 USG",
+                    "M45 MEUSOC",
+                    "Reaper MK2"
+                ],
+                "gadget": [
+                    "Nitro Cell",
+                    "Deployable Shield",
+                    "Observation Blocker"
                 ]
             }
         },
@@ -1290,80 +1365,6 @@
                 "gadget": [
                     "Barbed Wire",
                     "Nitro Cell"
-                ]
-            }
-        },
-        "Blitz": {
-            "name": "Blitz",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/2YTGfm1Df9PtldLcGodcTV/9a235b550cdf5066d686cef750eba090/Y0R6_BADGE_Blitz_L.png",
-            "weapon": {
-                "primary": [
-                    "G52-Tactical Shield"
-                ],
-                "secondary": [
-                    "P12"
-                ],
-                "gadget": [
-                    "Smoke Grenade",
-                    "Breach Charge"
-                ]
-            }
-        },
-        "IQ": {
-            "name": "IQ",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/4xnVj2iZB8Otchiw7j69UO/13c864a4e2eb976c1978dc79411b450c/Y0R6_BADGE_IQ_L.png",
-            "weapon": {
-                "primary": [
-                    "AUG A2",
-                    "552 Commando",
-                    "G8A1"
-                ],
-                "secondary": [
-                    "P12"
-                ],
-                "gadget": [
-                    "Breach Charge",
-                    "Frag Grenade",
-                    "Claymore"
-                ]
-            }
-        },
-        "Fuze": {
-            "name": "Fuze",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/1wkdQ0viuTEguji14qXMJG/5858418baa8cca04a6e42a2d6256c093/Y0R6_BADGE_Fuze_L.png",
-            "weapon": {
-                "primary": [
-                    "AK-12",
-                    "6P41",
-                    "Ballistic Shield"
-                ],
-                "secondary": [
-                    "PMM",
-                    "GSh-18"
-                ],
-                "gadget": [
-                    "Breach Charge",
-                    "HARD BREACH CHARGE",
-                    "Smoke Grenade"
-                ]
-            }
-        },
-        "Glaz": {
-            "name": "Glaz",
-            "icon": "https://staticctf.ubisoft.com/J3yJr34U2pZ2Ieem48Dwy9uqj5PNUQTn/5UAZVgyOutPh6bLTV3fGXf/c59d484fd599d09a947ec423b2119620/Y0R6_BADGE_Glaz_L.png",
-            "weapon": {
-                "primary": [
-                    "OTs-03"
-                ],
-                "secondary": [
-                    "PMM",
-                    "Gonne-6",
-                    "Bearing 9"
-                ],
-                "gadget": [
-                    "Smoke Grenade",
-                    "Frag Grenade",
-                    "Claymore"
                 ]
             }
         },
