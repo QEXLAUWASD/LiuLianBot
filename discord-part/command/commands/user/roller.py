@@ -36,9 +36,9 @@ async def roller(message, bot):
 					async def callback(self, interaction: discord.Interaction):
 						AccessoriesList = {
 							"scope" :[f'{get_translation("r6_1xScope", guild_id=guild_id)}', f'{get_translation("r6_AcogOrHighScope", guild_id=guild_id)}'],
-							"muzzle" :[f'{get_translation("r6_Compensator", guild_id=guild_id)}', f'{get_translation("r6_FlashHider", guild_id=guild_id)}', f'{get_translation("r6_ExtendedBarrel", guild_id=guild_id)}', f'{get_translation("r6_Suppressor", guild_id=guild_id)}', f'{get_translation("r6_MuzzleBrake", guild_id=guild_id)}'],
-							"grip" :[f'{get_translation("r6_VerticalGrip", guild_id=guild_id)}', f'{get_translation("r6_AngledGrip", guild_id=guild_id)}', f'{get_translation("r6_HorizontalGrip", guild_id=guild_id)}'],
-							"barrel" :[f'{get_translation("r6_LaserSight", guild_id=guild_id)}'],
+							"muzzle" :[f'{get_translation("r6_compensator", guild_id=guild_id)}', f'{get_translation("r6_flashHider", guild_id=guild_id)}', f'{get_translation("r6_extendedBarrel", guild_id=guild_id)}', f'{get_translation("r6_Suppressor", guild_id=guild_id)}', f'{get_translation("r6_muzzleBrake", guild_id=guild_id)}'],
+							"grip" :[f'{get_translation("r6_verticalGrip", guild_id=guild_id)}', f'{get_translation("r6_angledGrip", guild_id=guild_id)}', f'{get_translation("r6_horizontalGrip", guild_id=guild_id)}'],
+							"barrel" :[f'{get_translation("r6_laserSight", guild_id=guild_id)}'],
 						}
 						side_choice = self.values[0]
 						result = random_operator(side_choice)
@@ -49,8 +49,8 @@ async def roller(message, bot):
 						accessories = []
 						# Randomly add accessories for primary weapon
 						for acc_type, acc_options in AccessoriesList.items():
-							if random.choice([True, False]):  # 50% chance to add each accessory
-								accessories.append(random.choice(acc_options))
+							accessories.append(random.choice(acc_options))
+						print(accessories)
 						desc = (
 							f"**{result.get('name', 'Unknown')}** ({side_label})\n"
 							f"{get_translation('r6_Primary_Weapon', guild_id=guild_id)}: {primary}\n"
