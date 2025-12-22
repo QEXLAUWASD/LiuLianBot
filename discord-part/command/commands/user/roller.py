@@ -50,7 +50,6 @@ async def roller(message, bot):
 						# Randomly add accessories for primary weapon
 						for acc_type, acc_options in AccessoriesList.items():
 							accessories.append(random.choice(acc_options))
-						print(accessories)
 						desc = (
 							f"**{result.get('name', 'Unknown')}** ({side_label})\n"
 							f"{get_translation('r6_Primary_Weapon', guild_id=guild_id)}: {primary}\n"
