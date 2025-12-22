@@ -35,10 +35,10 @@ async def roller(message, bot):
 
 					async def callback(self, interaction: discord.Interaction):
 						AccessoriesList = {
-							"scope" :[f'{get_translation("1xScope", guild_id=guild_id)}', f'{get_translation("AcogOrHighScope", guild_id=guild_id)}'],
-							"muzzle" :[f'{get_translation("Compensator", guild_id=guild_id)}', f'{get_translation("FlashHider", guild_id=guild_id)}', f'{get_translation("ExtendedBarrel", guild_id=guild_id)}', f'{get_translation("Suppressor", guild_id=guild_id)}', f'{get_translation("MuzzleBrake", guild_id=guild_id)}'],
-							"grip" :[f'{get_translation("VerticalGrip", guild_id=guild_id)}', f'{get_translation("AngledGrip", guild_id=guild_id)}', f'{get_translation("HorizontalGrip", guild_id=guild_id)}'],
-							"barrel" :[f'{get_translation("LaserSight", guild_id=guild_id)}', f'{get_translation("None", guild_id=guild_id)}'],
+							"scope" :[f'{get_translation("r6_1xScope", guild_id=guild_id)}', f'{get_translation("r6_AcogOrHighScope", guild_id=guild_id)}'],
+							"muzzle" :[f'{get_translation("r6_Compensator", guild_id=guild_id)}', f'{get_translation("r6_FlashHider", guild_id=guild_id)}', f'{get_translation("r6_ExtendedBarrel", guild_id=guild_id)}', f'{get_translation("r6_Suppressor", guild_id=guild_id)}', f'{get_translation("r6_MuzzleBrake", guild_id=guild_id)}'],
+							"grip" :[f'{get_translation("r6_VerticalGrip", guild_id=guild_id)}', f'{get_translation("r6_AngledGrip", guild_id=guild_id)}', f'{get_translation("r6_HorizontalGrip", guild_id=guild_id)}'],
+							"barrel" :[f'{get_translation("r6_LaserSight", guild_id=guild_id)}'],
 						}
 						side_choice = self.values[0]
 						result = random_operator(side_choice)
