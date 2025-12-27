@@ -88,12 +88,29 @@ class MyClient(discord.Client):
             desc = (info.get("doc") or f"Run {cmd_name}")[:99]
 
             async def wrapper(interaction: discord.Interaction, args: str = "", _cmd: str = cmd_name):
+
+                class InteractionChannel:
+                    def __init__(self, interaction: discord.Interaction):
+                        self._interaction = interaction
+                        self._channel = interaction.channel
+
+                    async def send(self, content: str | None = None, *, embed: discord.Embed | None = None, view=None):
+                        if not self._interaction.response.is_done():
+                            await self._interaction.response.send_message(content=content, embed=embed, view=view)
+                        else:
+                            await self._interaction.followup.send(content=content, embed=embed, view=view)
+
+                    def __getattr__(self, name):
+                        # Forward other attributes to the real channel (e.g., id, name)
+                        return getattr(self._channel, name)
+
                 class InteractionMessage:
                     def __init__(self, interaction: discord.Interaction, content: str):
                         self.content = content
                         self.author = interaction.user
-                        self.channel = interaction.channel
+                        self.channel = InteractionChannel(interaction)
                         self.guild = interaction.guild
+                        self.interaction = interaction
 
                 full_content = f"{command_prefix}{_cmd}" + (f" {args}" if args else "")
                 msg = InteractionMessage(interaction, full_content)
