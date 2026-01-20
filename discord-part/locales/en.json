@@ -55,6 +55,26 @@
   "setlogchannel_channel_not_found": "❌ Channel not found.",
   "setlogchannel_invalid_arg": "❌ Invalid channel: {arg}",
 
+  "setrollerchannel_missing_arg": "❌ Missing channel argument.",
+  "setrollerchannel_usage": "Usage: {prefix}setrollerchannel #channel [dm|channel]",
+  "setrollerchannel_not_text": "❌ The specified channel must be a text channel.",
+  "setrollerchannel_channel_not_found": "❌ Channel not found.",
+  "setrollerchannel_invalid_arg": "❌ Invalid channel: {arg}",
+  "setrollerchannel_success": "✅ Roller channel set to {channel}. Roller results will be sent via DM.",
+
+  "setrollermode_missing_arg": "❌ Missing mode argument.",
+  "setrollermode_usage": "Usage: {prefix}setrollermode <dm|channel>",
+  "setrollermode_invalid": "❌ Invalid mode: {mode}",
+  "setrollermode_no_channel": "❌ Roller channel is not configured yet. Use setrollerchannel first.",
+  "setrollermode_success": "✅ Roller result mode set to {mode}.",
+  "setrollermode_mode_dm": "DM",
+  "setrollermode_mode_channel": "same channel",
+
+  "roller_prompt": "Select what to roll:",
+  "roller_dm_sent": "✅ I sent you a DM to roll.",
+  "roller_dm_failed": "❌ I couldn't DM you. Please enable DMs from server members and try again.",
+  "roller_wrong_channel": "❌ Please use this command in {channel}.",
+
   "voice_event_title": "Voice Channel Event",
   "voice_event_action": "Action",
   "voice_event_joined": "Joined",

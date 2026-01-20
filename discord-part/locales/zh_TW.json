@@ -54,6 +54,26 @@
   "setlogchannel_channel_not_found": "❌ 找不到該頻道。",
   "setlogchannel_invalid_arg": "❌ 無效的頻道：{arg}",
 
+  "setrollerchannel_missing_arg": "❌ 缺少頻道參數。",
+  "setrollerchannel_usage": "用法：{prefix}setrollerchannel #channel [dm|channel]",
+  "setrollerchannel_not_text": "❌ 指定的頻道必須是文字頻道。",
+  "setrollerchannel_channel_not_found": "❌ 找不到該頻道。",
+  "setrollerchannel_invalid_arg": "❌ 無效的頻道：{arg}",
+  "setrollerchannel_success": "✅ 已將 Roller 專用頻道設定為 {channel}，抽選結果將以私訊發送。",
+
+  "setrollermode_missing_arg": "❌ 缺少模式參數。",
+  "setrollermode_usage": "用法：{prefix}setrollermode <dm|channel>",
+  "setrollermode_invalid": "❌ 無效的模式：{mode}",
+  "setrollermode_no_channel": "❌ 尚未設定 Roller 專用頻道，請先使用 setrollerchannel。",
+  "setrollermode_success": "✅ 已將 Roller 結果模式設定為：{mode}。",
+  "setrollermode_mode_dm": "私訊",
+  "setrollermode_mode_channel": "同頻道",
+
+  "roller_prompt": "請選擇要抽什麼：",
+  "roller_dm_sent": "✅ 我已私訊你抽選介面了。",
+  "roller_dm_failed": "❌ 我無法私訊你，請開啟允許伺服器成員私訊後再試一次。",
+  "roller_wrong_channel": "❌ 請在 {channel} 使用此指令。",
+
   "voice_event_title": "語音頻道事件",
   "voice_event_action": "動作",
   "voice_event_joined": "加入",
