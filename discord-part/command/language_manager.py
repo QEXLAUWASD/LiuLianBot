@@ -34,23 +34,26 @@ def supported_locales() -> Dict[str, dict]:
     return locales
 
 
-def get_translation(key: str, guild_id: Optional[int] = None, default: str = "en") -> str:
-    locales = supported_locales()
-    # read guild language from config.json
-    lang = default
+def get_guild_language(guild_id: int | None) -> str:
+    """Get the preferred language code for a guild (or default)."""
+    default = "en"
     try:
         if os.path.exists(CONFIG_PATH):
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
-                guild_langs = cfg.get("guild_languages", {})
-                if guild_id is not None and str(guild_id) in guild_langs:
-                    lang = guild_langs[str(guild_id)]
-                else:
-                    # fallback to config default
-                    lang = cfg.get("default_language", default)
+                if guild_id is not None:
+                    guild_langs = cfg.get("guild_languages", {})
+                    if str(guild_id) in guild_langs:
+                        return guild_langs[str(guild_id)]
+                return cfg.get("default_language", default)
     except Exception:
-        lang = default
+        pass
+    return default
 
+
+def get_translation(key: str, guild_id: Optional[int] = None, default: str = "en") -> str:
+    locales = supported_locales()
+    lang = get_guild_language(guild_id)
     data = locales.get(lang, {})
     return data.get(key, key)
 

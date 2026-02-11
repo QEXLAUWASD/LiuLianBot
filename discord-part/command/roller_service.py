@@ -8,7 +8,7 @@ from fuction.r6Roll.randommap import random_map
 from fuction.r6Roll.randomops import random_operator
 
 
-def _roll_operator_text(guild_id: Optional[int], choice: str) -> str:
+def roll_operator_text(guild_id: Optional[int], choice: str) -> str:
     accessories_list = {
         "scope": [
             f"{get_translation('r6_1xScope', guild_id=guild_id)}",
@@ -50,7 +50,7 @@ def _roll_operator_text(guild_id: Optional[int], choice: str) -> str:
     )
 
 
-def _roll_map_text(guild_id: Optional[int]) -> str:
+def roll_map_text(guild_id: Optional[int]) -> str:
     m = random_map()
     return (
         f"**{m.get('name', 'Unknown')}**\n"
@@ -76,9 +76,9 @@ class RollButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         guild_id = self.guild_id
         if self.choice in ("Att", "Def"):
-            desc = _roll_operator_text(guild_id, self.choice)
+            desc = roll_operator_text(guild_id, self.choice)
         else:
-            desc = _roll_map_text(guild_id)
+            desc = roll_map_text(guild_id)
 
         # If configured to DM results, keep the public message intact.
         if self.dm_result:

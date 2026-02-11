@@ -2,12 +2,29 @@ import discord
 
 from fuction.r6Roll.roller_channel import get_roller_channel, get_roller_dm_result
 from command.language_manager import get_translation
-from command.roller_service import send_roller_prompt
+from command.roller_service import send_roller_prompt, roll_operator_text, roll_map_text
 
-async def roller(message, bot):
+async def roller(message, bot) -> str | None:
 	"""Send buttons to choose what to roll (operator or map) in-channel."""
 
 	guild_id = message.guild.id if message.guild else None
+
+	# Check for direct args (e.g. >roller att)
+	parts = message.content.strip().split()
+	if len(parts) > 1:
+		target = parts[1].lower()
+		output = None
+		if target in ("att", "atk", "attacker", "attack"):
+			output = roll_operator_text(guild_id, "Att")
+		elif target in ("def", "defender", "defense"):
+			output = roll_operator_text(guild_id, "Def")
+		elif target in ("map",):
+			output = roll_map_text(guild_id)
+		# If user provided a valid direct roll arg, send it immediately
+		if output:
+			await message.channel.send(output)
+			return None
+
 	# If a roller channel is configured for this guild:
 	# - restrict usage to that channel
 	# - send the UI message in that channel

@@ -269,6 +269,12 @@
   "r6_map_desc": "隨機抽取一張彩虹六號地圖與模式",
   "r6_Map": "地圖",
   "r6_map_game_modes": "遊戲模式",
-  "r6_map_requested_by": "由 {user} 請求"
+  "r6_map_requested_by": "由 {user} 請求",
 
+
+  "usage_removeadmin": "❌ 用法：`>removeadmin @user` 或 `>removeadmin user_id`",
+  "user_not_admin": "❌ {user} 不是管理員！",
+  "no_admins_configured": "❌ 尚未設定任何管理員！",
+  "removeadmin_success": "✅ 成功將 {user} 從管理員中移除！",
+  "error_removing_admin": "❌ 移除管理員時發生錯誤：{error}"
 }

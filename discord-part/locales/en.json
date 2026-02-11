@@ -273,4 +273,9 @@
   "r6_ops_desc": "Roll a random Rainbow Six operator loadout",
   "r6_map_no_data": "❌ No map data found! Please try again later."
 
+  "usage_removeadmin": "❌ Usage: `>removeadmin @user` or `>removeadmin user_id`",
+  "user_not_admin": "❌ {user} is not an admin!",
+  "no_admins_configured": "❌ No admins configured yet!",
+  "removeadmin_success": "✅ Successfully removed {user} from admins!",
+  "error_removing_admin": "❌ Error removing admin: {error}"
 }

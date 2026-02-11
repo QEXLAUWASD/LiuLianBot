@@ -13,15 +13,7 @@ from fuction.messagelogger import modify as msglog
 from fuction.userLogger import voicechanneleventlogger as voicelogger
 from command.language_manager import get_translation
 import pymysql
-
-logger = logger.setup_logger(__name__, level=logger.logging.WARNING)
-cmd_handler = cmd_handler.handler
-
-intents = discord.Intents.default()
-intents.message_content = True  # Keep for legacy prefix commands
-intents.members = True
-intents.voice_states = True
-
+import inspect
 
 # get root folder path
 def get_root_folder() -> str:
@@ -30,11 +22,21 @@ def get_root_folder() -> str:
 root_folder = get_root_folder()
 
 # Load configuration from config.json
-
-
-
 with open(os.path.join(root_folder, 'config.json'), 'r') as f:
     config = json.load(f)
+
+# Set logging level from config
+log_level_str = config.get('logging_level', 'WARNING').upper()
+log_level = getattr(logger.logging, log_level_str, logger.logging.WARNING)
+
+logger = logger.setup_logger(__name__, level=log_level)
+cmd_handler = cmd_handler.handler
+
+intents = discord.Intents.default()
+intents.message_content = True  # Keep for legacy prefix commands
+intents.members = True
+intents.voice_states = True
+
 
 # 印出目前連線的 MySQL 資料庫名稱
 mysql_config = config.get('mysql_config', {})
@@ -81,47 +83,218 @@ class MyClient(discord.Client):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
+        # Some legacy command implementations expect `bot.command_prefix`.
+        self.command_prefix = command_prefix
+
+    def _load_interaction_arg_specs(self) -> dict[str, list[dict]]:
+        """Load slash-option specs generated from command files.
+
+        Returns:
+            Mapping of command name -> list of option dicts.
+
+        Falls back to empty mapping if the file doesn't exist.
+        """
+        specs_path = os.path.join(root_folder, "tools", "interaction_args.json")
+        try:
+            if os.path.exists(specs_path):
+                with open(specs_path, "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                mapping: dict[str, list[dict]] = {}
+                for item in raw:
+                    cmd = item.get("command")
+                    opts = item.get("options") or []
+                    if isinstance(cmd, str) and isinstance(opts, list):
+                        mapping[cmd] = opts
+                return mapping
+        except Exception as exc:
+            logger.warning(f"Failed to load interaction arg specs: {exc}")
+        return {}
+
+    def _option_python_type(self, opt_type: str):
+        t = (opt_type or "").lower()
+        if t == "str":
+            return str
+        if t == "int":
+            return int
+        if t == "user":
+            return discord.User
+        if t == "text_channel":
+            return discord.TextChannel
+        if t == "voice_channel":
+            return discord.VoiceChannel
+        # Unknown: default to string.
+        return str
+
+    def _build_slash_callback(self, cmd_name: str, option_specs: list[dict]):
+        """Create a callback with a dynamic signature for discord.py app_commands."""
+
+        async def callback(interaction: discord.Interaction, **kwargs):
+            # Build legacy message content from provided slash options.
+            parts: list[str] = []
+            mentions = []
+            channel_mentions = []
+
+            # Preserve option order as defined in the spec file.
+            for opt in option_specs:
+                name = opt.get("name")
+                if not isinstance(name, str):
+                    continue
+                val = kwargs.get(name)
+                if val is None:
+                    continue
+
+                opt_type = (opt.get("type") or "").lower()
+                if opt_type == "user":
+                    parts.append(f"<@{val.id}>")
+                    mentions.append(val)
+                elif opt_type == "text_channel":
+                    parts.append(f"<#{val.id}>")
+                    channel_mentions.append(val)
+                elif opt_type == "voice_channel":
+                    # Avoid channel mention formatting to not trigger legacy `channel_mentions` checks.
+                    parts.append(str(val.id))
+                else:
+                    parts.append(str(val))
+
+            full_content = f"{command_prefix}{cmd_name}" + (f" {' '.join(parts)}" if parts else "")
+
+            class InteractionChannel:
+                def __init__(self, interaction: discord.Interaction):
+                    self._interaction = interaction
+                    self._channel = interaction.channel
+
+                async def send(self, content: str | None = None, *, embed: discord.Embed | None = None, view=None):
+                    kwargs = {}
+                    if content is not None:
+                        kwargs['content'] = content
+                    if embed is not None:
+                        kwargs['embed'] = embed
+                    if view is not None:
+                        kwargs['view'] = view
+
+                    if not self._interaction.response.is_done():
+                        await self._interaction.response.send_message(**kwargs)
+                    else:
+                        await self._interaction.followup.send(**kwargs)
+
+                def __getattr__(self, name):
+                    return getattr(self._channel, name)
+
+            class InteractionMessage:
+                def __init__(self, interaction: discord.Interaction, content: str):
+                    self.content = content
+                    self.author = interaction.user
+                    self.channel = InteractionChannel(interaction)
+                    self.guild = interaction.guild
+                    self.interaction = interaction
+                    self.mentions = mentions
+                    self.channel_mentions = channel_mentions
+
+            msg = InteractionMessage(interaction, full_content)
+
+            async def send_response(content: str | None = None, embed: discord.Embed | None = None):
+                if interaction.response.is_done():
+                    await interaction.followup.send(content=content, embed=embed)
+                else:
+                    await interaction.response.send_message(content=content, embed=embed)
+
+            await self._process_command(msg, responder=send_response)
+
+        # Build a custom signature so discord.py can expose slash options.
+        parameters = [
+            inspect.Parameter(
+                "interaction",
+                kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                annotation=discord.Interaction,
+            )
+        ]
+        annotations: dict[str, object] = {"interaction": discord.Interaction}
+
+        for opt in option_specs:
+            name = opt.get("name")
+            if not isinstance(name, str) or not name:
+                continue
+            opt_type = opt.get("type") or "str"
+            py_t = self._option_python_type(str(opt_type))
+            required = bool(opt.get("required"))
+
+            default = inspect._empty if required else None
+            parameters.append(
+                inspect.Parameter(
+                    name,
+                    kind=inspect.Parameter.KEYWORD_ONLY,
+                    default=default,
+                    annotation=py_t,
+                )
+            )
+            annotations[name] = py_t
+
+        callback.__signature__ = inspect.Signature(parameters)  # type: ignore[attr-defined]
+        callback.__annotations__ = annotations
+        return callback
+
+    def _build_simple_slash_callback(self, cmd_name: str):
+        """Create a simple callback for commands with no options to ensure closure capture."""
+        async def wrapper(interaction: discord.Interaction):
+
+            class InteractionChannel:
+                def __init__(self, interaction: discord.Interaction):
+                    self._interaction = interaction
+                    self._channel = interaction.channel
+
+                async def send(self, content: str | None = None, *, embed: discord.Embed | None = None, view=None):
+                    kwargs = {}
+                    if content is not None:
+                        kwargs['content'] = content
+                    if embed is not None:
+                        kwargs['embed'] = embed
+                    if view is not None:
+                        kwargs['view'] = view
+
+                    if not self._interaction.response.is_done():
+                        await self._interaction.response.send_message(**kwargs)
+                    else:
+                        await self._interaction.followup.send(**kwargs)
+
+                def __getattr__(self, name):
+                    # Forward other attributes to the real channel (e.g., id, name)
+                    return getattr(self._channel, name)
+
+            class InteractionMessage:
+                def __init__(self, interaction: discord.Interaction, content: str):
+                    self.content = content
+                    self.author = interaction.user
+                    self.channel = InteractionChannel(interaction)
+                    self.guild = interaction.guild
+                    self.interaction = interaction
+                    self.mentions = []
+                    self.channel_mentions = []
+
+            full_content = f"{command_prefix}{cmd_name}"
+            msg = InteractionMessage(interaction, full_content)
+
+            async def send_response(content: str | None = None, embed: discord.Embed | None = None):
+                if interaction.response.is_done():
+                    await interaction.followup.send(content=content, embed=embed)
+                else:
+                    await interaction.response.send_message(content=content, embed=embed)
+
+            await self._process_command(msg, responder=send_response)
+        
+        return wrapper
 
     async def setup_hook(self):
+        arg_specs = self._load_interaction_arg_specs()
         # Register a slash command for each loaded command
         for cmd_name, info in cmd_handler.list_commands_info().items():
             desc = (info.get("doc") or f"Run {cmd_name}")[:99]
 
-            async def wrapper(interaction: discord.Interaction, args: str = "", _cmd: str = cmd_name):
+            option_specs = arg_specs.get(cmd_name) or []
 
-                class InteractionChannel:
-                    def __init__(self, interaction: discord.Interaction):
-                        self._interaction = interaction
-                        self._channel = interaction.channel
-
-                    async def send(self, content: str | None = None, *, embed: discord.Embed | None = None, view=None):
-                        if not self._interaction.response.is_done():
-                            await self._interaction.response.send_message(content=content, embed=embed, view=view)
-                        else:
-                            await self._interaction.followup.send(content=content, embed=embed, view=view)
-
-                    def __getattr__(self, name):
-                        # Forward other attributes to the real channel (e.g., id, name)
-                        return getattr(self._channel, name)
-
-                class InteractionMessage:
-                    def __init__(self, interaction: discord.Interaction, content: str):
-                        self.content = content
-                        self.author = interaction.user
-                        self.channel = InteractionChannel(interaction)
-                        self.guild = interaction.guild
-                        self.interaction = interaction
-
-                full_content = f"{command_prefix}{_cmd}" + (f" {args}" if args else "")
-                msg = InteractionMessage(interaction, full_content)
-
-                async def send_response(content: str | None = None, embed: discord.Embed | None = None):
-                    if interaction.response.is_done():
-                        await interaction.followup.send(content=content, embed=embed)
-                    else:
-                        await interaction.response.send_message(content=content, embed=embed)
-
-                await self._process_command(msg, responder=send_response)
+            if option_specs:
+                wrapper = self._build_slash_callback(cmd_name, option_specs)
+            else:
+                wrapper = self._build_simple_slash_callback(cmd_name)
 
             command = app_commands.Command(
                 name=cmd_name,

@@ -1,0 +1,280 @@
+[
+  {
+    "command": "removeprivatevoice",
+    "command_type": "guild_admin",
+    "usage": "Usage: >removeprivatevoice",
+    "source": "heuristic",
+    "options": []
+  },
+  {
+    "command": "setlang",
+    "command_type": "guild_admin",
+    "usage": "",
+    "source": "override",
+    "options": [
+      {
+        "name": "lang",
+        "type": "str",
+        "required": true,
+        "description": "語言代碼（例如 en / zh_TW）",
+        "choices": null
+      }
+    ]
+  },
+  {
+    "command": "setlogchannel",
+    "command_type": "guild_admin",
+    "usage": "",
+    "source": "override",
+    "options": [
+      {
+        "name": "channel",
+        "type": "text_channel",
+        "required": true,
+        "description": "訊息記錄頻道",
+        "choices": null
+      }
+    ]
+  },
+  {
+    "command": "setprivatevoice",
+    "command_type": "guild_admin",
+    "usage": "Usage: >setprivatevoice <channel_id or channel_mention>",
+    "source": "override",
+    "options": [
+      {
+        "name": "channel",
+        "type": "voice_channel",
+        "required": false,
+        "description": "設定為觸發私人語音的語音頻道；留空則顯示目前狀態",
+        "choices": null
+      }
+    ]
+  },
+  {
+    "command": "setrollerchannel",
+    "command_type": "guild_admin",
+    "usage": "",
+    "source": "override",
+    "options": [
+      {
+        "name": "channel",
+        "type": "text_channel",
+        "required": true,
+        "description": "允許使用 roller 的頻道",
+        "choices": null
+      },
+      {
+        "name": "mode",
+        "type": "str",
+        "required": false,
+        "description": "結果發送模式",
+        "choices": [
+          "dm",
+          "channel"
+        ]
+      }
+    ]
+  },
+  {
+    "command": "setrollermode",
+    "command_type": "guild_admin",
+    "usage": "",
+    "source": "override",
+    "options": [
+      {
+        "name": "mode",
+        "type": "str",
+        "required": true,
+        "description": "結果發送模式",
+        "choices": [
+          "dm",
+          "channel"
+        ]
+      }
+    ]
+  },
+  {
+    "command": "setupvoice",
+    "command_type": "guild_admin",
+    "usage": "用法: >setupvoice",
+    "source": "heuristic",
+    "options": []
+  },
+  {
+    "command": "addguildadmin",
+    "command_type": "guild_owner",
+    "usage": "Usage: >addguildadmin @user or >addguildadmin user_id",
+    "source": "override",
+    "options": [
+      {
+        "name": "user",
+        "type": "user",
+        "required": true,
+        "description": "要加入伺服器管理員的使用者",
+        "choices": null
+      }
+    ]
+  },
+  {
+    "command": "guildpermissions",
+    "command_type": "guild_owner",
+    "usage": "Usage: >guildpermissions",
+    "source": "heuristic",
+    "options": []
+  },
+  {
+    "command": "removeguildadmin",
+    "command_type": "guild_owner",
+    "usage": "Usage: >removeguildadmin @user or >removeguildadmin user_id",
+    "source": "override",
+    "options": [
+      {
+        "name": "user",
+        "type": "user",
+        "required": true,
+        "description": "要移除伺服器管理員的使用者",
+        "choices": null
+      }
+    ]
+  },
+  {
+    "command": "addadmin",
+    "command_type": "owner",
+    "usage": "Usage: >addadmin @user or >addadmin user_id",
+    "source": "override",
+    "options": [
+      {
+        "name": "user",
+        "type": "user",
+        "required": true,
+        "description": "要加入 bot admin 的使用者",
+        "choices": null
+      }
+    ]
+  },
+  {
+    "command": "getinfo",
+    "command_type": "owner",
+    "usage": "",
+    "source": "heuristic",
+    "options": []
+  },
+  {
+    "command": "getserverlist",
+    "command_type": "owner",
+    "usage": "Usage: >getserverlist",
+    "source": "heuristic",
+    "options": []
+  },
+  {
+    "command": "removeadmin",
+    "command_type": "owner",
+    "usage": "Usage: >removeadmin @user or >removeadmin user_id",
+    "source": "heuristic",
+    "options": [
+      {
+        "name": "args",
+        "type": "str",
+        "required": true,
+        "description": "Usage: >removeadmin @user or >removeadmin user_id",
+        "choices": null
+      }
+    ]
+  },
+  {
+    "command": "getlang",
+    "command_type": "user",
+    "usage": "",
+    "source": "heuristic",
+    "options": []
+  },
+  {
+    "command": "getr6mapinfo",
+    "command_type": "user",
+    "usage": "",
+    "source": "override",
+    "options": [
+      {
+        "name": "map_name",
+        "type": "str",
+        "required": true,
+        "description": "地圖名稱",
+        "choices": null
+      }
+    ]
+  },
+  {
+    "command": "help",
+    "command_type": "user",
+    "usage": "用法：>help 或 >help 指令名稱",
+    "source": "override",
+    "options": [
+      {
+        "name": "command",
+        "type": "str",
+        "required": false,
+        "description": "要查詢的指令名稱",
+        "choices": null
+      }
+    ]
+  },
+  {
+    "command": "listguildadmins",
+    "command_type": "user",
+    "usage": "用法: >listguildadmins",
+    "source": "heuristic",
+    "options": []
+  },
+  {
+    "command": "mypermissions",
+    "command_type": "user",
+    "usage": "用法: >mypermissions",
+    "source": "heuristic",
+    "options": []
+  },
+  {
+    "command": "r6maproll",
+    "command_type": "user",
+    "usage": "",
+    "source": "heuristic",
+    "options": []
+  },
+  {
+    "command": "r6opsroll",
+    "command_type": "user",
+    "usage": "",
+    "source": "override",
+    "options": [
+      {
+        "name": "side",
+        "type": "str",
+        "required": false,
+        "description": "進攻/防守（可留空隨機）",
+        "choices": [
+          "att",
+          "def"
+        ]
+      }
+    ]
+  },
+  {
+    "command": "roller",
+    "command_type": "user",
+    "usage": "",
+    "source": "override",
+    "options": [
+      {
+        "name": "target",
+        "type": "str",
+        "required": false,
+        "description": "直接執行 roll (att/def/map) 或留空開啟選單",
+        "choices": [
+          "att",
+          "def",
+          "map"
+        ]
+      }
+    ]
+  }
+]
