@@ -93,6 +93,16 @@ def delete_private_channel_config(channel_id):
     finally:
         conn.close()
 
+def update_channel_owner(channel_id, new_owner_id):
+    conn = get_db_conn()
+    try:
+        with conn.cursor() as cursor:
+            sql = "UPDATE private_voice_channels SET owner_id=%s, updated_at=NOW() WHERE channel_id=%s"
+            cursor.execute(sql, (new_owner_id, channel_id))
+        conn.commit()
+    finally:
+        conn.close()
+
 
 def cleanup_old_private_configs(retention_days: int = 30) -> int:
     """Remove private channel configs older than the retention window."""
@@ -188,6 +198,15 @@ class PrivateVoiceManager:
 
     def delete_channel_config(self, channel_id):
         delete_private_channel_config(channel_id)
+
+    def transfer_channel_owner(self, channel_id: int, new_owner_id: int):
+        """Update in-memory tracking and DB when channel ownership is transferred."""
+        old_owner_id = self.private_channels.get(channel_id)
+        self.private_channels[channel_id] = new_owner_id
+        if old_owner_id is not None and self.user_channels.get(old_owner_id) == channel_id:
+            del self.user_channels[old_owner_id]
+        self.user_channels[new_owner_id] = channel_id
+        update_channel_owner(channel_id, new_owner_id)
 
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         """Handle voice state updates"""

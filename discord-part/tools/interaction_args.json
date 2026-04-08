@@ -276,5 +276,20 @@
         ]
       }
     ]
+  },
+  {
+    "command": "transfervoice",
+    "command_type": "user",
+    "usage": ">transfervoice @user",
+    "source": "override",
+    "options": [
+      {
+        "name": "user",
+        "type": "user",
+        "required": true,
+        "description": "要接受私人語音頻道擁有權的使用者",
+        "choices": null
+      }
+    ]
   }
 ]
