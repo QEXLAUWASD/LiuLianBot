@@ -73,7 +73,7 @@ for guild_id_str, admin_ids in guild_admins.items():
 BOT_OWNER_ID = bot_owners[0] if bot_owners else None  # First owner ID for legacy compatibility
 
 Token = config.get("token") # Your bot token
-command_prefix = config.get("command_prefix", ">")  # Default command prefix
+command_prefix = config.get("prefix", ">")  # Default command prefix
 
 
 bot = commands.Bot(command_prefix=command_prefix, intents=intents)
