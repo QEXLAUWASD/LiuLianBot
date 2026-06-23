@@ -1,0 +1,232 @@
+# 🎮 LiuLianBot（榴槤 Bot）
+
+使用 [discord.py](https://github.com/Rapptz/discord.py) 開發嘅多功能 Discord 機械人，專為遊戲社群設計，整合《彩虹六號：圍攻》工具、私人語音頻道、伺服器事件記錄及多語言支援。
+
+---
+
+## ✨ 功能特色
+
+### 🎯 彩虹六號：圍攻工具
+- **隨機地圖抽選** — 隨機抽出 R6 地圖，附帶 playlist 資訊
+- **隨機幹員抽選** — 隨機選擇幹員（進攻方 / 防守方 / 全部）
+- **地圖資訊查詢** — 查看指定地圖嘅詳細資料
+
+### 🔊 私人語音頻道
+- 用戶可以自創臨時語音頻道
+- 完全控制頻道名稱、人數上限同權限
+- 自動清理閒置嘅空頻道
+- 支援語音頻道擁有權轉移
+
+### 📋 伺服器事件記錄
+全面記錄伺服器事件到指定頻道：
+- 訊息編輯、刪除、大量刪除
+- 語音狀態變更（加入、離開、移動、靜音、拒絕收聽）
+- 成員加入、離開、更新、封鎖、解封
+- 頻道建立、刪除、更新
+- 身份組建立、刪除、更新
+- 伺服器更新
+
+### 🎲 抽選系統
+- 可設定抽選頻道同自訂模式
+- 基於身份組嘅隨機抽選，適合組隊使用
+
+### 🌐 多語言支援
+- **English**（英文）
+- **繁體中文**（`zh_TW`）
+- 每個伺服器可以獨立設定語言
+
+### 🔐 權限系統
+階層式權限模型：
+| 級別 | 說明 |
+|------|------|
+| **Bot 擁有者** | 完整控制權，可使用所有指令 |
+| **Bot 管理員** | 跨伺服器管理權限 |
+| **伺服器擁有者** | 管理伺服器管理員同伺服器權限 |
+| **伺服器管理員** | 設定伺服器特定功能 |
+
+---
+
+## 📁 專案結構
+
+```
+LiuLianBot/
+├── start.sh                  # Linux 啟動腳本
+├── discord-part/
+│   ├── main.py               # Bot 主入口
+│   ├── config.json           # Bot 設定檔
+│   ├── default_config.json   # 預設設定範本
+│   ├── requirements.txt      # Python 依賴
+│   ├── command/
+│   │   ├── commandHandler.py # 指令載入同路由
+│   │   ├── language_manager.py
+│   │   ├── permission_checker.py
+│   │   ├── roller_service.py
+│   │   └── commands/
+│   │       ├── user/         # 公用指令
+│   │       ├── guild_admin/  # 伺服器管理員指令
+│   │       ├── guild_owner/  # 伺服器擁有者指令
+│   │       └── owner/        # Bot 擁有者指令
+│   ├── fuction/
+│   │   ├── r6Roll/           # R6 地圖同幹員抽選
+│   │   ├── private_voiceChat/# 私人語音頻道系統
+│   │   ├── server_logger/    # 事件記錄系統
+│   │   ├── messagelogger/    # 訊息記錄輔助
+│   │   └── userLogger/       # 用戶事件記錄輔助
+│   ├── locales/
+│   │   ├── en.json           # 英文翻譯
+│   │   └── zh_TW.json        # 繁體中文翻譯
+│   ├── tools/                # 開發工具
+│   └── uilts/
+│       ├── database.py       # MySQL 資料庫連接
+│       └── logger.py         # 記錄器設定
+└── logs/                     # 執行記錄
+```
+
+---
+
+## 🚀 快速開始
+
+### 環境要求
+- **Python 3.8+**
+- **MySQL** / **MariaDB** 伺服器
+- Discord Bot Token（[Discord 開發者平台](https://discord.com/developers/applications)）
+
+### Linux 安裝
+
+```bash
+# 1. Clone 專案
+git clone https://github.com/QEXLAUWASD/LiuLianBot.git
+cd LiuLianBot
+
+# 2. 設定啟動腳本權限
+chmod +x start.sh
+
+# 3. 設定 Bot
+cp discord-part/default_config.json discord-part/config.json
+nano discord-part/config.json  # 編輯你嘅設定
+
+# 4. 啟動 Bot
+./start.sh
+```
+
+### 手動安裝
+
+```bash
+# 建立虛擬環境
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 安裝依賴
+pip install -r discord-part/requirements.txt
+
+# 啟動 Bot
+python discord-part/main.py
+```
+
+---
+
+## ⚙️ 設定說明
+
+編輯 `discord-part/config.json`：
+
+```json
+{
+    "logging_level": "WARNING",
+    "prefix": ">",
+    "bot_owner": ["你的Discord用戶ID"],
+    "bot_admin": ["管理員用戶ID"],
+    "activity": {
+        "type": "playing",
+        "name": "Rainbow Six Siege"
+    },
+    "token": "你的Bot Token",
+    "mysql_config": {
+        "host": "localhost",
+        "user": "root",
+        "password": "你的密碼",
+        "database": "discordbot",
+        "charset": "utf8mb4"
+    }
+}
+```
+
+| 設定項 | 說明 |
+|--------|------|
+| `logging_level` | 記錄等級：`DEBUG`、`INFO`、`WARNING`、`ERROR` |
+| `prefix` | 指令前綴（預設：`>`） |
+| `bot_owner` | Bot 擁有者嘅 Discord 用戶 ID 陣列 |
+| `bot_admin` | Bot 管理員嘅 Discord 用戶 ID 陣列 |
+| `activity` | Bot 顯示嘅活動狀態 |
+| `token` | 你嘅 Discord Bot Token |
+| `mysql_config` | MySQL 資料庫連線設定 |
+
+---
+
+## 📝 指令列表
+
+### 用戶指令（前綴：`>`）
+| 指令 | 說明 |
+|------|------|
+| `>help` | 顯示所有可用指令 |
+| `>help <指令>` | 顯示特定指令嘅說明 |
+| `>getlang` | 查閱目前伺服器語言 |
+| `>r6maproll` | 隨機抽選 R6 地圖 |
+| `>r6opsroll` | 隨機抽選 R6 幹員 |
+| `>getr6mapinfo <地圖>` | 查閱指定地圖資訊 |
+| `>roller` | 從已設定嘅抽選頻道抽選 |
+| `>mypermissions` | 檢查你嘅權限等級 |
+| `>listguildadmins` | 列出伺服器管理員 |
+| `>transfervoice <@用戶>` | 轉移語音頻道擁有權 |
+
+### 伺服器管理員指令
+| 指令 | 說明 |
+|------|------|
+| `>setlang <en/zh_TW>` | 設定伺服器語言 |
+| `>setlogchannel <#頻道>` | 設定記錄頻道 |
+| `>setprivatevoice <#頻道>` | 設定私人語音建立頻道 |
+| `>setupvoice` | 設定語音系統 |
+| `>removeprivatevoice` | 移除私人語音頻道設定 |
+| `>setrollerchannel <#頻道>` | 設定抽選頻道 |
+| `>setrollermode <模式>` | 設定抽選模式 |
+
+### 伺服器擁有者指令
+| 指令 | 說明 |
+|------|------|
+| `>addguildadmin <@用戶>` | 新增伺服器管理員 |
+| `>removeguildadmin <@用戶>` | 移除伺服器管理員 |
+| `>guildpermissions` | 查看伺服器權限設定 |
+
+### Bot 擁有者指令
+| 指令 | 說明 |
+|------|------|
+| `>addAdmin <@用戶>` | 新增 Bot 管理員 |
+| `>removeAdmin <@用戶>` | 移除 Bot 管理員 |
+| `>getInfo` | 獲取 Bot 執行資訊 |
+| `>getServerList` | 列出 Bot 所在嘅所有伺服器 |
+
+---
+
+## 🛠️ 依賴套件
+
+| 套件 | 版本 | 用途 |
+|------|------|------|
+| `discord.py` | 2.3.0 | Discord API 封裝 |
+| `pymysql` | 1.1.2 | MySQL 資料庫驅動 |
+| `colorama` | 0.4.6 | 終端機彩色輸出 |
+| `psutil` | ≥5.9.0 | 系統資源監控 |
+| `cryptography` | 46.0.3 | 加密操作 |
+
+---
+
+## 📄 法律文件
+
+- [服務條款 (Terms of Service)](TERMS_OF_SERVICE.md)
+- [隱私權政策 (Privacy Policy)](PRIVACY_POLICY.md)
+
+本專案僅供個人 / 社群使用。保留所有權利。
+
+---
+
+## 🤝 貢獻
+
+歡迎提出 Issues、功能請求同 Pull Requests！

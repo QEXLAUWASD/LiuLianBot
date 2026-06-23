@@ -2,19 +2,7 @@ import json
 import os
 from typing import Optional
 
-import pymysql
-
-
-def _get_config_path() -> str:
-    # discord-part/fuction/r6Roll/roller_channel.py -> discord-part/config.json
-    return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "config.json")
-
-
-def _get_db_conn():
-    with open(_get_config_path(), "r", encoding="utf-8") as f:
-        config = json.load(f)
-    mysql_config = config.get("mysql_config", {})
-    return pymysql.connect(**mysql_config)
+from uilts.database import get_db_conn as _get_db_conn
 
 
 def init_roller_channel_table() -> None:

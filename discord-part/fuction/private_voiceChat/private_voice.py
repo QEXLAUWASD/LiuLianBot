@@ -2,18 +2,10 @@ import discord
 from typing import Dict, Optional
 import asyncio
 
-import pymysql
 import json
 import os
 
-# 讀取 config.json 取得 MySQL 設定
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config.json')
-with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-    config = json.load(f)
-MYSQL_CONFIG = config.get('mysql_config', {})
-
-def get_db_conn():
-    return pymysql.connect(**MYSQL_CONFIG)
+from uilts.database import get_db_conn
 
 def init_private_voice_table():
     conn = get_db_conn()

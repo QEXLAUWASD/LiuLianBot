@@ -1,400 +1,99 @@
+"""
+LiuLianBot - Discord Bot 入口點
+
+此檔案僅負責初始化設定、建立客戶端並啟動 bot。
+所有主要邏輯已拆分至 core/、updater/、command/ 等模組。
+"""
+
 import discord
-from discord import app_commands
-from discord.ext import commands
-import os
-import json
-from datetime import datetime
 
+# ---- 核心模組 ----
+from core.config import (
+    load_config,
+    get_config,
+    get_logger,
+    init_permissions,
+    get_bot_token,
+    get_command_prefix,
+    get_first_owner_id,
+    ROOT_FOLDER,
+)
+from core.bot_client import MyClient
 
-import command.commandHandler as cmd_handler
-import uilts.logger as logger
-from fuction.private_voiceChat.private_voice import get_manager
-from fuction.messagelogger import modify as msglog
-from fuction.userLogger import voicechanneleventlogger as voicelogger
-from command.language_manager import get_translation
-import pymysql
-import inspect
+# ---- 指令處理 ----
+import command.commandHandler as cmd_handler_mod
 
-# get root folder path
-def get_root_folder() -> str:
-    return os.path.dirname(os.path.abspath(__file__))
+# ---- 資料庫 ----
+from uilts.database import get_db_conn, ensure_database
 
-root_folder = get_root_folder()
+# ---------------------------------------------------------------------------
+# 初始化
+# ---------------------------------------------------------------------------
 
-# Load configuration from config.json
-with open(os.path.join(root_folder, 'config.json'), 'r') as f:
-    config = json.load(f)
+# 載入設定
+config = load_config()
 
-# Set logging level from config
-log_level_str = config.get('logging_level', 'WARNING').upper()
-log_level = getattr(logger.logging, log_level_str, logger.logging.WARNING)
+# 初始化 logger
+logger = get_logger(__name__)
 
-logger = logger.setup_logger(__name__, level=log_level)
-cmd_handler = cmd_handler.handler
+# 初始化指令處理器並設定權限
+cmd_handler = cmd_handler_mod.handler
+init_permissions(cmd_handler)
+
+# 提取常用設定
+TOKEN = get_bot_token()
+COMMAND_PREFIX = get_command_prefix()
+BOT_OWNER_ID = get_first_owner_id()
+
+# ---------------------------------------------------------------------------
+# 資料庫連線檢查
+# ---------------------------------------------------------------------------
+
+try:
+    ensure_database()
+    conn = get_db_conn()
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT DATABASE()")
+        db_name = cursor.fetchone()[0]
+        logger.info(f"Connected to MySQL database: {db_name}")
+        cursor.execute("SHOW TABLES")
+        tables = cursor.fetchall()
+        logger.info(f"Tables in database '{db_name}': {[t[0] for t in tables]}")
+    conn.close()
+except Exception as e:
+    logger.error(f"MySQL connection failed: {e}")
+
+# ---------------------------------------------------------------------------
+# Discord Intents
+# ---------------------------------------------------------------------------
 
 intents = discord.Intents.default()
-intents.message_content = True  # Keep for legacy prefix commands
+intents.message_content = True
 intents.members = True
 intents.voice_states = True
 
+# ---------------------------------------------------------------------------
+# Bot 客戶端
+# ---------------------------------------------------------------------------
 
-# 印出目前連線的 MySQL 資料庫名稱
-mysql_config = config.get('mysql_config', {})
-try:
-    conn = pymysql.connect(**mysql_config)
-    with conn.cursor() as cursor:
-        cursor.execute('SELECT DATABASE()')
-        db_name = cursor.fetchone()[0]
-        print(f"[INFO] Connected to MySQL database: {db_name}")
-        # print all tables in the database for debugging
-        cursor.execute('SHOW TABLES')
-        tables = cursor.fetchall()
-        print(f"[INFO] Tables in database '{db_name}': {[table[0] for table in tables]}")
-    conn.close()
-except Exception as e:
-    print(f"[ERROR] MySQL connection failed: {e}")
+bot = MyClient(
+    intents=intents,
+    command_prefix=COMMAND_PREFIX,
+    cmd_handler=cmd_handler,
+    config=config,
+    logger=logger,
+    root_folder=ROOT_FOLDER,
+)
 
-# get all onwer and admin IDs from config
-bot_owners = config.get("bot_owner", [])
-bot_admins = config.get("bot_admin", [])
-guild_admins = config.get("guild_admins", {})
+# ---------------------------------------------------------------------------
+# 啟動
+# ---------------------------------------------------------------------------
 
-for owner_id in bot_owners:
-    cmd_handler.add_bot_owner(str(owner_id))
-for admin_id in bot_admins:
-    cmd_handler.add_bot_admin(str(admin_id))
-
-# Load guild-specific admins
-for guild_id_str, admin_ids in guild_admins.items():
-    guild_id = int(guild_id_str)
-    for admin_id in admin_ids:
-        cmd_handler.add_guild_admin(guild_id, str(admin_id))
-
-BOT_OWNER_ID = bot_owners[0] if bot_owners else None  # First owner ID for legacy compatibility
-
-Token = config.get("token") # Your bot token
-command_prefix = config.get("prefix", ">")  # Default command prefix
-
-
-bot = commands.Bot(command_prefix=command_prefix, intents=intents)
-
-
-class MyClient(discord.Client):
-    def __init__(self, *, intents: discord.Intents):
-        super().__init__(intents=intents)
-        self.tree = app_commands.CommandTree(self)
-        # Some legacy command implementations expect `bot.command_prefix`.
-        self.command_prefix = command_prefix
-
-    def _load_interaction_arg_specs(self) -> dict[str, list[dict]]:
-        """Load slash-option specs generated from command files.
-
-        Returns:
-            Mapping of command name -> list of option dicts.
-
-        Falls back to empty mapping if the file doesn't exist.
-        """
-        specs_path = os.path.join(root_folder, "tools", "interaction_args.json")
-        try:
-            if os.path.exists(specs_path):
-                with open(specs_path, "r", encoding="utf-8") as f:
-                    raw = json.load(f)
-                mapping: dict[str, list[dict]] = {}
-                for item in raw:
-                    cmd = item.get("command")
-                    opts = item.get("options") or []
-                    if isinstance(cmd, str) and isinstance(opts, list):
-                        mapping[cmd] = opts
-                return mapping
-        except Exception as exc:
-            logger.warning(f"Failed to load interaction arg specs: {exc}")
-        return {}
-
-    def _option_python_type(self, opt_type: str):
-        t = (opt_type or "").lower()
-        if t == "str":
-            return str
-        if t == "int":
-            return int
-        if t == "user":
-            return discord.User
-        if t == "text_channel":
-            return discord.TextChannel
-        if t == "voice_channel":
-            return discord.VoiceChannel
-        # Unknown: default to string.
-        return str
-
-    def _build_slash_callback(self, cmd_name: str, option_specs: list[dict]):
-        """Create a callback with a dynamic signature for discord.py app_commands."""
-
-        async def callback(interaction: discord.Interaction, **kwargs):
-            # Build legacy message content from provided slash options.
-            parts: list[str] = []
-            mentions = []
-            channel_mentions = []
-
-            # Preserve option order as defined in the spec file.
-            for opt in option_specs:
-                name = opt.get("name")
-                if not isinstance(name, str):
-                    continue
-                val = kwargs.get(name)
-                if val is None:
-                    continue
-
-                opt_type = (opt.get("type") or "").lower()
-                if opt_type == "user":
-                    parts.append(f"<@{val.id}>")
-                    mentions.append(val)
-                elif opt_type == "text_channel":
-                    parts.append(f"<#{val.id}>")
-                    channel_mentions.append(val)
-                elif opt_type == "voice_channel":
-                    # Avoid channel mention formatting to not trigger legacy `channel_mentions` checks.
-                    parts.append(str(val.id))
-                else:
-                    parts.append(str(val))
-
-            full_content = f"{command_prefix}{cmd_name}" + (f" {' '.join(parts)}" if parts else "")
-
-            class InteractionChannel:
-                def __init__(self, interaction: discord.Interaction):
-                    self._interaction = interaction
-                    self._channel = interaction.channel
-
-                async def send(self, content: str | None = None, *, embed: discord.Embed | None = None, view=None):
-                    kwargs = {}
-                    if content is not None:
-                        kwargs['content'] = content
-                    if embed is not None:
-                        kwargs['embed'] = embed
-                    if view is not None:
-                        kwargs['view'] = view
-
-                    if not self._interaction.response.is_done():
-                        await self._interaction.response.send_message(**kwargs)
-                    else:
-                        await self._interaction.followup.send(**kwargs)
-
-                def __getattr__(self, name):
-                    return getattr(self._channel, name)
-
-            class InteractionMessage:
-                def __init__(self, interaction: discord.Interaction, content: str):
-                    self.content = content
-                    self.author = interaction.user
-                    self.channel = InteractionChannel(interaction)
-                    self.guild = interaction.guild
-                    self.interaction = interaction
-                    self.mentions = mentions
-                    self.channel_mentions = channel_mentions
-
-            msg = InteractionMessage(interaction, full_content)
-
-            async def send_response(content: str | None = None, embed: discord.Embed | None = None):
-                if interaction.response.is_done():
-                    await interaction.followup.send(content=content, embed=embed)
-                else:
-                    await interaction.response.send_message(content=content, embed=embed)
-
-            await self._process_command(msg, responder=send_response)
-
-        # Build a custom signature so discord.py can expose slash options.
-        parameters = [
-            inspect.Parameter(
-                "interaction",
-                kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=discord.Interaction,
-            )
-        ]
-        annotations: dict[str, object] = {"interaction": discord.Interaction}
-
-        for opt in option_specs:
-            name = opt.get("name")
-            if not isinstance(name, str) or not name:
-                continue
-            opt_type = opt.get("type") or "str"
-            py_t = self._option_python_type(str(opt_type))
-            required = bool(opt.get("required"))
-
-            default = inspect._empty if required else None
-            parameters.append(
-                inspect.Parameter(
-                    name,
-                    kind=inspect.Parameter.KEYWORD_ONLY,
-                    default=default,
-                    annotation=py_t,
-                )
-            )
-            annotations[name] = py_t
-
-        callback.__signature__ = inspect.Signature(parameters)  # type: ignore[attr-defined]
-        callback.__annotations__ = annotations
-        return callback
-
-    def _build_simple_slash_callback(self, cmd_name: str):
-        """Create a simple callback for commands with no options to ensure closure capture."""
-        async def wrapper(interaction: discord.Interaction):
-
-            class InteractionChannel:
-                def __init__(self, interaction: discord.Interaction):
-                    self._interaction = interaction
-                    self._channel = interaction.channel
-
-                async def send(self, content: str | None = None, *, embed: discord.Embed | None = None, view=None):
-                    kwargs = {}
-                    if content is not None:
-                        kwargs['content'] = content
-                    if embed is not None:
-                        kwargs['embed'] = embed
-                    if view is not None:
-                        kwargs['view'] = view
-
-                    if not self._interaction.response.is_done():
-                        await self._interaction.response.send_message(**kwargs)
-                    else:
-                        await self._interaction.followup.send(**kwargs)
-
-                def __getattr__(self, name):
-                    # Forward other attributes to the real channel (e.g., id, name)
-                    return getattr(self._channel, name)
-
-            class InteractionMessage:
-                def __init__(self, interaction: discord.Interaction, content: str):
-                    self.content = content
-                    self.author = interaction.user
-                    self.channel = InteractionChannel(interaction)
-                    self.guild = interaction.guild
-                    self.interaction = interaction
-                    self.mentions = []
-                    self.channel_mentions = []
-
-            full_content = f"{command_prefix}{cmd_name}"
-            msg = InteractionMessage(interaction, full_content)
-
-            async def send_response(content: str | None = None, embed: discord.Embed | None = None):
-                if interaction.response.is_done():
-                    await interaction.followup.send(content=content, embed=embed)
-                else:
-                    await interaction.response.send_message(content=content, embed=embed)
-
-            await self._process_command(msg, responder=send_response)
-        
-        return wrapper
-
-    async def setup_hook(self):
-        arg_specs = self._load_interaction_arg_specs()
-        # Register a slash command for each loaded command
-        for cmd_name, info in cmd_handler.list_commands_info().items():
-            desc = (info.get("doc") or f"Run {cmd_name}")[:99]
-
-            option_specs = arg_specs.get(cmd_name) or []
-
-            if option_specs:
-                wrapper = self._build_slash_callback(cmd_name, option_specs)
-            else:
-                wrapper = self._build_simple_slash_callback(cmd_name)
-
-            command = app_commands.Command(
-                name=cmd_name,
-                description=desc or "Run command",
-                callback=wrapper,
-            )
-            try:
-                self.tree.add_command(command)
-            except Exception as e:
-                logger.error(f"Failed to register slash command {cmd_name}: {e}")
-
-        # Sync slash commands on startup
-        await self.tree.sync()
-
-    async def on_ready(self):
-        self.start_time = datetime.now()
-        # Initialize private voice manager
-        self.private_voice_manager = get_manager(self)
-        self.private_voice_manager.start_cleanup_task()
-        logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
-        logger.info('------')
-        await self.change_presence(activity=discord.Game(name="with discord.py"))
-    
-    async def on_voice_state_update(self, member, before, after):
-        """Handle voice state updates for private voice channels"""
-        if hasattr(self, 'private_voice_manager'):
-            await self.private_voice_manager.on_voice_state_update(member, before, after)
-        await voicelogger.on_voice_state_update(member, before, after)
-
-    async def on_message_edit(self, before, after):
-        await msglog.on_message_edit(before, after)
-
-    async def on_message_delete(self, message):
-        await msglog.on_message_delete(message)
-    
-    async def on_message(self, message):
-        # Ignore messages from the bot itself
-        if message.author == self.user:
-            return
-
-        # Maintain legacy prefix command handling
-        if message.content.startswith(command_prefix):
-            await self._process_command(message, responder=message.channel.send)
-
-
-    async def _process_command(self, message, responder):
-        command_name = message.content[len(command_prefix):].split()[0]
-        command_func = cmd_handler.get_command(command_name)
-
-        if not command_func:
-            logger.warning(f"Unknown command '{command_name}' requested by {message.author}")
-            guild_id = message.guild.id if message.guild else None
-            await responder(content=get_translation("cmd_not_found", guild_id).replace("{command}", command_name))
-            return
-
-        command_type = cmd_handler.get_command_type(command_name)
-        logger.info(
-            f"Command '{command_name}' ({command_type}) requested by {message.author} (ID: {message.author.id}) in {message.guild.name if message.guild else 'DM'}"
-        )
-
-        has_permission, error_message = cmd_handler.check_permission(
-            command_name,
-            message.author,
-            BOT_OWNER_ID,
-        )
-
-        if not has_permission:
-            logger.warning(f"Permission denied for {message.author} to run '{command_name}': {error_message}")
-            guild_id = message.guild.id if message.guild else None
-            await responder(content=get_translation("permission_denied", guild_id).replace("{error}", error_message))
-            return
-
-        logger.info(f"Executing command '{command_name}' for {message.author}")
-        try:
-            import inspect
-
-            if inspect.iscoroutinefunction(command_func):
-                response = await command_func(message, self)
-            else:
-                response = command_func(message, self)
-
-            if response is not None:
-                if isinstance(response, discord.Embed):
-                    await responder(embed=response)
-                else:
-                    await responder(content=response)
-            logger.info(f"Command '{command_name}' executed successfully")
-        except Exception as e:
-            logger.error(f"Error executing command '{command_name}': {e}", exc_info=True)
-            guild_id = message.guild.id if message.guild else None
-            await responder(content=get_translation("error_executing_command", guild_id).replace("{error}", str(e)))
-
-
-bot = MyClient(intents=intents)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
-        if Token is None:
+        if TOKEN is None:
             raise ValueError("Bot token is not set in config.json")
-        bot.run(Token)
+        bot.run(TOKEN)
     except ValueError as ve:
         logger.error(f"Configuration Error: {ve}")
     except Exception as e:

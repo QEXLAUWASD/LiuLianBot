@@ -1,3 +1,3 @@
-"""Deprecated shim: delete handler is now in fuction.messagelogger.modify."""
+"""Deprecated shim — delete handler now in ``fuction.server_logger``."""
 
-from fuction.messagelogger.modify import on_message_delete  # noqa: F401
+from fuction.server_logger.message_events import on_message_delete  # noqa: F401
