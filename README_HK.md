@@ -218,10 +218,7 @@ python discord-part/main.py
 
 ---
 
-## 📄 法律文件
-
-- [服務條款 (Terms of Service)](TERMS_OF_SERVICE.md)
-- [隱私權政策 (Privacy Policy)](PRIVACY_POLICY.md)
+## 📄 授權
 
 本專案僅供個人 / 社群使用。保留所有權利。
 

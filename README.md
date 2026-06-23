@@ -218,10 +218,7 @@ Edit `discord-part/config.json`:
 
 ---
 
-## 📄 Legal
-
-- [服務條款 (Terms of Service)](TERMS_OF_SERVICE.md)
-- [隱私權政策 (Privacy Policy)](PRIVACY_POLICY.md)
+## 📄 License
 
 This project is for personal/community use. All rights reserved.
 
