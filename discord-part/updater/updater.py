@@ -1,18 +1,24 @@
 """
-動態更新模組 - 從私人 GitHub 儲存庫拉取最新程式碼。
+動態更新模組 - 從 GitHub 儲存庫拉取最新程式碼。
 
 支援：
-- 使用 GitHub Personal Access Token 存取私人儲存庫
+- 公開儲存庫（無需 token）
+- 私人儲存庫（使用 GitHub Personal Access Token 驗證）
 - git pull 更新
 - 更新後重新載入 Python 模組
-- 可選的重啟 bot 流程
 
 設定 (config.json):
+    # 公開 repo（僅需 github_repo）:
+    "updater": {
+        "github_repo": "owner/repo",
+        "branch": "master"
+    }
+
+    # 私人 repo（需 token）:
     "updater": {
         "github_repo": "owner/repo",
         "github_token": "ghp_xxxxxxxxxxxx",
-        "branch": "master",
-        "auto_restart": false
+        "branch": "master"
     }
 """
 
@@ -92,16 +98,16 @@ def get_latest_commit() -> Optional[str]:
 
 def fetch_and_pull(
     github_repo: str,
-    github_token: str,
+    github_token: str = "",
     branch: str = "master",
 ) -> Tuple[bool, str]:
-    """從私人 GitHub 儲存庫拉取最新程式碼。
+    """從 GitHub 儲存庫拉取最新程式碼。
 
-    使用 token 驗證來存取私人儲存庫。
+    公開 repo 不需提供 token；私人 repo 請提供 GitHub PAT。
 
     Args:
         github_repo: GitHub 儲存庫全名，如 "owner/repo"
-        github_token: GitHub Personal Access Token
+        github_token: GitHub Personal Access Token（公開 repo 可留空）
         branch: 要拉取的分支名稱
 
     Returns:
@@ -113,19 +119,24 @@ def fetch_and_pull(
     if not (repo_root / ".git").exists():
         return False, "目前目錄不是 git 儲存庫"
 
-    # 建構帶有 token 的 remote URL
-    remote_url = f"https://{github_token}@github.com/{github_repo}.git"
+    # 建構 remote URL（有 token 用私人驗證，無 token 用公開 URL）
+    if github_token:
+        remote_url = f"https://{github_token}@github.com/{github_repo}.git"
+        display_url = f"https://***@github.com/{github_repo}.git"
+    else:
+        remote_url = f"https://github.com/{github_repo}.git"
+        display_url = remote_url
 
     # 記錄更新前的 commit
     old_commit = get_latest_commit()
 
     steps: list[str] = []
 
-    # 1. 設定 remote URL（使用 token）
+    # 1. 設定 remote URL
     rc, stdout, stderr = _run_git(["remote", "set-url", "origin", remote_url])
     if rc != 0:
         return False, f"設定 remote URL 失敗: {stderr}"
-    steps.append(f"✓ 已設定 remote URL: https://***@github.com/{github_repo}.git")
+    steps.append(f"✓ 已設定 remote URL: {display_url}")
 
     # 2. Fetch 最新變更
     rc, stdout, stderr = _run_git(["fetch", "origin", branch])
@@ -204,17 +215,15 @@ def reload_modules() -> Tuple[int, list[str]]:
 
 def perform_update(
     github_repo: str,
-    github_token: str,
+    github_token: str = "",
     branch: str = "master",
-    auto_restart: bool = False,
 ) -> Tuple[bool, str]:
     """執行完整的更新流程：git pull → 重新載入模組。
 
     Args:
         github_repo: GitHub 儲存庫全名
-        github_token: GitHub Personal Access Token
+        github_token: GitHub Personal Access Token（公開 repo 可留空）
         branch: 分支名稱
-        auto_restart: 是否在更新後自動重啟 bot（預設 False）
 
     Returns:
         (success: bool, message: str)

@@ -1,7 +1,8 @@
 """
 動態更新指令 (Owner only)
 
-從私人 GitHub 儲存庫拉取最新程式碼並重新載入模組。
+從 GitHub 儲存庫拉取最新程式碼並重新載入模組。
+支援公開及私人儲存庫。
 
 Usage: >update
 """
@@ -14,7 +15,7 @@ from updater.updater import perform_update, get_current_branch, get_latest_commi
 
 
 async def update(message, bot):
-    """從 GitHub 私人儲存庫拉取最新程式碼並更新 bot。
+    """從 GitHub 儲存庫拉取最新程式碼並更新 bot。
 
     此指令僅限 bot owner 使用。
 
@@ -26,15 +27,14 @@ async def update(message, bot):
     updater_cfg = config.get("updater", {})
     if not updater_cfg:
         return "❌ 更新模組尚未設定。請在 config.json 中新增 `updater` 區段。\n" \
-               "```json\n\"updater\": {\n    \"github_repo\": \"owner/repo\",\n    \"github_token\": \"ghp_xxxx\",\n    \"branch\": \"master\",\n    \"auto_restart\": false\n}\n```"
+               "```json\n\"updater\": {\n    \"github_repo\": \"owner/repo\",\n    \"branch\": \"master\"\n}\n```"
 
     github_repo = updater_cfg.get("github_repo", "")
-    github_token = updater_cfg.get("github_token", "")
+    github_token = updater_cfg.get("github_token", "")  # 公開 repo 可留空
     branch = updater_cfg.get("branch", "master")
-    auto_restart = updater_cfg.get("auto_restart", False)
 
-    if not github_repo or not github_token:
-        return "❌ 更新設定不完整。請確認 config.json 中的 `github_repo` 和 `github_token` 已正確設定。"
+    if not github_repo:
+        return "❌ 更新設定不完整。請確認 config.json 中的 `github_repo` 已正確設定。"
 
     # 顯示更新前狀態
     old_branch = get_current_branch()
@@ -66,7 +66,6 @@ async def update(message, bot):
         github_repo=github_repo,
         github_token=github_token,
         branch=branch,
-        auto_restart=False,  # 手動控制重啟
     )
 
     # 更新後的 commit

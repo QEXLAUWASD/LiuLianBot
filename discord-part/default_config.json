@@ -15,5 +15,9 @@
         "password": "password",
         "database": "discordbot",
         "charset": "utf8mb4"
+    },
+    "updater": {
+        "github_repo": "owner/repo",
+        "branch": "master"
     }
 }
