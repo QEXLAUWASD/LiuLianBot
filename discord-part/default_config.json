@@ -18,6 +18,7 @@
     },
     "updater": {
         "github_repo": "owner/repo",
-        "branch": "master"
+        "branch": "master",
+        "auto_restart": false
     }
 }

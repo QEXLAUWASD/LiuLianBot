@@ -11,14 +11,16 @@
     # 公開 repo（僅需 github_repo）:
     "updater": {
         "github_repo": "owner/repo",
-        "branch": "master"
+        "branch": "master",
+        "auto_restart": false
     }
 
     # 私人 repo（需 token）:
     "updater": {
         "github_repo": "owner/repo",
         "github_token": "ghp_xxxxxxxxxxxx",
-        "branch": "master"
+        "branch": "master",
+        "auto_restart": false
     }
 """
 
@@ -217,13 +219,15 @@ def perform_update(
     github_repo: str,
     github_token: str = "",
     branch: str = "master",
+    auto_restart: bool = False,
 ) -> Tuple[bool, str]:
-    """執行完整的更新流程：git pull → 重新載入模組。
+    """執行完整的更新流程：git pull → 重新載入模組 → 可選重啟。
 
     Args:
         github_repo: GitHub 儲存庫全名
         github_token: GitHub Personal Access Token（公開 repo 可留空）
         branch: 分支名稱
+        auto_restart: 是否在更新後自動重啟 bot 程序
 
     Returns:
         (success: bool, message: str)
@@ -238,7 +242,69 @@ def perform_update(
     msg += f"\n\n🔄 已重新載入 {count} 個模組"
 
     if auto_restart:
-        msg += "\n\n⚠️ auto_restart 設為 true，將在 3 秒後重啟 bot..."
-        # 重啟邏輯由呼叫端處理（Discord command）
+        msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
 
     return True, msg
+
+
+def restart_bot() -> None:
+    """重啟 bot 程序 — 透過呼叫專案根目錄的 start.sh。
+
+    會自動偵測 bash 路徑（Linux/macOS 直接用 bash，Windows 優先找 Git Bash）。
+    若找不到 bash 則降級為直接啟動 Python 程序。
+    """
+    repo_root = _get_repo_root()
+    start_script = repo_root / "start.sh"
+
+    # 優先使用 start.sh
+    if start_script.is_file():
+        # 尋找可用的 bash
+        bash_cmd: Optional[str] = None
+
+        if os.name != "nt":
+            # Linux / macOS：直接用 bash
+            bash_cmd = "bash"
+        else:
+            # Windows：依序尋找 Git Bash → WSL → 略過
+            for candidate in (
+                r"C:\Program Files\Git\bin\bash.exe",
+                r"C:\Program Files (x86)\Git\bin\bash.exe",
+                "bash",  # PATH 中有 Git Bash
+                "wsl",
+            ):
+                rc, _, _ = _run_git([])  # reuse helper to test command
+                # 改用 subprocess 直接測
+                try:
+                    subprocess.run(
+                        [candidate, "--version"],
+                        capture_output=True,
+                        timeout=5,
+                    )
+                    bash_cmd = candidate
+                    break
+                except Exception:
+                    continue
+
+        if bash_cmd:
+            logger.info(f"透過 {bash_cmd} {start_script} restart 重啟...")
+            if bash_cmd == "wsl":
+                # wsl 需要轉換路徑
+                subprocess.Popen([bash_cmd, "bash", str(start_script), "restart"])
+            else:
+                subprocess.Popen([bash_cmd, str(start_script), "restart"])
+        else:
+            # 降級：直接啟動 Python
+            logger.warning("找不到 bash，改用直接啟動 Python 程序")
+            subprocess.Popen(
+                [sys.executable] + sys.argv,
+                creationflags=subprocess.CREATE_NEW_CONSOLE,
+            )
+    else:
+        # start.sh 不存在，降級為直接 Python 重啟
+        logger.warning("找不到 start.sh，改用直接啟動 Python 程序")
+        subprocess.Popen(
+            [sys.executable] + sys.argv,
+            creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0,
+        )
+
+    os._exit(0)

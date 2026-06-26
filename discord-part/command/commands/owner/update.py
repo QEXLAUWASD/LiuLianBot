@@ -11,7 +11,7 @@ import discord
 from datetime import datetime
 
 from core.config import get_config, reload_config
-from updater.updater import perform_update, get_current_branch, get_latest_commit
+from updater.updater import perform_update, get_current_branch, get_latest_commit, restart_bot
 
 
 async def update(message, bot):
@@ -32,6 +32,7 @@ async def update(message, bot):
     github_repo = updater_cfg.get("github_repo", "")
     github_token = updater_cfg.get("github_token", "")  # 公開 repo 可留空
     branch = updater_cfg.get("branch", "master")
+    auto_restart = updater_cfg.get("auto_restart", False)
 
     if not github_repo:
         return "❌ 更新設定不完整。請確認 config.json 中的 `github_repo` 已正確設定。"
@@ -66,6 +67,7 @@ async def update(message, bot):
         github_repo=github_repo,
         github_token=github_token,
         branch=branch,
+        auto_restart=auto_restart,
     )
 
     # 更新後的 commit
@@ -107,3 +109,10 @@ async def update(message, bot):
 
     result_embed.set_footer(text=f"由 {message.author} 觸發")
     await message.channel.send(embed=result_embed)
+
+    # 若啟用 auto_restart 且更新成功，則重啟 bot
+    if success and auto_restart:
+        import asyncio
+        await asyncio.sleep(1)
+        await bot.close()
+        restart_bot()
