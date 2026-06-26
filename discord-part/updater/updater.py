@@ -320,4 +320,6 @@ def restart_bot() -> None:
         logger.warning("找不到 start.sh")
         pass
 
+    # 使用 os._exit 確保在 async 環境中也能確實終止程序
+    # （sys.exit 在 asyncio 事件迴圈中會被捕獲，無法退出）
     os._exit(0)

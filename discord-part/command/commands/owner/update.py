@@ -67,6 +67,10 @@ class RestartConfirmView(discord.ui.View):
         bot = interaction.client
         await bot.close()
 
+        # 手動關閉 HTTP session，避免 os._exit 時出現 aiohttp 未關閉警告
+        if hasattr(bot, 'http') and hasattr(bot.http, 'close'):
+            await bot.http.close()
+
         # 呼叫 restart_bot（會透過 start.sh restart 或降級啟動）
         restart_bot()
 
@@ -215,4 +219,7 @@ async def update(message, bot):
     if success and auto_restart:
         await asyncio.sleep(1)
         await bot.close()
+        # 手動關閉 HTTP session，避免 os._exit 時出現 aiohttp 未關閉警告
+        if hasattr(bot, 'http') and hasattr(bot.http, 'close'):
+            await bot.http.close()
         restart_bot()
