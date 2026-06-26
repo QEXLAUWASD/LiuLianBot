@@ -15,16 +15,17 @@ import os
 # ---------------------------------------------------------------------------
 
 def _get_config_path() -> str:
-    """Return the absolute path to config.json (one level above discord-part/)."""
+    """Return the absolute path to shared/database/config.json."""
     return os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        'config.json',
+        '..', 'shared', 'database', 'config.json',
     )
 
 def _load_mysql_config() -> dict:
     with open(_get_config_path(), 'r', encoding='utf-8') as f:
         config = json.load(f)
-    return config.get('mysql_config', {})
+    # shared/database/config.json wraps settings under "mysql"
+    return config.get('mysql', config.get('mysql_config', {}))
 
 # ---------------------------------------------------------------------------
 # Ensure the target database exists

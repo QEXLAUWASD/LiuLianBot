@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiuLianBot - Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">🎮 LiuLianBot</div>
+    <div class="nav-links">
+      <a href="/index.html" class="nav-link active">Home</a>
+      <a href="/roller.html" class="nav-link">R6 Roller</a>
+    </div>
+    <div class="nav-user">
+      <span id="navUsername"></span>
+      <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="dashboard">
+      <h2>Welcome, <span id="welcomeName"></span>!</h2>
+      <p class="dashboard-desc">This is the LiuLianBot web dashboard. Use the R6 Roller to randomly pick operators and maps.</p>
+
+      <div class="feature-cards">
+        <a href="/roller.html" class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>R6 Operator Roller</h3>
+          <p>Randomly pick an operator with weapons and gadgets. Attacker or Defender mode available.</p>
+        </a>
+        <a href="/roller.html?tab=map" class="feature-card">
+          <div class="feature-icon">🗺️</div>
+          <h3>R6 Map Roller</h3>
+          <p>Randomly pick a map with game mode for your next Rainbow Six Siege match.</p>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

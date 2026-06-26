@@ -3,9 +3,13 @@ import os
 import random
 from typing import Any, Dict
 
+# Resolve shared/ folder at project root (3 levels up from this file)
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_SHARED_R6 = os.path.join(_PROJECT_ROOT, 'shared', 'r6')
+
 
 def _map_file_path() -> str:
-	return os.path.join(os.path.dirname(__file__), "maplist.json")
+	return os.path.join(_SHARED_R6, "maplist.json")
 
 
 def load_maps() -> Dict[str, Dict[str, Any]]:

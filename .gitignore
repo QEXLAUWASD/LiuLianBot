@@ -211,10 +211,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-
+AGENTS.md
 # Streamlit
 .streamlit/secrets.toml
 
 config.json
-mapsgrap.py
-opsgrap.py
+node_modules/
+.env

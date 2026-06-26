@@ -3,9 +3,13 @@ import os
 import random
 from typing import Dict, Tuple, Optional
 
+# Resolve shared/ folder at project root (3 levels up from this file)
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+_SHARED_R6 = os.path.join(_PROJECT_ROOT, 'shared', 'r6')
+
 
 def _operator_file_path() -> str:
-	return os.path.join(os.path.dirname(__file__), "operatorlist.json")
+	return os.path.join(_SHARED_R6, "operatorlist.json")
 
 
 def load_ops() -> Dict[str, Dict[str, dict]]:
