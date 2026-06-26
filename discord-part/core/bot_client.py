@@ -104,6 +104,13 @@ class MyClient(commands.Bot):
             activity=discord.Game(name="with discord.py")
         )
 
+    async def close(self) -> None:
+        """Flush batched logs before shutting down."""
+        from fuction.server_logger.base import _batcher
+        self.logger.info("Flushing batched logs before shutdown...")
+        await _batcher.flush_all()
+        await super().close()
+
     async def on_voice_state_update(self, member, before, after):
         """處理語音狀態更新 - 委派給私人語音管理員。"""
         if self.private_voice_manager is not None:

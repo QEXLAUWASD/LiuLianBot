@@ -45,6 +45,10 @@ set_log_channel = _base.set_log_channel
 get_log_channel = _base.get_log_channel
 init_log_channel_table = _base.init_log_channel_table
 
+# Re-export the batcher for shutdown flushing
+flush_all_logs = _base._batcher.flush_all
+_batcher = _base._batcher
+
 __all__ = [
     # Registration
     "register_handlers",
@@ -52,6 +56,9 @@ __all__ = [
     "set_log_channel",
     "get_log_channel",
     "init_log_channel_table",
+    # Batcher
+    "flush_all_logs",
+    "_batcher",
     # Message events
     "on_message_edit",
     "on_message_delete",
