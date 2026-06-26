@@ -149,7 +149,7 @@ stop_bot() {
     if ! is_running; then
         log_warn "Bot is not running."
         rm -f "$PID_FILE"
-        exit 0
+        return 0
     fi
 
     PID=$(cat "$PID_FILE")

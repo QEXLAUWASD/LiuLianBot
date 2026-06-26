@@ -264,6 +264,7 @@ def restart_bot() -> None:
         if os.name != "nt":
             # Linux / macOS：直接用 bash
             bash_cmd = "bash"
+            
         else:
             # Windows：依序尋找 Git Bash → WSL → 略過
             for candidate in (
@@ -289,22 +290,34 @@ def restart_bot() -> None:
             logger.info(f"透過 {bash_cmd} {start_script} restart 重啟...")
             if bash_cmd == "wsl":
                 # wsl 需要轉換路徑
-                subprocess.Popen([bash_cmd, "bash", str(start_script), "restart"])
+                subprocess.Popen(
+                    [bash_cmd, "bash", str(start_script), "restart"],
+                    start_new_session=True,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             else:
-                subprocess.Popen([bash_cmd, str(start_script), "restart"])
+                subprocess.Popen(
+                    [bash_cmd, str(start_script), "restart"],
+                    start_new_session=True,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
         else:
             # 降級：直接啟動 Python
             logger.warning("找不到 bash，改用直接啟動 Python 程序")
             subprocess.Popen(
                 [sys.executable] + sys.argv,
-                creationflags=subprocess.CREATE_NEW_CONSOLE,
+                start_new_session=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
     else:
         # start.sh 不存在，降級為直接 Python 重啟
-        logger.warning("找不到 start.sh，改用直接啟動 Python 程序")
-        subprocess.Popen(
-            [sys.executable] + sys.argv,
-            creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0,
-        )
+        logger.warning("找不到 start.sh")
+        pass
 
     os._exit(0)
