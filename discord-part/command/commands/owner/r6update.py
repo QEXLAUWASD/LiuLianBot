@@ -9,6 +9,7 @@ Usage: >r6update
 
 import os
 import sys
+import asyncio
 import importlib
 import discord
 from datetime import datetime
@@ -46,7 +47,8 @@ async def r6update(message, bot):
         import shared.r6.mapsgrap as mapsgrap_mod
         importlib.reload(mapsgrap_mod)
 
-        maps_data = mapsgrap_mod.scrape_maps()
+        # 使用 asyncio.to_thread 避免同步 HTTP 請求阻塞 Discord 事件循環
+        maps_data = await asyncio.to_thread(mapsgrap_mod.scrape_maps)
         import json
         maps_out = os.path.join(_PROJECT_ROOT, 'shared', 'r6', 'maplist.json')
         with open(maps_out, 'w', encoding='utf-8') as f:
@@ -67,7 +69,8 @@ async def r6update(message, bot):
         import shared.r6.opsgrap as opsgrap_mod
         importlib.reload(opsgrap_mod)
 
-        ops_data = opsgrap_mod.scrape()
+        # 使用 asyncio.to_thread 避免同步 HTTP 請求阻塞 Discord 事件循環
+        ops_data = await asyncio.to_thread(opsgrap_mod.scrape)
         import json
         ops_out = os.path.join(_PROJECT_ROOT, 'shared', 'r6', 'operatorlist.json')
         with open(ops_out, 'w', encoding='utf-8') as f:
@@ -126,4 +129,8 @@ async def r6update(message, bot):
     )
     result_embed.set_footer(text="R6 資料更新")
 
-    await status_msg.edit(embed=result_embed)
+    # 嘗試編輯狀態訊息，若 session 已失效則發送新訊息
+    try:
+        await status_msg.edit(embed=result_embed)
+    except (discord.NotFound, discord.HTTPException, AttributeError):
+        await message.channel.send(embed=result_embed)

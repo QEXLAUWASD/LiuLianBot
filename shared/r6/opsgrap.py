@@ -48,6 +48,7 @@ def scrape():
     html = requests.get(URL, timeout=30).text
     soup = BeautifulSoup(html, "html.parser")
     data = {"Att": {}, "Def": {}}
+    seen_names = set()  # 追蹤已處理的幹員名稱，避免重複
 
     cards = soup.select("[data-testid='operator-card']")
     if not cards:
@@ -62,6 +63,11 @@ def scrape():
         if not name_el:
             continue
         name = name_el.get_text(strip=True)
+
+        # 跳過已處理的幹員（頁面可能有重複的 card 元素，例如手機/桌面版）
+        if name in seen_names:
+            continue
+        seen_names.add(name)
 
         role_el = (
             card.select_one("[data-testid='operator-role']")
