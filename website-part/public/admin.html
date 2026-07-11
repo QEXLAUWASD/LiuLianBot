@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiuLianBot - Admin Panel</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">🎮 LiuLianBot</div>
+    <div class="nav-links">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/roller.html" class="nav-link">R6 Roller</a>
+      <a href="/admin.html" class="nav-link active">Admin</a>
+    </div>
+    <div class="nav-user" id="navUser">
+      <span id="navUsername"></span>
+      <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="admin-container">
+      <h2>⚙️ Admin Panel</h2>
+
+      <div class="admin-tabs">
+        <button class="tab-btn active" data-tab="users">👤 Users</button>
+        <button class="tab-btn" data-tab="groups">🔐 Groups</button>
+        <button class="tab-btn" data-tab="guilds">🌐 Discord Guilds</button>
+      </div>
+
+      <!-- ============ Users Tab ============ -->
+      <div id="usersTab" class="admin-tab active">
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ Groups Tab ============ -->
+      <div id="groupsTab" class="admin-tab">
+        <div class="admin-toolbar">
+          <button id="createGroupBtn" class="btn btn-primary">+ Create Group</button>
+        </div>
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Users</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="groupsTableBody">
+              <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ Guilds Tab ============ -->
+      <div id="guildsTab" class="admin-tab">
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Guild ID</th>
+                <th>Language</th>
+                <th>Admins</th>
+                <th>Log Channel</th>
+                <th>Roller Channel</th>
+                <th>Voice Channels</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="guildsTableBody">
+              <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ===== User Edit Modal ===== -->
+  <div id="userEditModal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit User Role</h3>
+        <button class="modal-close" onclick="closeModal('userEditModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="editUserUsername" disabled>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select id="editUserRole" class="form-select"></select>
+        </div>
+        <div class="error-msg" id="userEditError"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('userEditModal')">Cancel</button>
+        <button class="btn btn-primary" id="saveUserRoleBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Group Create/Edit Modal ===== -->
+  <div id="groupEditModal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="groupModalTitle">Create Group</h3>
+        <button class="modal-close" onclick="closeModal('groupEditModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editGroupId">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="editGroupName" placeholder="Group name (e.g. moderator)" maxlength="50">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="editGroupDesc" placeholder="Short description" maxlength="255">
+        </div>
+        <div class="error-msg" id="groupEditError"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('groupEditModal')">Cancel</button>
+        <button class="btn btn-primary" id="saveGroupBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Guild Detail Modal ===== -->
+  <div id="guildDetailModal" class="modal-overlay" style="display:none;">
+    <div class="modal" style="max-width:600px;">
+      <div class="modal-header">
+        <h3>Guild Details</h3>
+        <button class="modal-close" onclick="closeModal('guildDetailModal')">&times;</button>
+      </div>
+      <div class="modal-body" id="guildDetailContent"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('guildDetailModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Confirm Delete Dialog ===== -->
+  <div id="confirmDialog" class="confirm-overlay" style="display:none;">
+    <div class="confirm-box">
+      <h3 id="confirmTitle">Confirm Delete</h3>
+      <p id="confirmMsg">Are you sure?</p>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="closeConfirm()">Cancel</button>
+        <button class="btn btn-danger" id="confirmOkBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

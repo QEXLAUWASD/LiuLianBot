@@ -30,6 +30,17 @@
 - 可設定抽選頻道同自訂模式
 - 基於身份組嘅隨機抽選，適合組隊使用
 
+### 🌐 網站儀表板
+- 網頁版 R6 抽選介面，用瀏覽器就可以用
+- 用戶登入系統（註冊 / 登入）
+- 管理面板，可以管理 Bot 同用戶
+- SQL 注入防護同 Session 安全機制
+
+### 🔄 自動更新
+- 透過 Bot 指令從 GitHub 拉取最新程式碼
+- 支援公開同私人 Repo
+- 可設定更新後自動重啟 Bot
+
 ### 🌐 多語言支援
 - **English**（英文）
 - **繁體中文**（`zh_TW`）
@@ -66,6 +77,10 @@ LiuLianBot/
 │   │       ├── guild_admin/  # 伺服器管理員指令
 │   │       ├── guild_owner/  # 伺服器擁有者指令
 │   │       └── owner/        # Bot 擁有者指令
+│   ├── core/
+│   │   ├── bot_client.py     # Bot 客戶端（discord.py 子類別）
+│   │   ├── config.py         # 設定載入器
+│   │   └── slash_adapter.py  # Slash 指令轉接器
 │   ├── fuction/
 │   │   ├── r6Roll/           # R6 地圖同幹員抽選
 │   │   ├── private_voiceChat/# 私人語音頻道系統
@@ -76,9 +91,42 @@ LiuLianBot/
 │   │   ├── en.json           # 英文翻譯
 │   │   └── zh_TW.json        # 繁體中文翻譯
 │   ├── tools/                # 開發工具
-│   └── uilts/
-│       ├── database.py       # MySQL 資料庫連接
-│       └── logger.py         # 記錄器設定
+│   ├── uilts/
+│   │   ├── database.py       # MySQL 資料庫連接
+│   │   └── logger.py         # 記錄器設定
+│   └── updater/
+│       └── updater.py        # Git 自動更新模組
+├── website-part/
+│   ├── server.js             # Express.js 網頁伺服器
+│   ├── package.json          # Node.js 依賴
+│   ├── db.js                 # 資料庫連接
+│   ├── middleware/
+│   │   ├── adminAuth.js      # 管理員驗證
+│   │   └── security.js       # SQL 注入防護
+│   ├── public/
+│   │   ├── login.html        # 登入頁面
+│   │   ├── index.html        # 儀表板（需登入）
+│   │   ├── roller.html       # 網頁版 R6 抽選
+│   │   ├── admin.html        # 管理面板（限管理員）
+│   │   ├── css/style.css
+│   │   └── js/
+│   │       ├── app.js
+│   │       ├── auth.js
+│   │       ├── roller.js
+│   │       └── admin.js
+│   └── routes/
+│       ├── auth.js           # 身份驗證 API
+│       ├── roller.js         # 抽選 API
+│       └── admin.js          # 管理 API
+├── shared/
+│   ├── database/
+│   │   ├── config.json       # 共用資料庫設定
+│   │   └── README.md
+│   └── r6/
+│       ├── maplist.json      # R6 地圖資料
+│       ├── mapsgrap.py       # 地圖資料爬蟲
+│       ├── operatorlist.json # R6 幹員資料
+│       └── opsgrap.py        # 幹員資料爬蟲
 └── logs/                     # 執行記錄
 ```
 
@@ -146,6 +194,11 @@ python discord-part/main.py
         "password": "你的密碼",
         "database": "discordbot",
         "charset": "utf8mb4"
+    },
+    "updater": {
+        "github_repo": "owner/repo",
+        "branch": "master",
+        "auto_restart": false
     }
 }
 ```
@@ -159,6 +212,9 @@ python discord-part/main.py
 | `activity` | Bot 顯示嘅活動狀態 |
 | `token` | 你嘅 Discord Bot Token |
 | `mysql_config` | MySQL 資料庫連線設定 |
+| `updater.github_repo` | 自動更新用嘅 GitHub Repo（`owner/repo`） |
+| `updater.branch` | 要追蹤嘅 Git 分支（預設：`master`） |
+| `updater.auto_restart` | 更新後自動重啟 Bot |
 
 ---
 
@@ -203,6 +259,30 @@ python discord-part/main.py
 | `>removeAdmin <@用戶>` | 移除 Bot 管理員 |
 | `>getInfo` | 獲取 Bot 執行資訊 |
 | `>getServerList` | 列出 Bot 所在嘅所有伺服器 |
+| `>r6update` | 更新 R6 地圖同幹員資料 |
+| `>update` | 從 GitHub 拉取最新程式碼 |
+
+---
+
+## 🌐 網站設定
+
+網站部分提供網頁版 R6 抽選介面同用戶管理功能。
+
+```bash
+cd website-part
+
+# 安裝依賴
+npm install
+
+# 設定環境變數
+cp .env.example .env
+# 編輯 .env 填入你嘅資料庫同 Session 設定
+
+# 啟動伺服器
+npm run start
+```
+
+網站預設喺 `http://localhost:3000` 執行。
 
 ---
 
@@ -215,6 +295,18 @@ python discord-part/main.py
 | `colorama` | 0.4.6 | 終端機彩色輸出 |
 | `psutil` | ≥5.9.0 | 系統資源監控 |
 | `cryptography` | 46.0.3 | 加密操作 |
+| `requests` | ≥2.31.0 | HTTP 請求（R6 資料爬蟲） |
+| `beautifulsoup4` | ≥4.12.0 | HTML 解析（R6 資料爬蟲） |
+
+### 網站依賴 (Node.js)
+
+| 套件 | 版本 | 用途 |
+|------|------|------|
+| `express` | ^4.18.2 | 網頁伺服器框架 |
+| `express-session` | ^1.17.3 | Session 管理 |
+| `bcryptjs` | ^2.4.3 | 密碼雜湊 |
+| `dotenv` | ^16.3.1 | 環境變數 |
+| `mysql2` | ^3.9.0 | MySQL 資料庫驅動 |
 
 ---
 

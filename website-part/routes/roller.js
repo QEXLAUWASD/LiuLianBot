@@ -15,16 +15,6 @@ function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Auth check middleware
-function requireAuth(req, res, next) {
-  if (!req.session.user) {
-    return res.status(401).json({ error: 'Please login first' });
-  }
-  next();
-}
-
-router.use(requireAuth);
-
 // Roll a random operator
 router.get('/operator', (req, res) => {
   try {

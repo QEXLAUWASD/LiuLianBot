@@ -30,6 +30,17 @@ Comprehensive event logging to a designated channel:
 - Configurable roll channels with custom modes
 - Role-based random selection for team picking
 
+### 🌐 Website Dashboard
+- Web-based R6 roller interface accessible from a browser
+- User authentication system with login/registration
+- Admin panel for bot and user management
+- SQL injection protection and session-based security
+
+### 🔄 Auto-Updater
+- Pull latest code from a GitHub repository via bot command
+- Support for both public and private repositories
+- Automatic bot restart after update (configurable)
+
 ### 🌐 Multi-Language Support
 - **English** (`en`)
 - **繁體中文** (`zh_TW`)
@@ -66,6 +77,10 @@ LiuLianBot/
 │   │       ├── guild_admin/  # Guild admin commands
 │   │       ├── guild_owner/  # Guild owner commands
 │   │       └── owner/        # Bot owner commands
+│   ├── core/
+│   │   ├── bot_client.py     # Bot client (discord.py subclass)
+│   │   ├── config.py         # Configuration loader
+│   │   └── slash_adapter.py  # Slash command adapter
 │   ├── fuction/
 │   │   ├── r6Roll/           # R6 map & operator randomizer
 │   │   ├── private_voiceChat/# Private voice channel system
@@ -76,9 +91,42 @@ LiuLianBot/
 │   │   ├── en.json           # English translations
 │   │   └── zh_TW.json        # Traditional Chinese translations
 │   ├── tools/                # Dev utilities
-│   └── uilts/
-│       ├── database.py       # MySQL database connection
-│       └── logger.py         # Logging setup
+│   ├── uilts/
+│   │   ├── database.py       # MySQL database connection
+│   │   └── logger.py         # Logging setup
+│   └── updater/
+│       └── updater.py        # Git-based auto-update module
+├── website-part/
+│   ├── server.js             # Express.js web server
+│   ├── package.json          # Node.js dependencies
+│   ├── db.js                 # Database connection
+│   ├── middleware/
+│   │   ├── adminAuth.js      # Admin authorization
+│   │   └── security.js       # SQL injection protection
+│   ├── public/
+│   │   ├── login.html        # Login page
+│   │   ├── index.html        # Dashboard (auth required)
+│   │   ├── roller.html       # Web-based R6 roller
+│   │   ├── admin.html        # Admin panel (admin only)
+│   │   ├── css/style.css
+│   │   └── js/
+│   │       ├── app.js
+│   │       ├── auth.js
+│   │       ├── roller.js
+│   │       └── admin.js
+│   └── routes/
+│       ├── auth.js           # Authentication API
+│       ├── roller.js         # Roller API
+│       └── admin.js          # Admin API
+├── shared/
+│   ├── database/
+│   │   ├── config.json       # Shared database config
+│   │   └── README.md
+│   └── r6/
+│       ├── maplist.json      # R6 map data
+│       ├── mapsgrap.py       # Map data scraper
+│       ├── operatorlist.json # R6 operator data
+│       └── opsgrap.py        # Operator data scraper
 └── logs/                     # Runtime logs
 ```
 
@@ -146,6 +194,11 @@ Edit `discord-part/config.json`:
         "password": "your_password",
         "database": "discordbot",
         "charset": "utf8mb4"
+    },
+    "updater": {
+        "github_repo": "owner/repo",
+        "branch": "master",
+        "auto_restart": false
     }
 }
 ```
@@ -159,6 +212,9 @@ Edit `discord-part/config.json`:
 | `activity` | Bot's displayed activity status |
 | `token` | Your Discord bot token |
 | `mysql_config` | MySQL database connection settings |
+| `updater.github_repo` | GitHub repository for auto-updates (`owner/repo`) |
+| `updater.branch` | Git branch to track (default: `master`) |
+| `updater.auto_restart` | Automatically restart bot after update |
 
 ---
 
@@ -203,6 +259,30 @@ Edit `discord-part/config.json`:
 | `>removeAdmin <@user>` | Remove a bot admin |
 | `>getInfo` | Get bot runtime information |
 | `>getServerList` | List all servers the bot is in |
+| `>r6update` | Update R6 map & operator data |
+| `>update` | Pull latest code from GitHub |
+
+---
+
+## 🌐 Website Setup
+
+The website part provides a browser-based interface for the R6 roller and user management.
+
+```bash
+cd website-part
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your database and session settings
+
+# Start the server
+npm run start
+```
+
+The website runs on `http://localhost:3000` by default.
 
 ---
 
@@ -215,6 +295,18 @@ Edit `discord-part/config.json`:
 | `colorama` | 0.4.6 | Colored terminal output |
 | `psutil` | ≥5.9.0 | System resource monitoring |
 | `cryptography` | 46.0.3 | Cryptographic operations |
+| `requests` | ≥2.31.0 | HTTP requests (R6 data scraping) |
+| `beautifulsoup4` | ≥4.12.0 | HTML parsing (R6 data scraping) |
+
+### Website Dependencies (Node.js)
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `express` | ^4.18.2 | Web server framework |
+| `express-session` | ^1.17.3 | Session management |
+| `bcryptjs` | ^2.4.3 | Password hashing |
+| `dotenv` | ^16.3.1 | Environment variables |
+| `mysql2` | ^3.9.0 | MySQL database driver |
 
 ---
 

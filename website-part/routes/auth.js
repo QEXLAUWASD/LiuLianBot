@@ -78,12 +78,36 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// Check current session
-router.get('/me', (req, res) => {
-  if (req.session.user) {
-    res.json({ loggedIn: true, user: req.session.user });
-  } else {
-    res.json({ loggedIn: false });
+// Check current session (with role info)
+router.get('/me', async (req, res) => {
+  if (!req.session.user) {
+    return res.json({ loggedIn: false });
+  }
+  try {
+    const { findUserById } = require('../db');
+    const user = await findUserById(req.session.user.id);
+    if (!user) {
+      req.session.destroy(() => {});
+      return res.json({ loggedIn: false });
+    }
+    res.json({
+      loggedIn: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role_name || 'user',
+      },
+    });
+  } catch (err) {
+    // Fallback: return session data without role
+    res.json({
+      loggedIn: true,
+      user: {
+        id: req.session.user.id,
+        username: req.session.user.username,
+        role: 'user',
+      },
+    });
   }
 });
 

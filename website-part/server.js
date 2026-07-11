@@ -4,8 +4,10 @@ const path = require('path');
 require('dotenv').config();
 
 const { sqlInjectionGuard } = require('./middleware/security');
+const { requireAdmin } = require('./middleware/adminAuth');
 const authRoutes = require('./routes/auth');
 const rollerRoutes = require('./routes/roller');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,6 +38,7 @@ app.use(session({
 // API Routes (protected by sqlInjectionGuard above)
 app.use('/api/auth', authRoutes);
 app.use('/api/roller', rollerRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Auth check middleware for pages
 function requireAuth(req, res, next) {
@@ -43,13 +46,19 @@ function requireAuth(req, res, next) {
   res.redirect('/login.html');
 }
 
-// Protected pages
-app.get('/roller.html', requireAuth, (req, res) => {
+// Public pages (no auth required)
+app.get('/roller.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'roller.html'));
 });
 
+// Protected pages
 app.get('/index.html', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Admin page (require auth + admin role)
+app.get('/admin.html', requireAuth, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 // Root redirect

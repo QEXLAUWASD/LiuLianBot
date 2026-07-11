@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const params = side ? `?side=${side}` : '';
       const res = await fetch(`/api/roller/operator${params}`);
-      if (res.status === 401) { window.location.href = '/login.html'; return; }
 
       const data = await res.json();
       if (res.ok) {
@@ -111,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const res = await fetch('/api/roller/map');
-      if (res.status === 401) { window.location.href = '/login.html'; return; }
 
       const data = await res.json();
       if (res.ok) {
