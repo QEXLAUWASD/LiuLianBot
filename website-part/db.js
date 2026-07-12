@@ -67,6 +67,7 @@ async function getPool() {
   const cfg = loadConfig();
   pool = mysql.createPool({
     host: cfg.host || 'localhost',
+    port: cfg.port || 3306,
     user: cfg.user || 'root',
     password: cfg.password || '',
     database: cfg.database || 'discordbot',
