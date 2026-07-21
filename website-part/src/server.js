@@ -17,12 +17,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'liulianbot-secret-key-change-in-production';
+const sessionStore = new MySqlSessionStore();
 
-// Session must run before every authenticated API, page, and proxy route.
 app.use(session({
-  store: new MySqlSessionStore(),
+  store: sessionStore,
   name: SESSION_COOKIE_NAME,
-  secret: process.env.SESSION_SECRET || 'liulianbot-secret-key-change-in-production',
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -32,7 +33,6 @@ app.use(session({
   },
 }));
 
-// Parse and validate LiuLianBot APIs only. Proxied request bodies must remain streams.
 app.use('/api', express.json({ limit: '16kb' }));
 app.use('/api', express.urlencoded({ extended: false, limit: '16kb' }));
 app.use('/api/admin/connections', adminConnectionRoutes);
@@ -64,10 +64,7 @@ app.get('/admin.html', requireAuth, requireAdmin, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
 });
 
-// Each request, including assets and form submissions, is checked before proxying.
 app.use('/connect/:slug', connectionProxy);
-
-// Protected HTML routes above must run before the static file fallback.
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
 app.get('/', (req, res) => {
@@ -82,6 +79,12 @@ app.use((req, res) => {
   res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`LiuLianBot Website running at http://localhost:${PORT}`);
+});
+
+connectionProxy.attachWebSocketServer(server, {
+  sessionStore,
+  sessionCookieName: SESSION_COOKIE_NAME,
+  sessionSecret: SESSION_SECRET,
 });
