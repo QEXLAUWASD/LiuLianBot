@@ -233,6 +233,43 @@ async function findUserById(id) {
   return rows.length > 0 ? rows[0] : null;
 }
 
+async function findUserCredentialsById(id) {
+  const safe = validateString(id, 'id');
+  const p = await getPool();
+  const [rows] = await p.execute(
+    `SELECT id, username, password
+     FROM website_users
+     WHERE id = ?`,
+    [safe]
+  );
+  return rows.length > 0 ? rows[0] : null;
+}
+
+async function updateUsername(userId, username) {
+  const safeUserId = validateString(userId, 'user id');
+  const safeUsername = validateString(username, 'username');
+  const p = await getPool();
+  const [result] = await p.execute(
+    'UPDATE website_users SET username = ? WHERE id = ?',
+    [safeUsername, safeUserId]
+  );
+  if (result.affectedRows === 0) throw new Error('User not found');
+  return findUserById(safeUserId);
+}
+
+async function updatePasswordHash(userId, hashedPassword) {
+  const safeUserId = validateString(userId, 'user id');
+  if (typeof hashedPassword !== 'string' || hashedPassword.length === 0) {
+    throw new Error('[DB] password hash: invalid');
+  }
+  const p = await getPool();
+  const [result] = await p.execute(
+    'UPDATE website_users SET password = ? WHERE id = ?',
+    [hashedPassword, safeUserId]
+  );
+  if (result.affectedRows === 0) throw new Error('User not found');
+}
+
 // ======================== Role / Group Management ========================
 
 async function getAllRoles() {
@@ -594,7 +631,10 @@ module.exports = {
   getPool,
   findUserByUsername,
   findUserById,
+  findUserCredentialsById,
   createUser,
+  updateUsername,
+  updatePasswordHash,
   validateString,
   getAllRoles,
   createRole,

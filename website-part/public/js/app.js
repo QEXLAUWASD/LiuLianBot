@@ -1,6 +1,5 @@
 // Common app functions shared across pages
 
-// Check if user is logged in — returns user object or null without redirect
 async function checkAuth() {
   try {
     const res = await fetch('/api/auth/me');
@@ -12,7 +11,6 @@ async function checkAuth() {
   }
 }
 
-// Set up logout button
 function setupLogout() {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
@@ -23,37 +21,34 @@ function setupLogout() {
   }
 }
 
-// Set up user display in navbar — handles both logged-in and guest states
 async function setupNavUser() {
   const user = await checkAuth();
   const navUserEl = document.getElementById('navUser');
 
-  if (!navUserEl) return;
+  if (!navUserEl) return user;
 
   if (user) {
-    // Logged in: show username + logout
     navUserEl.innerHTML = `
       <span id="navUsername">👤 ${escapeHTML(user.username)}</span>
       <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
     `;
     setupLogout();
 
-    // Show admin links if user has admin role
     if (user.role === 'admin') {
       document.querySelectorAll('.admin-only').forEach(el => {
         el.style.display = '';
       });
     }
 
-    // Fill welcome name if on dashboard
     const welcomeName = document.getElementById('welcomeName');
     if (welcomeName) welcomeName.textContent = user.username;
   } else {
-    // Guest: show login button
     navUserEl.innerHTML = `
       <a href="/login.html" class="btn btn-sm btn-primary">Login</a>
     `;
   }
+
+  return user;
 }
 
 function escapeHTML(str) {
@@ -66,9 +61,45 @@ function escapeHTML(str) {
     .replace(/'/g, '&#39;');
 }
 
-async function loadWebsiteConnections() {
-  const container = document.getElementById('connectionCards');
-  if (!container) return;
+async function setupWebsiteDropdown() {
+  const navLinks = document.querySelector('.nav-links');
+  const rollerLink = navLinks?.querySelector('a[href^="/roller.html"]');
+  if (!navLinks || !rollerLink || document.getElementById('websiteDropdown')) return;
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'nav-dropdown';
+  dropdown.id = 'websiteDropdown';
+  dropdown.innerHTML = `
+    <button type="button" class="nav-link nav-dropdown-toggle" aria-expanded="false" aria-controls="websiteDropdownMenu">
+      <span>Connected websites</span>
+      <span class="dropdown-chevron" aria-hidden="true">▾</span>
+    </button>
+    <div class="nav-dropdown-menu" id="websiteDropdownMenu" role="menu" hidden>
+      <div class="nav-dropdown-status">Loading...</div>
+    </div>
+  `;
+  rollerLink.insertAdjacentElement('afterend', dropdown);
+
+  const toggle = dropdown.querySelector('.nav-dropdown-toggle');
+  const menu = dropdown.querySelector('.nav-dropdown-menu');
+
+  function setOpen(open) {
+    toggle.setAttribute('aria-expanded', String(open));
+    menu.hidden = !open;
+  }
+
+  toggle.addEventListener('click', () => {
+    setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+  });
+  document.addEventListener('click', event => {
+    if (!dropdown.contains(event.target)) setOpen(false);
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      setOpen(false);
+      toggle.focus();
+    }
+  });
 
   try {
     const res = await fetch('/api/connections');
@@ -77,25 +108,22 @@ async function loadWebsiteConnections() {
 
     const connections = data.connections || [];
     if (connections.length === 0) {
-      container.innerHTML = '<div class="empty-state">No connected websites are available for your account.</div>';
+      menu.innerHTML = '<div class="nav-dropdown-status">No websites available</div>';
       return;
     }
 
-    container.innerHTML = connections.map(connection => `
-      <a href="/connect/${encodeURIComponent(connection.slug)}/" class="feature-card connection-card" target="_blank" rel="noopener">
-        <div class="feature-icon">🔗</div>
-        <h3>${escapeHTML(connection.name)}</h3>
-        <p>${escapeHTML(connection.description || 'Open connected website')}</p>
-        <span class="connection-action">Open website ↗</span>
+    menu.innerHTML = connections.map(connection => `
+      <a href="/connect/${encodeURIComponent(connection.slug)}/" role="menuitem" target="_blank" rel="noopener">
+        <span>${escapeHTML(connection.name)}</span>
+        <span class="nav-dropdown-open" aria-hidden="true">↗</span>
       </a>
     `).join('');
   } catch (err) {
-    container.innerHTML = '<div class="empty-state">Unable to load connected websites.</div>';
+    menu.innerHTML = '<div class="nav-dropdown-status nav-dropdown-error">Unable to load websites</div>';
   }
 }
 
-// Init on page load
 document.addEventListener('DOMContentLoaded', async () => {
-  await setupNavUser();
-  loadWebsiteConnections();
+  const user = await setupNavUser();
+  if (user) setupWebsiteDropdown();
 });
