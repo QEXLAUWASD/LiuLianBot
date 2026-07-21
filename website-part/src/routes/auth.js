@@ -8,6 +8,9 @@ const {
   validateNewPassword,
 } = require('../services/account_validation');
 
+const REMEMBER_LOGIN_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
+
 // ---------- helper: generate a short unique id ----------
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -42,12 +45,15 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, remember = false } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
+    if (typeof remember !== 'boolean') {
+      return res.status(400).json({ error: 'Remember me must be a boolean' });
+    }
     const user = await findUserByUsername(username);
     if (!user) {
       return res.status(401).json({ error: 'Invalid username or password' });
@@ -58,6 +64,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
+    req.session.cookie.maxAge = remember ? REMEMBER_LOGIN_MAX_AGE : null;
     req.session.user = { id: user.id, username: user.username };
     res.json({ success: true, user: { id: user.id, username: user.username } });
   } catch (err) {
@@ -72,7 +79,7 @@ router.post('/logout', (req, res) => {
     if (err) {
       return res.status(500).json({ error: 'Logout failed' });
     }
-    res.clearCookie('connect.sid');
+    res.clearCookie(SESSION_COOKIE_NAME);
     res.json({ success: true });
   });
 });

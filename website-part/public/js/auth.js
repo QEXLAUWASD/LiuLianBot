@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
     const errorEl = document.getElementById('loginError');
+    const remember = document.getElementById('rememberLogin').checked;
 
     errorEl.textContent = '';
 
@@ -36,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, remember }),
       });
       const data = await res.json();
 

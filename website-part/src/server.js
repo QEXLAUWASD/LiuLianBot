@@ -11,6 +11,7 @@ const adminRoutes = require('./routes/admin');
 const adminConnectionRoutes = require('./routes/admin_connections');
 const connectionRoutes = require('./routes/connections');
 const connectionProxy = require('./routes/connection_proxy');
+const { MySqlSessionStore } = require('./session_store');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,12 +20,12 @@ const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
 
 // Session must run before every authenticated API, page, and proxy route.
 app.use(session({
+  store: new MySqlSessionStore(),
   name: SESSION_COOKIE_NAME,
   secret: process.env.SESSION_SECRET || 'liulianbot-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 24 * 60 * 60 * 1000,
     httpOnly: true,
     sameSite: 'strict',
     secure: false,

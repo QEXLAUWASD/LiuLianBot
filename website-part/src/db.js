@@ -132,6 +132,21 @@ async function getPool() {
       );
     }
 
+    // ---------- website_sessions ----------
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS website_sessions (
+        sid VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+        data MEDIUMTEXT NOT NULL,
+        expires_at BIGINT UNSIGNED NOT NULL,
+        INDEX idx_website_sessions_expires (expires_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    await conn.execute(
+      'DELETE FROM website_sessions WHERE expires_at <= ?',
+      [Date.now()]
+    );
+    console.log('[DB] website_sessions table ready.');
+
     // ---------- website_connections ----------
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS website_connections (
