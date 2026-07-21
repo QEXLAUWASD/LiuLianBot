@@ -1,0 +1,111 @@
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const {
+  findUserByUsername,
+  findUserCredentialsById,
+  updateUsername,
+  updatePasswordHash,
+} = require('../db');
+const {
+  AccountInputError,
+  normalizeUsername,
+  validatePasswordChange,
+} = require('../services/account_validation');
+
+const router = express.Router();
+
+function requireAuth(req, res, next) {
+  if (req.session && req.session.user) return next();
+  return res.status(401).json({ error: 'Login required' });
+}
+
+async function verifyCurrentPassword(userId, currentPassword) {
+  if (typeof currentPassword !== 'string' || currentPassword.length === 0) {
+    throw new AccountInputError('Current password is required');
+  }
+
+  const user = await findUserCredentialsById(userId);
+  if (!user) return null;
+
+  const valid = await bcrypt.compare(currentPassword, user.password);
+  return valid ? user : false;
+}
+
+router.put('/username', requireAuth, async (req, res) => {
+  try {
+    const username = normalizeUsername(req.body.username);
+    const user = await verifyCurrentPassword(
+      req.session.user.id,
+      req.body.currentPassword
+    );
+
+    if (user === null) {
+      req.session.destroy(() => {});
+      return res.status(401).json({ error: 'Login required' });
+    }
+    if (user === false) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+    if (user.username === username) {
+      return res.status(400).json({ error: 'New username must be different' });
+    }
+
+    const existing = await findUserByUsername(username);
+    if (existing && existing.id !== user.id) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+
+    const updated = await updateUsername(user.id, username);
+    req.session.user.username = updated.username;
+    res.json({
+      success: true,
+      user: { id: updated.id, username: updated.username },
+    });
+  } catch (err) {
+    if (err instanceof AccountInputError) {
+      return res.status(400).json({ error: err.message });
+    }
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+    console.error('[Auth] Change username error:', err);
+    res.status(500).json({ error: 'Username change failed. Please try again.' });
+  }
+});
+
+router.put('/password', requireAuth, async (req, res) => {
+  try {
+    const passwords = validatePasswordChange(
+      req.body.currentPassword,
+      req.body.newPassword,
+      req.body.confirmPassword
+    );
+    const user = await verifyCurrentPassword(
+      req.session.user.id,
+      passwords.currentPassword
+    );
+
+    if (user === null) {
+      req.session.destroy(() => {});
+      return res.status(401).json({ error: 'Login required' });
+    }
+    if (user === false) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+    if (await bcrypt.compare(passwords.newPassword, user.password)) {
+      return res.status(400).json({ error: 'New password must be different' });
+    }
+
+    const hashedPassword = await bcrypt.hash(passwords.newPassword, 10);
+    await updatePasswordHash(user.id, hashedPassword);
+    res.json({ success: true });
+  } catch (err) {
+    if (err instanceof AccountInputError) {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error('[Auth] Change password error:', err);
+    res.status(500).json({ error: 'Password change failed. Please try again.' });
+  }
+});
+
+module.exports = router;

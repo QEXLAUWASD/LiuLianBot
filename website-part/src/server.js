@@ -55,6 +55,10 @@ app.get('/index.html', requireAuth, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
+app.get('/account.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'account.html'));
+});
+
 app.get('/admin.html', requireAuth, requireAdmin, (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
 });

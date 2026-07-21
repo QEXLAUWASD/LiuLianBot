@@ -29,7 +29,7 @@ async function setupNavUser() {
 
   if (user) {
     navUserEl.innerHTML = `
-      <span id="navUsername">👤 ${escapeHTML(user.username)}</span>
+      <a href="/account.html" id="navUsername" class="nav-username" title="Account settings">👤 ${escapeHTML(user.username)}</a>
       <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
     `;
     setupLogout();

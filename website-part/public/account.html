@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiuLianBot - Account</title>
+  <link rel="stylesheet" href="/css/style.css?v=20260722-3">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">🎮 LiuLianBot</div>
+    <div class="nav-links">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/roller.html" class="nav-link">R6 Roller</a>
+      <a href="/account.html" class="nav-link active">Account</a>
+      <a href="/admin.html" class="nav-link admin-only" style="display:none;">Admin</a>
+    </div>
+    <div class="nav-user" id="navUser"></div>
+  </nav>
+
+  <main class="main-content">
+    <div class="account-container">
+      <h2>Account settings</h2>
+      <p class="account-desc">Manage your sign-in details.</p>
+
+      <div class="account-grid">
+        <section class="settings-card" aria-labelledby="usernameHeading">
+          <h3 id="usernameHeading">Change username</h3>
+          <form id="usernameForm">
+            <div class="form-group">
+              <label for="newUsername">Username</label>
+              <input type="text" id="newUsername" required minlength="3" maxlength="20" autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label for="usernameCurrentPassword">Current password</label>
+              <input type="password" id="usernameCurrentPassword" required autocomplete="current-password">
+            </div>
+            <div class="status-msg" id="usernameStatus" aria-live="polite"></div>
+            <button type="submit" class="btn btn-primary">Save username</button>
+          </form>
+        </section>
+
+        <section class="settings-card" aria-labelledby="passwordHeading">
+          <h3 id="passwordHeading">Change password</h3>
+          <form id="passwordForm">
+            <div class="form-group">
+              <label for="passwordCurrentPassword">Current password</label>
+              <input type="password" id="passwordCurrentPassword" required autocomplete="current-password">
+            </div>
+            <div class="form-group">
+              <label for="newPassword">New password</label>
+              <input type="password" id="newPassword" required minlength="6" maxlength="128" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+              <label for="confirmPassword">Confirm new password</label>
+              <input type="password" id="confirmPassword" required minlength="6" maxlength="128" autocomplete="new-password">
+            </div>
+            <div class="status-msg" id="passwordStatus" aria-live="polite"></div>
+            <button type="submit" class="btn btn-primary">Save password</button>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/app.js?v=20260722-3"></script>
+  <script src="/js/account.js?v=20260722-1"></script>
+</body>
+</html>

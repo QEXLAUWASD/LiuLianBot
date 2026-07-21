@@ -827,3 +827,47 @@ a:hover { color: var(--accent-hover); }
 .access-label { display: block; font-size: 0.8rem; line-height: 1.5; }
 .badge-enabled { background: rgba(46, 204, 113, 0.2); color: var(--success); }
 .badge-disabled { background: rgba(231, 76, 60, 0.2); color: var(--error); }
+
+/* ===== Account Settings ===== */
+.nav-username {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.nav-username:hover { color: var(--accent-hover); }
+
+.account-container > h2 { font-size: 1.8rem; margin-bottom: 8px; }
+.account-desc { color: var(--text-muted); margin-bottom: 28px; }
+
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.settings-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.settings-card h3 { font-size: 1.15rem; margin-bottom: 20px; }
+.settings-card .btn { width: 100%; }
+.settings-card .btn:disabled {
+  cursor: wait;
+  opacity: 0.65;
+  transform: none;
+}
+
+.status-msg {
+  min-height: 24px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+.status-error { color: var(--error); }
+.status-success { color: var(--success); }
+
+@media (max-width: 700px) {
+  .account-grid { grid-template-columns: 1fr; }
+}

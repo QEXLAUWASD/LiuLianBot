@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const { findUserByUsername, createUser } = require('../db');
+const {
+  AccountInputError,
+  normalizeUsername,
+  validateNewPassword,
+} = require('../services/account_validation');
 
 // ---------- helper: generate a short unique id ----------
 function generateId() {
@@ -11,17 +16,8 @@ function generateId() {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
-    }
-    if (username.length < 3 || username.length > 20) {
-      return res.status(400).json({ error: 'Username must be 3-20 characters' });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
+    const username = normalizeUsername(req.body.username);
+    const password = validateNewPassword(req.body.password);
 
     const existing = await findUserByUsername(username);
     if (existing) {
@@ -35,6 +31,9 @@ router.post('/register', async (req, res) => {
     req.session.user = { id: user.id, username: user.username };
     res.json({ success: true, user: { id: user.id, username: user.username } });
   } catch (err) {
+    if (err instanceof AccountInputError) {
+      return res.status(400).json({ error: err.message });
+    }
     console.error('[Auth] Register error:', err);
     res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
@@ -110,5 +109,7 @@ router.get('/me', async (req, res) => {
     });
   }
 });
+
+router.use(require('./account'));
 
 module.exports = router;
