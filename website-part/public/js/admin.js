@@ -3,6 +3,7 @@
 let allUsers = [];
 let allGroups = [];
 let allGuilds = [];
+let allConnections = [];
 let currentEditUserId = null;
 
 // ---------- Helpers ----------
@@ -63,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tab === 'users') loadUsers();
       else if (tab === 'groups') loadGroups();
       else if (tab === 'guilds') loadGuilds();
+      else if (tab === 'connections') loadConnections();
     });
   });
 
@@ -450,4 +452,161 @@ async function openGuildDetail(guildId) {
     document.getElementById('guildDetailContent').innerHTML =
       '<p style="color:var(--error);">Failed to load guild details</p>';
   }
+}
+
+
+// ======================== Website Connections ========================
+
+async function loadConnections() {
+  try {
+    const res = await fetch('/api/admin/connections');
+    if (res.status === 401 || res.status === 403) {
+      window.location.href = '/login.html';
+      return;
+    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load');
+    allConnections = data.connections || [];
+    renderConnections();
+  } catch (err) {
+    console.error('loadConnections error:', err);
+    document.getElementById('connectionsTableBody').innerHTML =
+      '<tr><td colspan="5" class="empty-state"><p style="color:var(--error);">Failed to load website connections</p></td></tr>';
+  }
+}
+
+function renderConnections() {
+  const tbody = document.getElementById('connectionsTableBody');
+  if (allConnections.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><p>No website connections configured</p></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = allConnections.map(connection => {
+    const access = [
+      ...(connection.roles || []).map(role => `Group: ${role.name}`),
+      ...(connection.users || []).map(user => `User: ${user.username}`),
+    ];
+    return `
+      <tr>
+        <td><strong>${escapeHTML(connection.name)}</strong><div class="table-subtext">/connect/${escapeHTML(connection.slug)}/</div></td>
+        <td><span class="mono target-url">${escapeHTML(connection.target_url)}</span></td>
+        <td>${access.length ? access.map(item => `<span class="access-label">${escapeHTML(item)}</span>`).join('') : '<span class="text-muted">Admins only</span>'}</td>
+        <td><span class="badge ${connection.enabled ? 'badge-enabled' : 'badge-disabled'}">${connection.enabled ? 'Enabled' : 'Disabled'}</span></td>
+        <td class="actions">
+          ${connection.enabled ? `<a class="btn btn-sm btn-outline" href="/connect/${encodeURIComponent(connection.slug)}/" target="_blank" rel="noopener">Open</a>` : ''}
+          <button class="btn btn-sm btn-outline" type="button" onclick="openConnectionEdit(${connection.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" type="button" onclick="confirmDeleteConnection(${connection.id})">Delete</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function ensureConnectionAccessData() {
+  const requests = [];
+  if (allUsers.length === 0) requests.push(loadUsers());
+  if (allGroups.length === 0) requests.push(loadGroups());
+  await Promise.all(requests);
+}
+
+function renderConnectionAccessOptions(connection) {
+  const selectedRoles = new Set((connection?.roles || []).map(role => Number(role.id)));
+  const selectedUsers = new Set((connection?.users || []).map(user => user.id));
+
+  document.getElementById('connectionRoleOptions').innerHTML = allGroups.length
+    ? allGroups.map(role => `
+        <label class="access-option">
+          <input type="checkbox" name="connectionRole" value="${role.id}" ${selectedRoles.has(Number(role.id)) ? 'checked' : ''}>
+          <span>${escapeHTML(role.name)}</span>
+        </label>`).join('')
+    : '<span class="text-muted">No groups available</span>';
+
+  document.getElementById('connectionUserOptions').innerHTML = allUsers.length
+    ? allUsers.map(user => `
+        <label class="access-option">
+          <input type="checkbox" name="connectionUser" value="${escapeHTML(user.id)}" ${selectedUsers.has(user.id) ? 'checked' : ''}>
+          <span>${escapeHTML(user.username)}</span>
+        </label>`).join('')
+    : '<span class="text-muted">No users available</span>';
+}
+
+document.getElementById('createConnectionBtn').addEventListener('click', async () => {
+  await ensureConnectionAccessData();
+  document.getElementById('connectionModalTitle').textContent = 'Add Website';
+  document.getElementById('editConnectionId').value = '';
+  document.getElementById('editConnectionName').value = '';
+  document.getElementById('editConnectionSlug').value = '';
+  document.getElementById('editConnectionTarget').value = '';
+  document.getElementById('editConnectionDesc').value = '';
+  document.getElementById('editConnectionEnabled').checked = true;
+  document.getElementById('connectionEditError').textContent = '';
+  renderConnectionAccessOptions(null);
+  openModal('connectionEditModal');
+});
+
+async function openConnectionEdit(id) {
+  const connection = allConnections.find(item => Number(item.id) === Number(id));
+  if (!connection) return;
+  await ensureConnectionAccessData();
+
+  document.getElementById('connectionModalTitle').textContent = 'Edit Website';
+  document.getElementById('editConnectionId').value = connection.id;
+  document.getElementById('editConnectionName').value = connection.name;
+  document.getElementById('editConnectionSlug').value = connection.slug;
+  document.getElementById('editConnectionTarget').value = connection.target_url;
+  document.getElementById('editConnectionDesc').value = connection.description || '';
+  document.getElementById('editConnectionEnabled').checked = Boolean(connection.enabled);
+  document.getElementById('connectionEditError').textContent = '';
+  renderConnectionAccessOptions(connection);
+  openModal('connectionEditModal');
+}
+
+document.getElementById('saveConnectionBtn').addEventListener('click', async () => {
+  const id = document.getElementById('editConnectionId').value;
+  const errorEl = document.getElementById('connectionEditError');
+  const payload = {
+    name: document.getElementById('editConnectionName').value.trim(),
+    slug: document.getElementById('editConnectionSlug').value.trim(),
+    target_url: document.getElementById('editConnectionTarget').value.trim(),
+    description: document.getElementById('editConnectionDesc').value.trim(),
+    enabled: document.getElementById('editConnectionEnabled').checked,
+    role_ids: Array.from(document.querySelectorAll('input[name="connectionRole"]:checked'), input => Number(input.value)),
+    user_ids: Array.from(document.querySelectorAll('input[name="connectionUser"]:checked'), input => input.value),
+  };
+
+  errorEl.textContent = '';
+  try {
+    const res = await fetch(id ? `/api/admin/connections/${id}` : '/api/admin/connections', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errorEl.textContent = data.error || 'Operation failed';
+      return;
+    }
+    showToast(id ? 'Website updated' : 'Website added', 'success');
+    closeModal('connectionEditModal');
+    loadConnections();
+  } catch (_) {
+    errorEl.textContent = 'Network error';
+  }
+});
+
+function confirmDeleteConnection(id) {
+  const connection = allConnections.find(item => Number(item.id) === Number(id));
+  if (!connection) return;
+  showConfirm('Delete Website', `Delete "${connection.name}" and all of its access rules?`, async () => {
+    try {
+      const res = await fetch(`/api/admin/connections/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Delete failed');
+      showToast('Website deleted', 'success');
+      loadConnections();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
 }

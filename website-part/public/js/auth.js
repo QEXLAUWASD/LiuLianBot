@@ -1,4 +1,9 @@
 // Login / Register page logic
+function postAuthDestination() {
+  const next = new URLSearchParams(window.location.search).get('next');
+  return next && next.startsWith('/connect/') ? next : '/index.html';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Tab switching
   const tabBtns = document.querySelectorAll('.auth-tabs .tab-btn');
@@ -36,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        window.location.href = '/index.html';
+        window.location.href = postAuthDestination();
       } else {
         errorEl.textContent = data.error || 'Login failed';
       }
@@ -72,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        window.location.href = '/index.html';
+        window.location.href = postAuthDestination();
       } else {
         errorEl.textContent = data.error || 'Registration failed';
       }

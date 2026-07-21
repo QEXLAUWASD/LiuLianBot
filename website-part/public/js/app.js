@@ -66,7 +66,36 @@ function escapeHTML(str) {
     .replace(/'/g, '&#39;');
 }
 
+async function loadWebsiteConnections() {
+  const container = document.getElementById('connectionCards');
+  if (!container) return;
+
+  try {
+    const res = await fetch('/api/connections');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load');
+
+    const connections = data.connections || [];
+    if (connections.length === 0) {
+      container.innerHTML = '<div class="empty-state">No connected websites are available for your account.</div>';
+      return;
+    }
+
+    container.innerHTML = connections.map(connection => `
+      <a href="/connect/${encodeURIComponent(connection.slug)}/" class="feature-card connection-card" target="_blank" rel="noopener">
+        <div class="feature-icon">🔗</div>
+        <h3>${escapeHTML(connection.name)}</h3>
+        <p>${escapeHTML(connection.description || 'Open connected website')}</p>
+        <span class="connection-action">Open website ↗</span>
+      </a>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = '<div class="empty-state">Unable to load connected websites.</div>';
+  }
+}
+
 // Init on page load
-document.addEventListener('DOMContentLoaded', () => {
-  setupNavUser();
+document.addEventListener('DOMContentLoaded', async () => {
+  await setupNavUser();
+  loadWebsiteConnections();
 });

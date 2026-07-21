@@ -8,60 +8,63 @@ const { requireAdmin } = require('./middleware/admin_auth');
 const authRoutes = require('./routes/auth');
 const rollerRoutes = require('./routes/roller');
 const adminRoutes = require('./routes/admin');
+const adminConnectionRoutes = require('./routes/admin_connections');
+const connectionRoutes = require('./routes/connections');
+const connectionProxy = require('./routes/connection_proxy');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
 
-// ---------- Security middleware ----------
-
-// Body parsers (must come before sqlInjectionGuard so req.body is parsed)
-app.use(express.json({ limit: '16kb' }));
-app.use(express.urlencoded({ extended: false, limit: '16kb' }));
-
-// SQL injection guard — scans req.body/query/params after parsing
-app.use(sqlInjectionGuard);
-app.use(express.static(path.join(__dirname, '..', 'public')));
-
-// Session
+// Session must run before every authenticated API, page, and proxy route.
 app.use(session({
+  name: SESSION_COOKIE_NAME,
   secret: process.env.SESSION_SECRET || 'liulianbot-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    httpOnly: true,               // prevent client-side JS access
-    sameSite: 'strict',           // CSRF protection
-    secure: false,                // set true when using HTTPS
+    maxAge: 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: false,
   },
 }));
 
-// API Routes (protected by sqlInjectionGuard above)
+// Parse and validate LiuLianBot APIs only. Proxied request bodies must remain streams.
+app.use('/api', express.json({ limit: '16kb' }));
+app.use('/api', express.urlencoded({ extended: false, limit: '16kb' }));
+app.use('/api/admin/connections', adminConnectionRoutes);
+app.use('/api', sqlInjectionGuard);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/roller', rollerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/connections', connectionRoutes);
 
-// Auth check middleware for pages
 function requireAuth(req, res, next) {
   if (req.session.user) return next();
-  res.redirect('/login.html');
+  return res.redirect('/login.html');
 }
 
-// Public pages (no auth required)
 app.get('/roller.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'roller.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'roller.html'));
 });
 
-// Protected pages
 app.get('/index.html', requireAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
-// Admin page (require auth + admin role)
 app.get('/admin.html', requireAuth, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
 });
 
-// Root redirect
+// Each request, including assets and form submissions, is checked before proxying.
+app.use('/connect/:slug', connectionProxy);
+
+// Protected HTML routes above must run before the static file fallback.
+app.use(express.static(PUBLIC_DIR, { index: false }));
+
 app.get('/', (req, res) => {
   if (req.session.user) {
     res.redirect('/index.html');
@@ -70,9 +73,8 @@ app.get('/', (req, res) => {
   }
 });
 
-// 404
 app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, '..', 'public', '404.html'));
+  res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
 });
 
 app.listen(PORT, () => {
