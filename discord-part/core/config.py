@@ -81,7 +81,7 @@ def init_permissions(cmd_handler) -> None:
     """從 config 讀取 owner / admin / guild_admin 並註冊到 CommandHandler。
 
     Args:
-        cmd_handler: commandHandler.CommandHandler 實例
+        cmd_handler: commands.handler.CommandHandler 實例
     """
     config = get_config()
 

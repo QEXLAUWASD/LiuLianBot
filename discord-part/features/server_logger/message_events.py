@@ -16,7 +16,7 @@ from .base import (
     _now,
     logger,
 )
-from command.language_manager import get_translation
+from commands.language_manager import get_translation
 
 
 async def on_message_edit(before: discord.Message, after: discord.Message) -> None:

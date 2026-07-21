@@ -12,7 +12,7 @@ from .base import (
     _now,
     logger,
 )
-from command.language_manager import get_translation
+from commands.language_manager import get_translation
 
 
 _CHANNEL_TYPE_MAP = {

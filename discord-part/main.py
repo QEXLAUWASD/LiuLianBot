@@ -2,7 +2,7 @@
 LiuLianBot - Discord Bot 入口點
 
 此檔案僅負責初始化設定、建立客戶端並啟動 bot。
-所有主要邏輯已拆分至 core/、updater/、command/ 等模組。
+所有主要邏輯已拆分至 core/、updater/、commands/ 等模組。
 """
 
 import discord
@@ -21,7 +21,7 @@ from core.config import (
 from core.bot_client import MyClient
 
 # ---- 指令處理 ----
-import command.commandHandler as cmd_handler_mod
+import commands.handler as cmd_handler_mod
 
 # ---- 資料庫 ----
 from utils.database import get_db_conn, ensure_database

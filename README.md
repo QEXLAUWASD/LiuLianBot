@@ -61,73 +61,38 @@ Hierarchical permission model:
 
 ```
 LiuLianBot/
-├── start.sh                  # Linux startup script
+├── start.sh                     # Linux bot manager
 ├── discord-part/
-│   ├── main.py               # Bot entry point
-│   ├── config.json           # Bot configuration
-│   ├── default_config.json   # Default config template
-│   ├── requirements.txt      # Python dependencies
-│   ├── command/
-│   │   ├── commandHandler.py # Command loading & routing
-│   │   ├── language_manager.py
+│   ├── main.py                  # Bot entry point
+│   ├── default_config.json      # Configuration template
+│   ├── requirements.txt         # Python dependencies
+│   ├── commands/
+│   │   ├── handler.py           # Command discovery and routing
+│   │   ├── language_manager.py  # Translation service
 │   │   ├── permission_checker.py
 │   │   ├── roller_service.py
-│   │   └── commands/
-│   │       ├── user/         # Public commands
-│   │       ├── guild_admin/  # Guild admin commands
-│   │       ├── guild_owner/  # Guild owner commands
-│   │       └── owner/        # Bot owner commands
-│   ├── core/
-│   │   ├── bot_client.py     # Bot client (discord.py subclass)
-│   │   ├── config.py         # Configuration loader
-│   │   └── slash_adapter.py  # Slash command adapter
-│   ├── features/
-│   │   ├── r6_roll/           # R6 map & operator randomizer
-│   │   ├── private_voice_chat/# Private voice channel system
-│   │   ├── server_logger/    # Event logging system
-│   │   ├── message_logger/    # Message log helpers
-│   │   └── user_logger/       # User event log helpers
-│   ├── locales/
-│   │   ├── en.json           # English translations
-│   │   └── zh_TW.json        # Traditional Chinese translations
-│   ├── tools/                # Dev utilities
-│   ├── utils/
-│   │   ├── database.py       # MySQL database connection
-│   │   └── logger.py         # Logging setup
-│   └── updater/
-│       └── updater.py        # Git-based auto-update module
+│   │   ├── user/
+│   │   ├── guild_admin/
+│   │   ├── guild_owner/
+│   │   └── owner/
+│   ├── core/                    # Bot lifecycle and configuration
+│   ├── features/                # Discord event features
+│   ├── locales/                 # Translation resources
+│   ├── tools/                   # Development utilities
+│   ├── updater/                 # Git-based updater
+│   └── utils/                   # Database and logging helpers
 ├── website-part/
-│   ├── server.js             # Express.js web server
-│   ├── package.json          # Node.js dependencies
-│   ├── db.js                 # Database connection
-│   ├── middleware/
-│   │   ├── adminAuth.js      # Admin authorization
-│   │   └── security.js       # SQL injection protection
-│   ├── public/
-│   │   ├── login.html        # Login page
-│   │   ├── index.html        # Dashboard (auth required)
-│   │   ├── roller.html       # Web-based R6 roller
-│   │   ├── admin.html        # Admin panel (admin only)
-│   │   ├── css/style.css
-│   │   └── js/
-│   │       ├── app.js
-│   │       ├── auth.js
-│   │       ├── roller.js
-│   │       └── admin.js
-│   └── routes/
-│       ├── auth.js           # Authentication API
-│       ├── roller.js         # Roller API
-│       └── admin.js          # Admin API
+│   ├── package.json
+│   ├── public/                  # Static HTML, CSS, and browser JS
+│   └── src/
+│       ├── server.js            # Express entry point
+│       ├── db.js                # Database access
+│       ├── middleware/          # Auth and security middleware
+│       └── routes/              # HTTP API routes
 ├── shared/
-│   ├── database/
-│   │   ├── config.json       # Shared database config
-│   │   └── README.md
-│   └── r6/
-│       ├── maplist.json      # R6 map data
-│       ├── mapsgrap.py       # Map data scraper
-│       ├── operatorlist.json # R6 operator data
-│       └── opsgrap.py        # Operator data scraper
-└── logs/                     # Runtime logs
+│   ├── database/                # Shared database configuration
+│   └── r6/                      # R6 data and scraper modules
+└── logs/                        # Runtime logs (generated)
 ```
 
 ---

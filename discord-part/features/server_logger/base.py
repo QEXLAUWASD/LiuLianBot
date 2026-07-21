@@ -15,7 +15,7 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from command.language_manager import get_translation
+from commands.language_manager import get_translation
 import utils.logger as log_helper
 from utils.database import get_db_conn
 

@@ -1,5 +1,5 @@
 # Slash Interaction Args (best-effort)
-此表是從 `command/commands/**` 靜態分析產出；`source=override` 代表有人工校正。
+此表是從 `commands/**` 靜態分析產出；`source=override` 代表有人工校正。
 ## guild_admin
 | command | options | usage | source |
 |---|---|---|---|
@@ -22,7 +22,9 @@
 | `addadmin` | user:user(required) | Usage: >addadmin @user or >addadmin user_id | override |
 | `getinfo` | (none) |  | heuristic |
 | `getserverlist` | (none) | Usage: >getserverlist | heuristic |
+| `r6update` | (none) | Usage: >r6update | heuristic |
 | `removeadmin` | args:str(required) | Usage: >removeadmin @user or >removeadmin user_id | heuristic |
+| `update` | (none) | Usage: >update | heuristic |
 ## user
 | command | options | usage | source |
 |---|---|---|---|
@@ -34,3 +36,4 @@
 | `r6maproll` | (none) |  | heuristic |
 | `r6opsroll` | side:str(optional choices=['att', 'def']) |  | override |
 | `roller` | target:str(optional choices=['att', 'def', 'map']) |  | override |
+| `transfervoice` | user:user(required) | Usage: >transfervoice @user | override |

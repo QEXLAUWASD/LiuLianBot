@@ -61,73 +61,38 @@
 
 ```
 LiuLianBot/
-├── start.sh                  # Linux 啟動腳本
+├── start.sh                     # Linux Bot 管理腳本
 ├── discord-part/
-│   ├── main.py               # Bot 主入口
-│   ├── config.json           # Bot 設定檔
-│   ├── default_config.json   # 預設設定範本
-│   ├── requirements.txt      # Python 依賴
-│   ├── command/
-│   │   ├── commandHandler.py # 指令載入同路由
-│   │   ├── language_manager.py
+│   ├── main.py                  # Bot 主入口
+│   ├── default_config.json      # 設定範本
+│   ├── requirements.txt         # Python 依賴
+│   ├── commands/
+│   │   ├── handler.py           # 指令探索與路由
+│   │   ├── language_manager.py  # 翻譯服務
 │   │   ├── permission_checker.py
 │   │   ├── roller_service.py
-│   │   └── commands/
-│   │       ├── user/         # 公用指令
-│   │       ├── guild_admin/  # 伺服器管理員指令
-│   │       ├── guild_owner/  # 伺服器擁有者指令
-│   │       └── owner/        # Bot 擁有者指令
-│   ├── core/
-│   │   ├── bot_client.py     # Bot 客戶端（discord.py 子類別）
-│   │   ├── config.py         # 設定載入器
-│   │   └── slash_adapter.py  # Slash 指令轉接器
-│   ├── features/
-│   │   ├── r6_roll/           # R6 地圖同幹員抽選
-│   │   ├── private_voice_chat/# 私人語音頻道系統
-│   │   ├── server_logger/    # 事件記錄系統
-│   │   ├── message_logger/    # 訊息記錄輔助
-│   │   └── user_logger/       # 用戶事件記錄輔助
-│   ├── locales/
-│   │   ├── en.json           # 英文翻譯
-│   │   └── zh_TW.json        # 繁體中文翻譯
-│   ├── tools/                # 開發工具
-│   ├── utils/
-│   │   ├── database.py       # MySQL 資料庫連接
-│   │   └── logger.py         # 記錄器設定
-│   └── updater/
-│       └── updater.py        # Git 自動更新模組
+│   │   ├── user/                # 一般使用者指令
+│   │   ├── guild_admin/         # 伺服器管理員指令
+│   │   ├── guild_owner/         # 伺服器擁有者指令
+│   │   └── owner/               # Bot 擁有者指令
+│   ├── core/                    # Bot 生命週期與設定
+│   ├── features/                # Discord 事件功能
+│   ├── locales/                 # 翻譯資源
+│   ├── tools/                   # 開發工具
+│   ├── updater/                 # Git 更新器
+│   └── utils/                   # 資料庫與記錄輔助
 ├── website-part/
-│   ├── server.js             # Express.js 網頁伺服器
-│   ├── package.json          # Node.js 依賴
-│   ├── db.js                 # 資料庫連接
-│   ├── middleware/
-│   │   ├── adminAuth.js      # 管理員驗證
-│   │   └── security.js       # SQL 注入防護
-│   ├── public/
-│   │   ├── login.html        # 登入頁面
-│   │   ├── index.html        # 儀表板（需登入）
-│   │   ├── roller.html       # 網頁版 R6 抽選
-│   │   ├── admin.html        # 管理面板（限管理員）
-│   │   ├── css/style.css
-│   │   └── js/
-│   │       ├── app.js
-│   │       ├── auth.js
-│   │       ├── roller.js
-│   │       └── admin.js
-│   └── routes/
-│       ├── auth.js           # 身份驗證 API
-│       ├── roller.js         # 抽選 API
-│       └── admin.js          # 管理 API
+│   ├── package.json
+│   ├── public/                  # 靜態 HTML、CSS 與瀏覽器端 JS
+│   └── src/
+│       ├── server.js            # Express 主入口
+│       ├── db.js                # 資料庫存取
+│       ├── middleware/          # 驗證與安全中介層
+│       └── routes/              # HTTP API 路由
 ├── shared/
-│   ├── database/
-│   │   ├── config.json       # 共用資料庫設定
-│   │   └── README.md
-│   └── r6/
-│       ├── maplist.json      # R6 地圖資料
-│       ├── mapsgrap.py       # 地圖資料爬蟲
-│       ├── operatorlist.json # R6 幹員資料
-│       └── opsgrap.py        # 幹員資料爬蟲
-└── logs/                     # 執行記錄
+│   ├── database/                # 共用資料庫設定
+│   └── r6/                      # R6 資料與爬蟲模組
+└── logs/                        # 執行記錄（自動產生）
 ```
 
 ---

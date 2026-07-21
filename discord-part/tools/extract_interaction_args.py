@@ -3,7 +3,7 @@
 This repo's commands are message-based (they parse `message.content`).
 Discord slash commands (`discord.Interaction`) need explicit option definitions.
 
-This script scans `command/commands/**` and outputs a best-effort mapping of:
+This script scans `commands/**` and outputs a best-effort mapping of:
 - command function name -> options (name/type/required/choices)
 
 It is intentionally conservative:
@@ -29,7 +29,7 @@ from typing import Iterable, Optional
 
 
 ROOT = Path(__file__).resolve().parents[1]
-COMMANDS_DIR = ROOT / "command" / "commands"
+COMMANDS_DIR = ROOT / "commands"
 OUT_JSON = Path(__file__).resolve().parent / "interaction_args.json"
 OUT_MD = Path(__file__).resolve().parent / "interaction_args.md"
 
@@ -143,6 +143,14 @@ OVERRIDES: dict[str, list[OptionSpec]] = {
             choices=["att", "def", "map"]
         )
     ],
+    "transfervoice": [
+        OptionSpec(
+            name="user",
+            type="user",
+            required=True,
+            description="要接受私人語音頻道擁有權的使用者",
+        )
+    ],
     # owner
     "addadmin": [OptionSpec(name="user", type="user", required=True, description="要加入 bot admin 的使用者")],
     # guild_owner
@@ -222,7 +230,7 @@ def _write_json(specs: list[CommandSpec]) -> None:
 def _write_md(specs: list[CommandSpec]) -> None:
     lines: list[str] = []
     lines.append("# Slash Interaction Args (best-effort)\n")
-    lines.append("此表是從 `command/commands/**` 靜態分析產出；`source=override` 代表有人工校正。\n")
+    lines.append("此表是從 `commands/**` 靜態分析產出；`source=override` 代表有人工校正。\n")
 
     current = None
     for spec in specs:

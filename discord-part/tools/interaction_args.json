@@ -168,6 +168,13 @@
     "options": []
   },
   {
+    "command": "r6update",
+    "command_type": "owner",
+    "usage": "Usage: >r6update",
+    "source": "heuristic",
+    "options": []
+  },
+  {
     "command": "removeadmin",
     "command_type": "owner",
     "usage": "Usage: >removeadmin @user or >removeadmin user_id",
@@ -181,6 +188,13 @@
         "choices": null
       }
     ]
+  },
+  {
+    "command": "update",
+    "command_type": "owner",
+    "usage": "Usage: >update",
+    "source": "heuristic",
+    "options": []
   },
   {
     "command": "getlang",
@@ -280,7 +294,7 @@
   {
     "command": "transfervoice",
     "command_type": "user",
-    "usage": ">transfervoice @user",
+    "usage": "Usage: >transfervoice @user",
     "source": "override",
     "options": [
       {

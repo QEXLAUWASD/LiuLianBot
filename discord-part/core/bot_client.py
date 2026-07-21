@@ -11,7 +11,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from command.language_manager import get_translation
+from commands.language_manager import get_translation
 from features.private_voice_chat.private_voice import get_manager
 from features.server_logger import register_handlers
 from core.slash_adapter import (

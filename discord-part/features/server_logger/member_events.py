@@ -14,7 +14,7 @@ from .base import (
     _now,
     logger,
 )
-from command.language_manager import get_translation
+from commands.language_manager import get_translation
 
 
 async def on_member_join(member: discord.Member) -> None:
