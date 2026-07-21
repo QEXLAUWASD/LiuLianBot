@@ -1,4 +1,4 @@
-from fuction.r6Roll.randommap import random_map
+from features.r6_roll.randommap import random_map
 from command.language_manager import get_translation
 
 import random 

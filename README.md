@@ -81,17 +81,17 @@ LiuLianBot/
 │   │   ├── bot_client.py     # Bot client (discord.py subclass)
 │   │   ├── config.py         # Configuration loader
 │   │   └── slash_adapter.py  # Slash command adapter
-│   ├── fuction/
-│   │   ├── r6Roll/           # R6 map & operator randomizer
-│   │   ├── private_voiceChat/# Private voice channel system
+│   ├── features/
+│   │   ├── r6_roll/           # R6 map & operator randomizer
+│   │   ├── private_voice_chat/# Private voice channel system
 │   │   ├── server_logger/    # Event logging system
-│   │   ├── messagelogger/    # Message log helpers
-│   │   └── userLogger/       # User event log helpers
+│   │   ├── message_logger/    # Message log helpers
+│   │   └── user_logger/       # User event log helpers
 │   ├── locales/
 │   │   ├── en.json           # English translations
 │   │   └── zh_TW.json        # Traditional Chinese translations
 │   ├── tools/                # Dev utilities
-│   ├── uilts/
+│   ├── utils/
 │   │   ├── database.py       # MySQL database connection
 │   │   └── logger.py         # Logging setup
 │   └── updater/

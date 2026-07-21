@@ -2,7 +2,7 @@ import json
 import os
 from typing import Optional
 
-from uilts.database import get_db_conn as _get_db_conn
+from utils.database import get_db_conn as _get_db_conn
 
 
 def init_roller_channel_table() -> None:

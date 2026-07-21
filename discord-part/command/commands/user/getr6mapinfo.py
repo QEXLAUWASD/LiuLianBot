@@ -1,6 +1,6 @@
 import re
 
-from fuction.r6Roll.randommap import load_maps
+from features.r6_roll.randommap import load_maps
 
 
 def _find_map(data, query: str):

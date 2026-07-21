@@ -2,7 +2,7 @@ import discord
 
 from command.language_manager import get_translation
 from command.roller_service import send_roller_prompt
-from fuction.r6Roll.roller_channel import set_roller_channel
+from features.r6_roll.roller_channel import set_roller_channel
 
 
 async def setrollerchannel(message, bot):

@@ -1,6 +1,6 @@
 import discord
 
-from fuction.r6Roll.roller_channel import get_roller_channel, get_roller_dm_result
+from features.r6_roll.roller_channel import get_roller_channel, get_roller_dm_result
 from command.language_manager import get_translation
 from command.roller_service import send_roller_prompt, roll_operator_text, roll_map_text
 

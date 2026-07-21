@@ -16,8 +16,8 @@ from datetime import datetime
 from typing import Optional
 
 from command.language_manager import get_translation
-import uilts.logger as log_helper
-from uilts.database import get_db_conn
+import utils.logger as log_helper
+from utils.database import get_db_conn
 
 
 # ---------------------------------------------------------------------------

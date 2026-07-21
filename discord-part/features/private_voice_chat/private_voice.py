@@ -5,7 +5,7 @@ import asyncio
 import json
 import os
 
-from uilts.database import get_db_conn
+from utils.database import get_db_conn
 
 def init_private_voice_table():
     conn = get_db_conn()

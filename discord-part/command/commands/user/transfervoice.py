@@ -1,5 +1,5 @@
 import discord
-from fuction.private_voiceChat.private_voice import get_manager
+from features.private_voice_chat.private_voice import get_manager
 from command.language_manager import get_translation
 
 

@@ -1,5 +1,5 @@
 from command.language_manager import get_translation
-from fuction.r6Roll.roller_channel import get_roller_channel, set_roller_dm_result
+from features.r6_roll.roller_channel import get_roller_channel, set_roller_dm_result
 
 
 async def setrollermode(message, bot):

@@ -188,8 +188,8 @@ def reload_modules() -> Tuple[int, list[str]]:
     """
     project_prefixes = [
         "command.",
-        "fuction.",
-        "uilts.",
+        "features.",
+        "utils.",
         "core.",
         "updater.",
     ]
@@ -202,7 +202,7 @@ def reload_modules() -> Tuple[int, list[str]]:
         if any(name.startswith(prefix) for prefix in project_prefixes):
             modules_to_reload.append(name)
         # 也包含直接匹配的頂層模組
-        elif name in ("command", "fuction", "uilts", "core", "updater"):
+        elif name in ("command", "features", "utils", "core", "updater"):
             modules_to_reload.append(name)
 
     for name in modules_to_reload:

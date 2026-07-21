@@ -12,8 +12,8 @@ from discord import app_commands
 from discord.ext import commands
 
 from command.language_manager import get_translation
-from fuction.private_voiceChat.private_voice import get_manager
-from fuction.server_logger import register_handlers
+from features.private_voice_chat.private_voice import get_manager
+from features.server_logger import register_handlers
 from core.slash_adapter import (
     build_slash_callback,
     build_simple_slash_callback,
@@ -106,7 +106,7 @@ class MyClient(commands.Bot):
 
     async def close(self) -> None:
         """Flush batched logs before shutting down."""
-        from fuction.server_logger.base import _batcher
+        from features.server_logger.base import _batcher
         self.logger.info("Flushing batched logs before shutdown...")
         await _batcher.flush_all()
         await super().close()

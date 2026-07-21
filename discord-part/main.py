@@ -24,7 +24,7 @@ from core.bot_client import MyClient
 import command.commandHandler as cmd_handler_mod
 
 # ---- 資料庫 ----
-from uilts.database import get_db_conn, ensure_database
+from utils.database import get_db_conn, ensure_database
 
 # ---------------------------------------------------------------------------
 # 初始化

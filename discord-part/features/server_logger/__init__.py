@@ -3,11 +3,11 @@ Unified server logger — one-stop registration of all log-event handlers.
 
 Usage (in main.py or bot setup)::
 
-    from fuction.server_logger import register_handlers
+    from features.server_logger import register_handlers
     register_handlers(bot)
 
 The package exposes individual handler functions so older shims in
-``fuction.messagelogger`` and ``fuction.userLogger`` can continue to work.
+``features.message_logger`` and ``features.user_logger`` can continue to work.
 """
 
 from __future__ import annotations

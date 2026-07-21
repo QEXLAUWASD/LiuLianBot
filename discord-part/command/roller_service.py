@@ -4,8 +4,8 @@ from typing import Optional
 import discord
 
 from command.language_manager import get_translation
-from fuction.r6Roll.randommap import random_map
-from fuction.r6Roll.randomops import random_operator
+from features.r6_roll.randommap import random_map
+from features.r6_roll.randomops import random_operator
 
 
 def roll_operator_text(guild_id: Optional[int], choice: str) -> str:

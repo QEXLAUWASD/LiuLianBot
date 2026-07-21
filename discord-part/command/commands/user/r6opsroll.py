@@ -1,4 +1,4 @@
-from fuction.r6Roll.randomops import random_operator
+from features.r6_roll.randomops import random_operator
 from command.language_manager import get_translation
 
 async def r6opsroll(message, bot):
