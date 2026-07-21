@@ -132,6 +132,34 @@ async function getPool() {
       );
     }
 
+    // ---------- website_user_roles ----------
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS website_user_roles (
+        user_id VARCHAR(30) NOT NULL,
+        role_id INT NOT NULL,
+        assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, role_id),
+        FOREIGN KEY (user_id) REFERENCES website_users(id) ON DELETE CASCADE,
+        FOREIGN KEY (role_id) REFERENCES website_roles(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Migrate the legacy one-role column, then cover users without a membership.
+    await conn.execute(`
+      INSERT IGNORE INTO website_user_roles (user_id, role_id)
+      SELECT id, role_id FROM website_users WHERE role_id IS NOT NULL
+    `);
+    if (userRole.length > 0) {
+      await conn.execute(
+        `INSERT IGNORE INTO website_user_roles (user_id, role_id)
+         SELECT u.id, ? FROM website_users u
+         LEFT JOIN website_user_roles ur ON ur.user_id = u.id
+         WHERE ur.user_id IS NULL`,
+        [userRole[0].id]
+      );
+    }
+    console.log('[DB] website_user_roles table ready.');
+
     // ---------- website_sessions ----------
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS website_sessions (
@@ -215,9 +243,22 @@ async function findUserByUsername(username) {
   const p = await getPool();
   const [rows] = await p.execute(
     `SELECT u.id, u.username, u.password, u.role_id, u.created_at,
-            r.name AS role_name
+            CASE
+              WHEN EXISTS (
+                SELECT 1
+                FROM website_user_roles aur
+                JOIN website_roles ar ON ar.id = aur.role_id
+                WHERE aur.user_id = u.id AND ar.name = 'admin'
+              ) THEN 'admin'
+              ELSE COALESCE((
+                SELECT r.name
+                FROM website_user_roles ur
+                JOIN website_roles r ON r.id = ur.role_id
+                WHERE ur.user_id = u.id
+                ORDER BY r.id ASC LIMIT 1
+              ), 'user')
+            END AS role_name
      FROM website_users u
-     LEFT JOIN website_roles r ON u.role_id = r.id
      WHERE LOWER(u.username) = LOWER(?)`,
     [safe]
   );
@@ -231,17 +272,37 @@ async function createUser(id, username, hashedPassword) {
     throw new Error('[DB] password hash: invalid');
   }
   const p = await getPool();
+  const conn = await p.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [roleRows] = await conn.execute(
+      'SELECT id FROM website_roles WHERE name = ?', ['user']
+    );
+    const defaultRoleId = roleRows.length > 0 ? roleRows[0].id : null;
 
-  const [roleRows] = await p.execute(
-    'SELECT id FROM website_roles WHERE name = ?', ['user']
-  );
-  const defaultRoleId = roleRows.length > 0 ? roleRows[0].id : null;
-
-  await p.execute(
-    'INSERT INTO website_users (id, username, password, role_id) VALUES (?, ?, ?, ?)',
-    [safeId, safeUsername, hashedPassword, defaultRoleId]
-  );
-  return { id: safeId, username: safeUsername, role_name: 'user' };
+    await conn.execute(
+      'INSERT INTO website_users (id, username, password, role_id) VALUES (?, ?, ?, ?)',
+      [safeId, safeUsername, hashedPassword, defaultRoleId]
+    );
+    if (defaultRoleId !== null) {
+      await conn.execute(
+        'INSERT INTO website_user_roles (user_id, role_id) VALUES (?, ?)',
+        [safeId, defaultRoleId]
+      );
+    }
+    await conn.commit();
+    return {
+      id: safeId,
+      username: safeUsername,
+      role_name: 'user',
+      roles: defaultRoleId === null ? [] : [{ id: defaultRoleId, name: 'user' }],
+    };
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 async function findUserById(id) {
@@ -249,9 +310,22 @@ async function findUserById(id) {
   const p = await getPool();
   const [rows] = await p.execute(
     `SELECT u.id, u.username, u.role_id, u.created_at,
-            r.name AS role_name
+            CASE
+              WHEN EXISTS (
+                SELECT 1
+                FROM website_user_roles aur
+                JOIN website_roles ar ON ar.id = aur.role_id
+                WHERE aur.user_id = u.id AND ar.name = 'admin'
+              ) THEN 'admin'
+              ELSE COALESCE((
+                SELECT r.name
+                FROM website_user_roles ur
+                JOIN website_roles r ON r.id = ur.role_id
+                WHERE ur.user_id = u.id
+                ORDER BY r.id ASC LIMIT 1
+              ), 'user')
+            END AS role_name
      FROM website_users u
-     LEFT JOIN website_roles r ON u.role_id = r.id
      WHERE u.id = ?`,
     [safe]
   );
@@ -300,9 +374,9 @@ async function updatePasswordHash(userId, hashedPassword) {
 async function getAllRoles() {
   const p = await getPool();
   const [rows] = await p.execute(
-    `SELECT r.*, COUNT(u.id) AS user_count
+    `SELECT r.*, COUNT(DISTINCT ur.user_id) AS user_count
      FROM website_roles r
-     LEFT JOIN website_users u ON u.role_id = r.id
+     LEFT JOIN website_user_roles ur ON ur.role_id = r.id
      GROUP BY r.id
      ORDER BY r.id ASC`
   );
@@ -338,7 +412,7 @@ async function deleteRole(id) {
   const p = await getPool();
 
   const [users] = await p.execute(
-    'SELECT COUNT(*) AS cnt FROM website_users WHERE role_id = ?',
+    'SELECT COUNT(*) AS cnt FROM website_user_roles WHERE role_id = ?',
     [safeId]
   );
   if (users[0].cnt > 0) {
@@ -356,26 +430,102 @@ async function deleteRole(id) {
 
 async function getAllUsers() {
   const p = await getPool();
-  const [rows] = await p.execute(
-    `SELECT u.id, u.username, u.role_id, u.created_at,
-            r.name AS role_name
+  const [users] = await p.execute(
+    `SELECT u.id, u.username, u.created_at
      FROM website_users u
-     LEFT JOIN website_roles r ON u.role_id = r.id
      ORDER BY u.created_at DESC`
   );
-  return rows;
+  const [memberships] = await p.execute(
+    `SELECT ur.user_id, r.id, r.name
+     FROM website_user_roles ur
+     JOIN website_roles r ON r.id = ur.role_id
+     ORDER BY ur.user_id ASC, r.id ASC`
+  );
+
+  const rolesByUser = new Map();
+  for (const { user_id: userId, id, name } of memberships) {
+    if (!rolesByUser.has(userId)) rolesByUser.set(userId, []);
+    rolesByUser.get(userId).push({ id, name });
+  }
+
+  return users.map(user => {
+    const roles = rolesByUser.get(user.id) || [];
+    const primaryRole = roles.find(role => role.name === 'admin') || roles[0] || null;
+    return {
+      ...user,
+      role_id: primaryRole?.id || null,
+      role_name: primaryRole?.name || null,
+      role_ids: roles.map(role => role.id),
+      roles,
+    };
+  });
 }
 
-async function updateUserRole(userId, roleId) {
+async function updateUserRoles(userId, roleIds) {
   const safeUserId = validateString(userId, 'user id');
-  const safeRoleId = roleId === null ? null : validateInt(roleId, 'role id');
+  if (!Array.isArray(roleIds) || roleIds.length === 0) {
+    throw new Error('At least one group is required');
+  }
+  const safeRoleIds = [...new Set(roleIds.map(roleId => {
+    const safeRoleId = validateInt(roleId, 'role id');
+    if (safeRoleId < 1) {
+      throw new Error('Group IDs must be positive integers');
+    }
+    return safeRoleId;
+  }))];
   const p = await getPool();
-  const [result] = await p.execute(
-    'UPDATE website_users SET role_id = ? WHERE id = ?',
-    [safeRoleId, safeUserId]
-  );
-  if (result.affectedRows === 0) throw new Error('User not found');
-  return findUserById(safeUserId);
+  const conn = await p.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [users] = await conn.execute(
+      'SELECT id, username, created_at FROM website_users WHERE id = ? FOR UPDATE',
+      [safeUserId]
+    );
+    if (users.length === 0) throw new Error('User not found');
+
+    const placeholders = safeRoleIds.map(() => '?').join(', ');
+    const [roles] = await conn.execute(
+      `SELECT id, name FROM website_roles WHERE id IN (${placeholders})`,
+      safeRoleIds
+    );
+    if (roles.length !== safeRoleIds.length) {
+      throw new Error('One or more groups do not exist');
+    }
+    const roleById = new Map(roles.map(role => [Number(role.id), role]));
+    const orderedRoles = safeRoleIds.map(roleId => roleById.get(roleId));
+    const primaryRole = orderedRoles.find(role => role.name === 'admin')
+      || orderedRoles[0];
+
+    await conn.execute(
+      'DELETE FROM website_user_roles WHERE user_id = ?',
+      [safeUserId]
+    );
+    for (const roleId of safeRoleIds) {
+      await conn.execute(
+        'INSERT INTO website_user_roles (user_id, role_id) VALUES (?, ?)',
+        [safeUserId, roleId]
+      );
+    }
+    // Keep the legacy column synchronized during the migration period.
+    await conn.execute(
+      'UPDATE website_users SET role_id = ? WHERE id = ?',
+      [primaryRole.id, safeUserId]
+    );
+    await conn.commit();
+
+    return {
+      ...users[0],
+      role_id: primaryRole.id,
+      role_name: primaryRole.name,
+      role_ids: safeRoleIds,
+      roles: orderedRoles,
+    };
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 async function deleteUser(userId) {
@@ -428,9 +578,10 @@ async function getAccessibleConnections(userId) {
     `SELECT DISTINCT c.id, c.name, c.slug, c.description
      FROM website_connections c
      JOIN website_users wu ON wu.id = ?
-     LEFT JOIN website_roles wr ON wr.id = wu.role_id
+     LEFT JOIN website_user_roles wur ON wur.user_id = wu.id
+     LEFT JOIN website_roles wr ON wr.id = wur.role_id
      LEFT JOIN website_connection_roles cr
-       ON cr.connection_id = c.id AND cr.role_id = wu.role_id
+       ON cr.connection_id = c.id AND cr.role_id = wur.role_id
      LEFT JOIN website_connection_users cu
        ON cu.connection_id = c.id AND cu.user_id = wu.id
      WHERE c.enabled = 1
@@ -448,18 +599,25 @@ async function getConnectionAccessBySlug(slug, userId) {
   const p = await getPool();
   const [rows] = await p.execute(
     `SELECT c.id, c.name, c.slug, c.target_url, c.description,
-            u.id AS user_id, u.username, r.name AS role_name,
+            u.id AS user_id, u.username,
+            EXISTS(
+              SELECT 1
+              FROM website_user_roles aur
+              JOIN website_roles ar ON ar.id = aur.role_id
+              WHERE aur.user_id = u.id AND ar.name = 'admin'
+            ) AS admin_access,
             EXISTS(
               SELECT 1 FROM website_connection_users cu
               WHERE cu.connection_id = c.id AND cu.user_id = u.id
             ) AS direct_access,
             EXISTS(
-              SELECT 1 FROM website_connection_roles cr
-              WHERE cr.connection_id = c.id AND cr.role_id = u.role_id
+              SELECT 1
+              FROM website_connection_roles cr
+              JOIN website_user_roles ur ON ur.role_id = cr.role_id
+              WHERE cr.connection_id = c.id AND ur.user_id = u.id
             ) AS role_access
      FROM website_connections c
      JOIN website_users u ON u.id = ?
-     LEFT JOIN website_roles r ON r.id = u.role_id
      WHERE c.slug = ? AND c.enabled = 1`,
     [safeUserId, safeSlug]
   );
@@ -474,8 +632,12 @@ async function getConnectionAccessBySlug(slug, userId) {
       target_url: row.target_url,
       description: row.description,
     },
-    user: { id: row.user_id, username: row.username, role_name: row.role_name },
-    allowed: row.role_name === 'admin' || Boolean(row.direct_access) || Boolean(row.role_access),
+    user: {
+      id: row.user_id,
+      username: row.username,
+      role_name: Boolean(row.admin_access) ? 'admin' : 'user',
+    },
+    allowed: Boolean(row.admin_access) || Boolean(row.direct_access) || Boolean(row.role_access),
   };
 }
 
@@ -683,7 +845,7 @@ module.exports = {
   updateRole,
   deleteRole,
   getAllUsers,
-  updateUserRole,
+  updateUserRoles,
   deleteUser,
   getAllConnections,
   getAccessibleConnections,

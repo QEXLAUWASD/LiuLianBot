@@ -3,7 +3,7 @@ const router = express.Router();
 const { requireAdmin } = require('../middleware/admin_auth');
 const {
   getAllUsers,
-  updateUserRole,
+  updateUserRoles,
   deleteUser,
   getAllRoles,
   createRole,
@@ -12,6 +12,10 @@ const {
   getAllGuilds,
   getGuildDetail,
 } = require('../db');
+const {
+  UserGroupInputError,
+  normalizeRoleIds,
+} = require('../services/user_group_validation');
 
 // All routes require admin
 router.use(requireAdmin);
@@ -29,24 +33,29 @@ router.get('/users', async (req, res) => {
   }
 });
 
-// PUT /api/admin/users/:id — update user role
+// PUT /api/admin/users/:id — replace user group memberships
 router.put('/users/:id', async (req, res) => {
   try {
-    const { role_id } = req.body;
-    if (role_id !== null && (typeof role_id !== 'number' || role_id < 1)) {
-      return res.status(400).json({ error: 'Invalid role_id' });
-    }
+    const roleIds = normalizeRoleIds(req.body?.role_ids);
 
-    // Prevent self-demotion
+    // Administrators may add their own groups but cannot remove admin access.
     if (req.params.id === req.session.user.id) {
-      return res.status(400).json({ error: 'Cannot change your own role' });
+      const roles = await getAllRoles();
+      const adminRole = roles.find(role => role.name === 'admin');
+      if (!adminRole || !roleIds.includes(Number(adminRole.id))) {
+        return res.status(400).json({ error: 'Cannot remove your own admin group' });
+      }
     }
 
-    const user = await updateUserRole(req.params.id, role_id);
+    const user = await updateUserRoles(req.params.id, roleIds);
     res.json({ success: true, user });
   } catch (err) {
-    console.error('[Admin] PUT /users/:id error:', err);
-    const status = err.message === 'User not found' ? 404 : 500;
+    const status = err instanceof UserGroupInputError
+      || err.message === 'One or more groups do not exist'
+      || err.message === 'At least one group is required'
+      ? 400
+      : err.message === 'User not found' ? 404 : 500;
+    if (status === 500) console.error('[Admin] PUT /users/:id error:', err);
     res.status(status).json({ error: err.message });
   }
 });

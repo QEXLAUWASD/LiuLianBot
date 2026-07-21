@@ -98,19 +98,27 @@ function renderUsers() {
   }
 
   tbody.innerHTML = allUsers.map(u => {
-    const roleBadge = u.role_name === 'admin'
-      ? '<span class="badge badge-admin">admin</span>'
-      : `<span class="badge badge-user">${escapeHTML(u.role_name || 'user')}</span>`;
+    const groups = Array.isArray(u.roles) && u.roles.length > 0
+      ? u.roles
+      : u.role_name ? [{ name: u.role_name }] : [];
+    const groupBadges = groups.length > 0
+      ? groups.map(group => {
+          const badgeClass = group.name === 'admin'
+            ? 'badge-admin'
+            : group.name === 'user' ? 'badge-user' : 'badge-moderator';
+          return `<span class="badge ${badgeClass}">${escapeHTML(group.name)}</span>`;
+        }).join(' ')
+      : '<span class="text-muted">No groups</span>';
 
     const created = u.created_at ? new Date(u.created_at).toLocaleDateString('zh-TW') : '-';
 
     return `
       <tr>
         <td><strong>${escapeHTML(u.username)}</strong></td>
-        <td>${roleBadge}</td>
+        <td>${groupBadges}</td>
         <td>${created}</td>
         <td class="actions">
-          <button class="btn btn-sm btn-outline" onclick="openUserEdit('${escapeHTML(u.id)}')">Edit Role</button>
+          <button class="btn btn-sm btn-outline" onclick="openUserEdit('${escapeHTML(u.id)}')">Edit Groups</button>
           <button class="btn btn-sm btn-danger" onclick="confirmDeleteUser('${escapeHTML(u.id)}', '${escapeHTML(u.username)}')">Delete</button>
         </td>
       </tr>
@@ -125,40 +133,52 @@ function renderUsersError() {
 
 // --- User Edit Modal ---
 
-function openUserEdit(userId) {
+function renderUserGroupOptions(user) {
+  const selectedRoleIds = new Set((user.roles || []).map(role => Number(role.id)));
+  const container = document.getElementById('editUserRoles');
+  container.innerHTML = allGroups.length > 0
+    ? allGroups.map(group => `
+        <label class="access-option">
+          <input type="checkbox" name="userGroup" value="${group.id}" ${selectedRoleIds.has(Number(group.id)) ? 'checked' : ''}>
+          <span>${escapeHTML(group.name)}</span>
+        </label>
+      `).join('')
+    : '<span class="text-muted">No groups available</span>';
+}
+
+async function openUserEdit(userId) {
   const user = allUsers.find(u => u.id === userId);
   if (!user) return;
 
   currentEditUserId = userId;
   document.getElementById('editUserUsername').value = user.username;
   document.getElementById('userEditError').textContent = '';
-
-  // Populate role dropdown
-  const select = document.getElementById('editUserRole');
-  select.innerHTML = allGroups.length > 0
-    ? allGroups.map(g => `<option value="${g.id}" ${g.name === user.role_name ? 'selected' : ''}>${escapeHTML(g.name)}</option>`).join('')
-    : `<option value="">Loading...</option>`;
-
-  // Also load groups if not yet loaded
-  if (allGroups.length === 0) {
-    fetch('/api/admin/groups').then(r => r.json()).then(d => {
-      allGroups = d.groups || [];
-      select.innerHTML = allGroups.map(g =>
-        `<option value="${g.id}" ${g.name === user.role_name ? 'selected' : ''}>${escapeHTML(g.name)}</option>`
-      ).join('');
-    }).catch(() => {});
-  }
-
+  document.getElementById('editUserRoles').innerHTML = '<span class="text-muted">Loading...</span>';
   openModal('userEditModal');
+
+  try {
+    if (allGroups.length === 0) {
+      const response = await fetch('/api/admin/groups');
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to load groups');
+      allGroups = data.groups || [];
+    }
+    renderUserGroupOptions(user);
+  } catch (err) {
+    document.getElementById('userEditError').textContent = err.message;
+  }
 }
 
-document.getElementById('saveUserRoleBtn').addEventListener('click', async () => {
-  const roleId = parseInt(document.getElementById('editUserRole').value, 10);
+document.getElementById('saveUserGroupsBtn').addEventListener('click', async () => {
+  const roleIds = Array.from(
+    document.querySelectorAll('input[name="userGroup"]:checked'),
+    input => Number(input.value)
+  );
   const errorEl = document.getElementById('userEditError');
   errorEl.textContent = '';
 
-  if (!currentEditUserId || isNaN(roleId)) {
-    errorEl.textContent = 'Invalid role selection';
+  if (!currentEditUserId || roleIds.length === 0) {
+    errorEl.textContent = 'Select at least one group';
     return;
   }
 
@@ -166,12 +186,12 @@ document.getElementById('saveUserRoleBtn').addEventListener('click', async () =>
     const res = await fetch(`/api/admin/users/${currentEditUserId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role_id: roleId }),
+      body: JSON.stringify({ role_ids: roleIds }),
     });
     const data = await res.json();
 
     if (res.ok) {
-      showToast('User role updated', 'success');
+      showToast('User groups updated', 'success');
       closeModal('userEditModal');
       loadUsers();
     } else {
