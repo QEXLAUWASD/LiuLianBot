@@ -79,6 +79,9 @@ function normalizeConnectionInput(input) {
   if (input.enabled !== undefined && typeof input.enabled !== 'boolean') {
     throw new ConnectionInputError('Enabled must be a boolean');
   }
+  if (input.hidden !== undefined && typeof input.hidden !== 'boolean') {
+    throw new ConnectionInputError('Hidden must be a boolean');
+  }
 
   const slug = normalizeText(input.slug, 'Slug', 50).toLowerCase();
   if (!/^[a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?$/.test(slug)) {
@@ -91,6 +94,7 @@ function normalizeConnectionInput(input) {
     target_url: normalizeTargetUrl(input.target_url),
     description: normalizeText(input.description || '', 'Description', 255, false),
     enabled: input.enabled === undefined ? true : input.enabled === true,
+    hidden: input.hidden === true,
     role_ids: normalizeIntegerIds(input.role_ids || [], 'Role IDs'),
     user_ids: normalizeUserIds(input.user_ids || []),
   };

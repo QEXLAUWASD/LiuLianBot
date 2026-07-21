@@ -492,7 +492,10 @@ function renderConnections() {
         <td><strong>${escapeHTML(connection.name)}</strong><div class="table-subtext">/connect/${escapeHTML(connection.slug)}/</div></td>
         <td><span class="mono target-url">${escapeHTML(connection.target_url)}</span></td>
         <td>${access.length ? access.map(item => `<span class="access-label">${escapeHTML(item)}</span>`).join('') : '<span class="text-muted">Admins only</span>'}</td>
-        <td><span class="badge ${connection.enabled ? 'badge-enabled' : 'badge-disabled'}">${connection.enabled ? 'Enabled' : 'Disabled'}</span></td>
+        <td>
+          <span class="badge ${connection.enabled ? 'badge-enabled' : 'badge-disabled'}">${connection.enabled ? 'Enabled' : 'Disabled'}</span>
+          ${connection.hidden ? '<span class="badge badge-hidden">Hidden</span>' : ''}
+        </td>
         <td class="actions">
           ${connection.enabled ? `<a class="btn btn-sm btn-outline" href="/connect/${encodeURIComponent(connection.slug)}/" target="_blank" rel="noopener">Open</a>` : ''}
           <button class="btn btn-sm btn-outline" type="button" onclick="openConnectionEdit(${connection.id})">Edit</button>
@@ -540,6 +543,7 @@ document.getElementById('createConnectionBtn').addEventListener('click', async (
   document.getElementById('editConnectionTarget').value = '';
   document.getElementById('editConnectionDesc').value = '';
   document.getElementById('editConnectionEnabled').checked = true;
+  document.getElementById('editConnectionHidden').checked = false;
   document.getElementById('connectionEditError').textContent = '';
   renderConnectionAccessOptions(null);
   openModal('connectionEditModal');
@@ -557,6 +561,7 @@ async function openConnectionEdit(id) {
   document.getElementById('editConnectionTarget').value = connection.target_url;
   document.getElementById('editConnectionDesc').value = connection.description || '';
   document.getElementById('editConnectionEnabled').checked = Boolean(connection.enabled);
+  document.getElementById('editConnectionHidden').checked = Boolean(connection.hidden);
   document.getElementById('connectionEditError').textContent = '';
   renderConnectionAccessOptions(connection);
   openModal('connectionEditModal');
@@ -571,6 +576,7 @@ document.getElementById('saveConnectionBtn').addEventListener('click', async () 
     target_url: document.getElementById('editConnectionTarget').value.trim(),
     description: document.getElementById('editConnectionDesc').value.trim(),
     enabled: document.getElementById('editConnectionEnabled').checked,
+    hidden: document.getElementById('editConnectionHidden').checked,
     role_ids: Array.from(document.querySelectorAll('input[name="connectionRole"]:checked'), input => Number(input.value)),
     user_ids: Array.from(document.querySelectorAll('input[name="connectionUser"]:checked'), input => input.value),
   };

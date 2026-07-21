@@ -156,10 +156,20 @@ async function getPool() {
         target_url TEXT NOT NULL,
         description VARCHAR(255) DEFAULT '',
         enabled TINYINT(1) NOT NULL DEFAULT 1,
+        hidden TINYINT(1) NOT NULL DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    try {
+      await conn.execute(
+        'ALTER TABLE website_connections ADD COLUMN hidden TINYINT(1) NOT NULL DEFAULT 0 AFTER enabled'
+      );
+      console.log('[DB] Added hidden column to website_connections.');
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+    }
 
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS website_connection_roles (
@@ -383,7 +393,7 @@ async function deleteUser(userId) {
 async function getAllConnections() {
   const p = await getPool();
   const [connections] = await p.execute(
-    `SELECT id, name, slug, target_url, description, enabled, created_at, updated_at
+    `SELECT id, name, slug, target_url, description, enabled, hidden, created_at, updated_at
      FROM website_connections
      ORDER BY name ASC`
   );
@@ -403,6 +413,7 @@ async function getAllConnections() {
   return connections.map(connection => ({
     ...connection,
     enabled: Boolean(connection.enabled),
+    hidden: Boolean(connection.hidden),
     roles: roles.filter(role => role.connection_id === connection.id)
       .map(({ id, name }) => ({ id, name })),
     users: users.filter(user => user.connection_id === connection.id)
@@ -423,6 +434,7 @@ async function getAccessibleConnections(userId) {
      LEFT JOIN website_connection_users cu
        ON cu.connection_id = c.id AND cu.user_id = wu.id
      WHERE c.enabled = 1
+       AND c.hidden = 0
        AND (wr.name = 'admin' OR cr.role_id IS NOT NULL OR cu.user_id IS NOT NULL)
      ORDER BY c.name ASC`,
     [safeUserId]
@@ -491,9 +503,16 @@ async function createConnection(data) {
   try {
     await conn.beginTransaction();
     const [result] = await conn.execute(
-      `INSERT INTO website_connections (name, slug, target_url, description, enabled)
-       VALUES (?, ?, ?, ?, ?)`,
-      [data.name, data.slug, data.target_url, data.description, data.enabled ? 1 : 0]
+      `INSERT INTO website_connections (name, slug, target_url, description, enabled, hidden)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        data.name,
+        data.slug,
+        data.target_url,
+        data.description,
+        data.enabled ? 1 : 0,
+        data.hidden ? 1 : 0,
+      ]
     );
     await replaceConnectionAccess(conn, result.insertId, data.role_ids, data.user_ids);
     await conn.commit();
@@ -519,9 +538,17 @@ async function updateConnection(id, data) {
 
     await conn.execute(
       `UPDATE website_connections
-       SET name = ?, slug = ?, target_url = ?, description = ?, enabled = ?
+       SET name = ?, slug = ?, target_url = ?, description = ?, enabled = ?, hidden = ?
        WHERE id = ?`,
-      [data.name, data.slug, data.target_url, data.description, data.enabled ? 1 : 0, safeId]
+      [
+        data.name,
+        data.slug,
+        data.target_url,
+        data.description,
+        data.enabled ? 1 : 0,
+        data.hidden ? 1 : 0,
+        safeId,
+      ]
     );
     await replaceConnectionAccess(conn, safeId, data.role_ids, data.user_ids);
     await conn.commit();

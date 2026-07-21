@@ -13,6 +13,7 @@ test('normalizes a valid connection and removes duplicate access IDs', () => {
     target_url: 'http://localhost:8080/app',
     description: ' Operations ',
     enabled: true,
+    hidden: true,
     role_ids: [2, '2', 3],
     user_ids: ['abc_123', 'abc_123'],
   });
@@ -23,6 +24,7 @@ test('normalizes a valid connection and removes duplicate access IDs', () => {
     target_url: 'http://localhost:8080/app/',
     description: 'Operations',
     enabled: true,
+    hidden: true,
     role_ids: [2, 3],
     user_ids: ['abc_123'],
   });
