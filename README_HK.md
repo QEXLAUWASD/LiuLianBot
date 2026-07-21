@@ -81,17 +81,17 @@ LiuLianBot/
 │   │   ├── bot_client.py     # Bot 客戶端（discord.py 子類別）
 │   │   ├── config.py         # 設定載入器
 │   │   └── slash_adapter.py  # Slash 指令轉接器
-│   ├── fuction/
-│   │   ├── r6Roll/           # R6 地圖同幹員抽選
-│   │   ├── private_voiceChat/# 私人語音頻道系統
+│   ├── features/
+│   │   ├── r6_roll/           # R6 地圖同幹員抽選
+│   │   ├── private_voice_chat/# 私人語音頻道系統
 │   │   ├── server_logger/    # 事件記錄系統
-│   │   ├── messagelogger/    # 訊息記錄輔助
-│   │   └── userLogger/       # 用戶事件記錄輔助
+│   │   ├── message_logger/    # 訊息記錄輔助
+│   │   └── user_logger/       # 用戶事件記錄輔助
 │   ├── locales/
 │   │   ├── en.json           # 英文翻譯
 │   │   └── zh_TW.json        # 繁體中文翻譯
 │   ├── tools/                # 開發工具
-│   ├── uilts/
+│   ├── utils/
 │   │   ├── database.py       # MySQL 資料庫連接
 │   │   └── logger.py         # 記錄器設定
 │   └── updater/

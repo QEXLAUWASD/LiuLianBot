@@ -1,0 +1,7 @@
+discord.py==2.3.0
+colorama==0.4.6
+psutil>=5.9.0
+pymysql==1.1.2
+cryptography==46.0.3
+requests>=2.31.0
+beautifulsoup4>=4.12.0

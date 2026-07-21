@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiuLianBot - R6 Roller</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">🎮 LiuLianBot</div>
+    <div class="nav-links">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/roller.html" class="nav-link active">R6 Roller</a>
+      <a href="/admin.html" class="nav-link admin-only" style="display:none;">Admin</a>
+    </div>
+    <div class="nav-user" id="navUser">
+      <span id="navUsername"></span>
+      <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="roller-container">
+      <h2>🎲 R6 Roller</h2>
+
+      <div class="roller-tabs">
+        <button class="tab-btn active" data-tab="operator">Operator Roll</button>
+        <button class="tab-btn" data-tab="map">Map Roll</button>
+      </div>
+
+      <!-- Operator Roller -->
+      <div id="operatorTab" class="roller-tab active">
+        <div class="roller-controls">
+          <label>
+            <input type="radio" name="opSide" value="" checked> Both Sides
+          </label>
+          <label>
+            <input type="radio" name="opSide" value="att"> Attacker Only
+          </label>
+          <label>
+            <input type="radio" name="opSide" value="def"> Defender Only
+          </label>
+          <button id="rollOpBtn" class="btn btn-primary btn-roll">🎯 Roll Operator</button>
+        </div>
+
+        <div id="opResult" class="roll-result">
+          <div class="result-placeholder">
+            <p>Click "Roll Operator" to get started!</p>
+          </div>
+        </div>
+
+        <div id="opHistory" class="roll-history">
+          <h3>History</h3>
+          <div id="opHistoryList"></div>
+        </div>
+      </div>
+
+      <!-- Map Roller -->
+      <div id="mapTab" class="roller-tab">
+        <div class="roller-controls">
+          <button id="rollMapBtn" class="btn btn-primary btn-roll">🗺️ Roll Map</button>
+        </div>
+
+        <div id="mapResult" class="roll-result">
+          <div class="result-placeholder">
+            <p>Click "Roll Map" to get started!</p>
+          </div>
+        </div>
+
+        <div id="mapHistory" class="roll-history">
+          <h3>History</h3>
+          <div id="mapHistoryList"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/roller.js"></script>
+</body>
+</html>
