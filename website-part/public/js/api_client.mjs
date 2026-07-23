@@ -62,9 +62,11 @@ export async function requestJSON(url, options = {}, fetchImpl = globalThis.fetc
 
   if (!response.ok) {
     const message =
-      typeof body?.message === 'string' && body.message
-        ? body.message
-        : `Request failed with status ${response.status}`;
+      typeof body?.error === 'string' && body.error
+        ? body.error
+        : typeof body?.message === 'string' && body.message
+          ? body.message
+          : `Request failed with status ${response.status}`;
     const code = typeof body?.code === 'string' && body.code ? body.code : 'HTTP_ERROR';
 
     throw new ApiError(message, { status: response.status, code });

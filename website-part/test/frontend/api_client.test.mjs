@@ -18,12 +18,17 @@ test('requestJSON parses a successful JSON response', async () => {
   assert.deepEqual(result, { ok: true, items: [1, 2] });
 });
 
-test('requestJSON exposes a JSON HTTP error as ApiError', async () => {
+test('requestJSON prefers error over message in a JSON HTTP error', async () => {
   await assert.rejects(
     requestJSON('/api/example', {}, async () =>
-      response(JSON.stringify({ message: 'Access denied', code: 'ACCESS_DENIED' }), {
-        status: 403,
-      }),
+      response(
+        JSON.stringify({
+          error: 'Access denied',
+          message: 'Generic forbidden response',
+          code: 'ACCESS_DENIED',
+        }),
+        { status: 403 },
+      ),
     ),
     (error) => {
       assert.ok(error instanceof ApiError);
@@ -31,6 +36,23 @@ test('requestJSON exposes a JSON HTTP error as ApiError', async () => {
       assert.equal(error.status, 403);
       assert.equal(error.message, 'Access denied');
       assert.equal(error.code, 'ACCESS_DENIED');
+      return true;
+    },
+  );
+});
+
+test('requestJSON falls back to message in a JSON HTTP error', async () => {
+  await assert.rejects(
+    requestJSON('/api/example', {}, async () =>
+      response(JSON.stringify({ message: 'Request conflict', code: 'CONFLICT' }), {
+        status: 409,
+      }),
+    ),
+    (error) => {
+      assert.ok(error instanceof ApiError);
+      assert.equal(error.status, 409);
+      assert.equal(error.message, 'Request conflict');
+      assert.equal(error.code, 'CONFLICT');
       return true;
     },
   );
