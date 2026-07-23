@@ -3,14 +3,21 @@ from features.private_voice_chat.private_voice import get_manager
 from commands.language_manager import get_translation
 
 
-def resolve_voice_channel(message, raw_value):
-    if message.channel_mentions:
-        return message.channel_mentions[0]
-
+def _parse_voice_channel_id(raw_value):
     try:
-        channel_id = int(raw_value.strip('<>#'))
+        return int(raw_value.strip('<>#'))
     except ValueError:
         return None
+
+
+def resolve_voice_channel(message, raw_value):
+    channel_id = _parse_voice_channel_id(raw_value)
+    if channel_id is None:
+        return None
+
+    for mentioned_channel in message.channel_mentions:
+        if mentioned_channel.id == channel_id:
+            return mentioned_channel
 
     return message.guild.get_channel(channel_id)
 
@@ -68,10 +75,13 @@ async def setprivatevoice(message, bot):
         embed.set_footer(text=get_translation('field_requested_by', gid).replace('{user}', str(message.author)), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
         return embed
     
-    channel = resolve_voice_channel(message, parts[1])
+    raw_channel = parts[1]
+    channel = resolve_voice_channel(message, raw_channel)
     
     # Validate channel
     if not channel:
+        if _parse_voice_channel_id(raw_channel) is None:
+            return get_translation('pv_invalid_channel_id', message.guild.id)
         return get_translation('pv_channel_not_found', message.guild.id)
     
     if not isinstance(channel, discord.VoiceChannel):
