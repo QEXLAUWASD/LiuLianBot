@@ -17,7 +17,7 @@
   "cmd_desc_getserverlist": "取得機器人所在的伺服器清單。",
   "cmd_desc_getinfo": "取得有關機器人的詳細資訊。",
   "cmd_desc_addadmin": "將使用者新增為機器人全域管理員。",
-  "cmd_desc_update": "從 GitHub 私人儲存庫拉取最新程式碼並重新載入模組。",
+  "cmd_desc_update": "從 GitHub 下載最新程式碼並更新檔案；完成後需重啟 bot 才能套用變更。",
   "cmd_desc_removeguildadmin": "將使用者從伺服器管理員清單中移除。",
   "cmd_desc_guildpermissions": "檢視此伺服器中的所有權限等級（僅伺服器擁有者）。",
   "cmd_desc_addguildadmin": "將使用者新增為此伺服器的管理員。",

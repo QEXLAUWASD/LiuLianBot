@@ -17,7 +17,7 @@
   "cmd_desc_getserverlist": "Get a list of all servers the bot is in.",
   "cmd_desc_getinfo": "Get detailed information about the bot.",
   "cmd_desc_addadmin": "Add a user as a global bot admin.",
-  "cmd_desc_update": "Pull latest code from GitHub private repo and reload modules.",
+  "cmd_desc_update": "Download the latest code from GitHub and update files; restart the bot to apply the changes.",
   "cmd_desc_removeguildadmin": "Remove a user from the guild admin list.",
   "cmd_desc_guildpermissions": "View all permission levels in this guild (guild owner only).",
   "cmd_desc_addguildadmin": "Add a user as an admin for this specific guild.",

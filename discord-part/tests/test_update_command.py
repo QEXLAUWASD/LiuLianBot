@@ -1,14 +1,17 @@
 import asyncio
 import ast
 import inspect
+import json
 import threading
 import time
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from commands.owner import update as update_module
+from commands import language_manager
 from core import bot_client
 from updater import updater
 
@@ -55,6 +58,29 @@ def test_updater_source_has_no_hot_reload_path():
     assert "importlib.reload" not in updater_source
     assert "def reload_modules" not in updater_source
     assert "reload_modules" not in command_source
+
+
+def test_update_help_locales_require_restart_to_apply(monkeypatch):
+    locales_dir = Path(__file__).resolve().parents[1] / "locales"
+    locales = {
+        code: json.loads((locales_dir / f"{code}.json").read_text(encoding="utf-8"))
+        for code in ("zh_TW", "en")
+    }
+    monkeypatch.setattr(language_manager, "supported_locales", lambda: locales)
+
+    monkeypatch.setattr(language_manager, "get_guild_language", lambda guild_id: "zh_TW")
+    zh_description = language_manager.get_translation("cmd_desc_update", guild_id=1)
+    assert "更新檔案" in zh_description
+    assert "重啟" in zh_description
+    assert "套用" in zh_description
+    assert "重新載入" not in zh_description
+
+    monkeypatch.setattr(language_manager, "get_guild_language", lambda guild_id: "en")
+    en_description = language_manager.get_translation("cmd_desc_update", guild_id=1)
+    assert "update files" in en_description
+    assert "restart" in en_description
+    assert "apply" in en_description
+    assert "reload" not in en_description
 
 
 @pytest.mark.asyncio
