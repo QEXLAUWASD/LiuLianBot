@@ -1,29 +1,59 @@
+import { authState, logout } from './auth_state.mjs';
+import { requestJSON } from './api_client.mjs';
+
 // Common app functions shared across pages
 
 async function checkAuth() {
-  try {
-    const res = await fetch('/api/auth/me');
-    const data = await res.json();
-    if (!data.loggedIn) return null;
-    return data.user;
-  } catch (err) {
-    return null;
+  const data = await authState.load();
+  if (!data?.loggedIn) return null;
+  return data.user;
+}
+
+function showLogoutError(logoutBtn, error) {
+  const liveStatus = document.querySelector('[aria-live]');
+  if (liveStatus) {
+    liveStatus.textContent = error.message;
+    liveStatus.className = 'status-msg status-error';
+    return;
   }
+
+  if (typeof globalThis.showToast === 'function') {
+    globalThis.showToast(error.message, 'error');
+    return;
+  }
+
+  logoutBtn.textContent = 'Logout failed';
+  logoutBtn.title = error.message;
 }
 
 function setupLogout() {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.href = '/login.html';
+      logoutBtn.disabled = true;
+      try {
+        await logout();
+      } catch (error) {
+        logoutBtn.disabled = false;
+        showLogoutError(logoutBtn, error);
+      }
     });
   }
 }
 
 async function setupNavUser() {
-  const user = await checkAuth();
   const navUserEl = document.getElementById('navUser');
+  let user;
+
+  try {
+    user = await checkAuth();
+  } catch (error) {
+    if (navUserEl && !navUserEl.textContent.trim()) {
+      navUserEl.textContent = 'Unable to load account';
+      navUserEl.title = error.message;
+    }
+    return null;
+  }
 
   if (!navUserEl) return user;
 
@@ -102,9 +132,7 @@ async function setupWebsiteDropdown() {
   });
 
   try {
-    const res = await fetch('/api/connections');
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to load');
+    const data = await requestJSON('/api/connections');
 
     const connections = data.connections || [];
     if (connections.length === 0) {

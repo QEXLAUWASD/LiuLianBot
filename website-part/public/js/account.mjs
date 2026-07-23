@@ -1,6 +1,18 @@
+import { authState } from './auth_state.mjs';
+import { ApiError, requestJSON } from './api_client.mjs';
+
 function setAccountStatus(element, message, type = '') {
   element.textContent = message;
   element.className = `status-msg${type ? ` status-${type}` : ''}`;
+}
+
+export function handleAccountLoadError(error, statusElement, location = globalThis.location) {
+  if (error instanceof ApiError && error.status === 401) {
+    location.href = '/login.html';
+    return;
+  }
+
+  setAccountStatus(statusElement, error?.message || 'Unable to load account.', 'error');
 }
 
 function setFormBusy(form, busy) {
@@ -10,34 +22,34 @@ function setFormBusy(form, busy) {
 }
 
 async function sendAccountUpdate(url, body) {
-  const response = await fetch(url, {
+  return requestJSON(url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  const data = await response.json();
-
-  if (!response.ok) {
-    const error = new Error(data.error || 'Unable to save changes');
-    error.status = response.status;
-    throw error;
-  }
-
-  return data;
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const user = await checkAuth();
-  if (!user) {
-    window.location.href = '/login.html';
-    return;
-  }
-
+async function initializeAccountPage() {
   const usernameForm = document.getElementById('usernameForm');
   const usernameInput = document.getElementById('newUsername');
   const usernameStatus = document.getElementById('usernameStatus');
   const passwordForm = document.getElementById('passwordForm');
   const passwordStatus = document.getElementById('passwordStatus');
+  let auth;
+
+  try {
+    auth = await authState.load();
+  } catch (error) {
+    handleAccountLoadError(error, usernameStatus);
+    return;
+  }
+
+  if (!auth?.loggedIn) {
+    window.location.href = '/login.html';
+    return;
+  }
+
+  const user = auth.user;
   usernameInput.value = user.username;
 
   usernameForm.addEventListener('submit', async event => {
@@ -56,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (navUsername) navUsername.textContent = `👤 ${data.user.username}`;
       setAccountStatus(usernameStatus, 'Username updated.', 'success');
     } catch (error) {
-      if (error.status === 401 && error.message === 'Login required') {
+      if (error instanceof ApiError && error.status === 401) {
         window.location.href = '/login.html';
         return;
       }
@@ -87,7 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       passwordForm.reset();
       setAccountStatus(passwordStatus, 'Password updated.', 'success');
     } catch (error) {
-      if (error.status === 401 && error.message === 'Login required') {
+      if (error instanceof ApiError && error.status === 401) {
         window.location.href = '/login.html';
         return;
       }
@@ -96,4 +108,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       setFormBusy(passwordForm, false);
     }
   });
-});
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', initializeAccountPage);
+}
