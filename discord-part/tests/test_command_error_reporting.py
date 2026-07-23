@@ -4,7 +4,7 @@ import inspect
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, mock_open
+from unittest.mock import AsyncMock, Mock, call, mock_open
 
 import pytest
 
@@ -367,6 +367,134 @@ async def test_transfer_voice_error_redacts_exception_and_uses_bot_logger(monkey
         "555555555555",
         exc_info=True,
     )
+
+
+def make_transfer_voice_context(*, permission_side_effect=None, transfer_error=None):
+    logger = Mock()
+    author = SimpleNamespace(id=10)
+    target = SimpleNamespace(id=42, display_name="target-user")
+    channel = SimpleNamespace(
+        id=123,
+        name="private-channel",
+        mention="<#123>",
+        members=[target],
+        set_permissions=AsyncMock(side_effect=permission_side_effect),
+    )
+    manager = SimpleNamespace(
+        user_channels={author.id: channel.id},
+        private_channels={channel.id: author.id},
+        transfer_channel_owner=Mock(side_effect=transfer_error),
+    )
+    guild = SimpleNamespace(
+        id=7,
+        get_member=lambda user_id: target,
+        get_channel=lambda channel_id: channel,
+    )
+    message = SimpleNamespace(
+        content=">transfervoice 42",
+        mentions=[],
+        guild=guild,
+        author=author,
+    )
+    bot = SimpleNamespace(command_prefix=">", logger=logger)
+    return message, bot, manager, channel, author, target
+
+
+def patch_transfer_voice_error_context(monkeypatch, manager, reference):
+    error_reporting = importlib.import_module("utils.error_reporting")
+    monkeypatch.setattr(transfer_voice, "get_manager", lambda client: manager)
+    monkeypatch.setattr(
+        transfer_voice,
+        "get_translation",
+        lambda key, guild_id: "localized voice failure: {error}",
+    )
+    monkeypatch.setattr(error_reporting, "generate_error_reference", lambda: reference)
+
+
+@pytest.mark.asyncio
+async def test_transfer_voice_db_failure_compensates_permissions_and_returns_reference(
+    monkeypatch,
+):
+    secret = "owner-update-secret"
+    message, bot, manager, channel, author, target = make_transfer_voice_context(
+        transfer_error=RuntimeError(secret)
+    )
+    patch_transfer_voice_error_context(monkeypatch, manager, "666666666666")
+
+    public_message = await transfer_voice.transfervoice(message, bot)
+
+    assert public_message == "localized voice failure (Reference: 666666666666)"
+    assert secret not in public_message
+    assert [entry.args[0] for entry in channel.set_permissions.await_args_list] == [
+        author,
+        target,
+        author,
+        target,
+    ]
+    assert [
+        entry.kwargs["manage_channels"]
+        for entry in channel.set_permissions.await_args_list
+    ] == [False, True, True, False]
+    bot.logger.error.assert_called_once_with(
+        "%s failed [reference=%s]",
+        "transfervoice",
+        "666666666666",
+        exc_info=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_transfer_voice_second_permission_failure_restores_previous_owner(
+    monkeypatch,
+):
+    secret = "grant-target-secret"
+    message, bot, manager, channel, author, target = make_transfer_voice_context(
+        permission_side_effect=[None, RuntimeError(secret), None, None]
+    )
+    patch_transfer_voice_error_context(monkeypatch, manager, "777777777777")
+
+    public_message = await transfer_voice.transfervoice(message, bot)
+
+    assert public_message == "localized voice failure (Reference: 777777777777)"
+    assert secret not in public_message
+    assert [entry.args[0] for entry in channel.set_permissions.await_args_list] == [
+        author,
+        target,
+        author,
+        target,
+    ]
+    manager.transfer_channel_owner.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_transfer_voice_compensation_failure_is_logged_without_public_details(
+    monkeypatch,
+):
+    persistence_secret = "owner-update-secret"
+    compensation_secret = "restore-permission-secret"
+    message, bot, manager, channel, author, target = make_transfer_voice_context(
+        permission_side_effect=[None, None, RuntimeError(compensation_secret), None],
+        transfer_error=RuntimeError(persistence_secret),
+    )
+    patch_transfer_voice_error_context(monkeypatch, manager, "888888888888")
+
+    public_message = await transfer_voice.transfervoice(message, bot)
+
+    assert public_message == "localized voice failure (Reference: 888888888888)"
+    assert persistence_secret not in public_message
+    assert compensation_secret not in public_message
+    assert bot.logger.error.call_args_list == [
+        call(
+            "Private voice permission compensation failed for previous owner",
+            exc_info=True,
+        ),
+        call(
+            "%s failed [reference=%s]",
+            "transfervoice",
+            "888888888888",
+            exc_info=True,
+        ),
+    ]
 
 
 @pytest.mark.asyncio

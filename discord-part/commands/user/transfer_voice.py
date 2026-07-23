@@ -4,6 +4,40 @@ from commands.language_manager import get_translation
 from utils.error_reporting import report_exception
 
 
+async def _compensate_permissions(channel, previous_owner, new_owner, logger):
+    try:
+        await channel.set_permissions(
+            previous_owner,
+            connect=True,
+            speak=True,
+            manage_channels=True,
+            move_members=True,
+            mute_members=True,
+            deafen_members=True,
+        )
+    except Exception:
+        logger.error(
+            "Private voice permission compensation failed for previous owner",
+            exc_info=True,
+        )
+
+    try:
+        await channel.set_permissions(
+            new_owner,
+            connect=True,
+            speak=True,
+            manage_channels=False,
+            move_members=False,
+            mute_members=False,
+            deafen_members=False,
+        )
+    except Exception:
+        logger.error(
+            "Private voice permission compensation failed for new owner",
+            exc_info=True,
+        )
+
+
 async def transfervoice(message, bot):
     """Transfer ownership of your private voice channel to another member.
 
@@ -62,18 +96,25 @@ async def transfervoice(message, bot):
             mute_members=False,
             deafen_members=False,
         )
-        await channel.set_permissions(
-            target,
-            connect=True,
-            speak=True,
-            manage_channels=True,
-            move_members=True,
-            mute_members=True,
-            deafen_members=True,
-        )
-
-        # Update tracking and DB atomically via manager method
-        manager.transfer_channel_owner(channel_id, target.id)
+        try:
+            await channel.set_permissions(
+                target,
+                connect=True,
+                speak=True,
+                manage_channels=True,
+                move_members=True,
+                mute_members=True,
+                deafen_members=True,
+            )
+            manager.transfer_channel_owner(channel_id, target.id)
+        except Exception:
+            await _compensate_permissions(
+                channel,
+                message.author,
+                target,
+                bot.logger,
+            )
+            raise
 
         return get_translation('transfervoice_success', gid) \
             .replace('{user}', target.display_name) \

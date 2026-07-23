@@ -18,6 +18,7 @@ class PrivateVoiceManager:
         self.cleanup_task: Optional[asyncio.Task] = None
         self.cleanup_interval_seconds = 24 * 60 * 60
         self.load_trigger_channels_from_db()
+        self.load_private_channels_from_db()
 
     def start_cleanup_task(self, retention_days: int = 30):
         if self.cleanup_task is None:
@@ -28,6 +29,7 @@ class PrivateVoiceManager:
     async def _cleanup_loop(self, retention_days: int):
         while True:
             try:
+                await self.cleanup_empty_channels()
                 removed = self._cleanup_once(retention_days)
                 if removed:
                     print(f"[INFO] Removed {removed} stale private voice configs older than {retention_days} days")
@@ -40,6 +42,16 @@ class PrivateVoiceManager:
 
     def load_trigger_channels_from_db(self):
         self.trigger_channels = self.repository.load_triggers()
+
+    def load_private_channels_from_db(self):
+        rows = self.repository.load_private_channels()
+        self.private_channels = {}
+        self.user_channels = {}
+        for channel_id, owner_id in rows:
+            channel_id = int(channel_id)
+            owner_id = int(owner_id)
+            self.private_channels[channel_id] = owner_id
+            self.user_channels.setdefault(owner_id, channel_id)
 
     def remove_trigger_channel(self, guild_id: int) -> None:
         self.repository.remove_trigger(guild_id)
@@ -65,11 +77,16 @@ class PrivateVoiceManager:
     def transfer_channel_owner(self, channel_id: int, new_owner_id: int):
         """Update in-memory tracking and DB when channel ownership is transferred."""
         old_owner_id = self.private_channels.get(channel_id)
+        self.repository.update_owner(channel_id, new_owner_id)
         self.private_channels[channel_id] = new_owner_id
         if old_owner_id is not None and self.user_channels.get(old_owner_id) == channel_id:
             del self.user_channels[old_owner_id]
         self.user_channels[new_owner_id] = channel_id
-        self.repository.update_owner(channel_id, new_owner_id)
+
+    def _remove_private_channel_cache(self, channel_id: int, owner_id: int) -> None:
+        self.private_channels.pop(channel_id, None)
+        if self.user_channels.get(owner_id) == channel_id:
+            self.user_channels.pop(owner_id, None)
 
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         """Handle voice state updates"""
@@ -127,11 +144,14 @@ class PrivateVoiceManager:
             # Move the user to the new channel
             await member.move_to(private_channel)
             
-            # Track the channel
+            self.save_channel_config(
+                member.guild.id,
+                private_channel.id,
+                member.id,
+                {"type": "private", "name": private_channel.name},
+            )
             self.private_channels[private_channel.id] = member.id
             self.user_channels[member.id] = private_channel.id
-            # 寫入 MySQL
-            self.save_channel_config(member.guild.id, private_channel.id, member.id, {"type": "private", "name": private_channel.name})
             
         except discord.Forbidden:
             print(f"Missing permissions to create voice channel in {member.guild.name}")
@@ -148,15 +168,9 @@ class PrivateVoiceManager:
             if channel.id in self.private_channels:
                 try:
                     owner_id = self.private_channels[channel.id]
-                    
-                    # Remove from tracking
-                    del self.private_channels[channel.id]
-                    if owner_id in self.user_channels:
-                        del self.user_channels[owner_id]
-                    
-                    # Delete the channel
                     await channel.delete(reason="Private voice channel is empty")
-                    
+                    self.repository.delete(channel.id)
+                    self._remove_private_channel_cache(channel.id, owner_id)
                 except discord.Forbidden:
                     print(f"Missing permissions to delete voice channel {channel.name}")
                 except discord.HTTPException as e:
@@ -172,10 +186,8 @@ class PrivateVoiceManager:
                 if len(channel.members) == 0:
                     channels_to_delete.append(channel)
             else:
-                # Channel no longer exists
-                del self.private_channels[channel_id]
-                if owner_id in self.user_channels:
-                    del self.user_channels[owner_id]
+                self.repository.delete(channel_id)
+                self._remove_private_channel_cache(channel_id, owner_id)
         
         # Delete empty channels
         for channel in channels_to_delete:
