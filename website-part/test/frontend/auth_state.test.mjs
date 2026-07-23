@@ -12,6 +12,7 @@ import {
   createAuthState,
   logout,
 } from '../../public/js/auth_state.mjs';
+import { renderNavbar } from '../../public/js/nav.mjs';
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const publicDir = resolve(testDir, '../../public');
@@ -157,18 +158,26 @@ test('four authenticated pages load app.mjs as a module and contain no stale app
   }
 });
 
-test('four authenticated pages start with a dedicated navigation loading status', async () => {
+test('four authenticated pages mount the shared navigation loading state', async () => {
   for (const filename of ['index.html', 'account.html', 'admin.html', 'roller.html']) {
     const html = await readFile(resolve(publicDir, filename), 'utf8');
-    const document = new JSDOM(html).window.document;
+    const dom = new JSDOM(html);
+    const document = dom.window.document;
+    const originalDocument = globalThis.document;
+    globalThis.document = document;
+    const siteNav = document.getElementById('siteNav');
+    renderNavbar(siteNav, dom.window.location);
     const navUser = document.getElementById('navUser');
     const logoutStatus = navUser.querySelector('#logoutStatus');
 
-    assert.equal(navUser.querySelector('#logoutBtn'), null, `${filename} must not expose inert logout`);
+    assert.equal(siteNav.getAttribute('aria-label'), 'Primary');
+    assert.equal(navUser.querySelector('#logoutBtn').hidden, true, `${filename} must hide inert logout`);
     assert.ok(logoutStatus, `${filename} should provide logoutStatus`);
     assert.equal(logoutStatus.getAttribute('role'), 'status');
     assert.equal(logoutStatus.getAttribute('aria-live'), 'polite');
     assert.equal(logoutStatus.textContent.trim(), 'Loading account...');
+    globalThis.document = originalDocument;
+    dom.window.close();
   }
 });
 
@@ -589,7 +598,7 @@ test('navigation auth failure removes logout controls and reports the error in l
     assert.equal(typeof setupNavUser, 'function');
     await setupNavUser();
 
-    assert.equal(dom.window.document.getElementById('logoutBtn'), null);
+    assert.equal(dom.window.document.getElementById('logoutBtn').hidden, true);
     const logoutStatus = dom.window.document.getElementById('logoutStatus');
     assert.equal(logoutStatus.textContent, 'Unable to load account');
     assert.equal(logoutStatus.getAttribute('role'), 'status');

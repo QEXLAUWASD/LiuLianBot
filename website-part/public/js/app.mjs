@@ -1,159 +1,159 @@
-import { authState, logout } from './auth_state.mjs';
 import { requestJSON } from './api_client.mjs';
+import { authState, logout } from './auth_state.mjs';
+import { element, replaceChildren } from './dom.mjs';
+import { renderNavbar } from './nav.mjs';
 
-// Common app functions shared across pages
+const navbarRefs = new WeakMap();
+const logoutControls = new WeakSet();
+const dropdowns = new WeakSet();
+
+function getNavbar() {
+  const target = document.getElementById('siteNav');
+  if (!target) return null;
+  if (!navbarRefs.has(target)) navbarRefs.set(target, renderNavbar(target));
+  return navbarRefs.get(target);
+}
 
 async function checkAuth() {
   const data = await authState.load();
-  if (!data?.loggedIn) return null;
-  return data.user;
+  return data?.loggedIn ? data.user : null;
 }
 
-function showLogoutError(error) {
-  const logoutStatus = document.getElementById('logoutStatus');
-  if (!logoutStatus) return;
-  logoutStatus.textContent = error.message;
-  logoutStatus.className = 'nav-auth-status status-error';
+function showLogoutError(error, refs = getNavbar()) {
+  if (!refs) return;
+  refs.status.textContent = error.message;
+  refs.status.className = 'nav-auth-status status-error';
 }
 
-export function setupLogout() {
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-      const logoutStatus = document.getElementById('logoutStatus');
-      if (logoutStatus) {
-        logoutStatus.textContent = '';
-        logoutStatus.className = 'nav-auth-status';
-      }
-      logoutBtn.disabled = true;
-      logoutBtn.setAttribute('aria-busy', 'true');
-      try {
-        await logout();
-      } catch (error) {
-        logoutBtn.disabled = false;
-        logoutBtn.setAttribute('aria-busy', 'false');
-        showLogoutError(error);
-      }
-    });
-  }
+export function setupLogout(refs = getNavbar()) {
+  const logoutButton = refs?.logout;
+  if (!logoutButton || logoutControls.has(logoutButton)) return;
+  logoutControls.add(logoutButton);
+
+  logoutButton.addEventListener('click', async () => {
+    refs.status.textContent = '';
+    refs.status.className = 'nav-auth-status';
+    logoutButton.disabled = true;
+    logoutButton.setAttribute('aria-busy', 'true');
+    try {
+      await logout();
+    } catch (error) {
+      logoutButton.disabled = false;
+      logoutButton.setAttribute('aria-busy', 'false');
+      showLogoutError(error, refs);
+    }
+  });
+}
+
+function setSignedOut(refs) {
+  refs.username.hidden = true;
+  refs.logout.hidden = true;
+  refs.dropdown.hidden = true;
+  refs.admin.hidden = true;
+  refs.login.hidden = false;
+  refs.status.textContent = '';
+  refs.status.className = 'nav-auth-status';
+}
+
+function setAuthError(refs, error) {
+  refs.username.hidden = true;
+  refs.logout.hidden = true;
+  refs.dropdown.hidden = true;
+  refs.admin.hidden = true;
+  refs.login.hidden = true;
+  refs.status.textContent = 'Unable to load account';
+  refs.status.className = 'nav-auth-status status-error';
+  refs.status.title = error.message;
 }
 
 export async function setupNavUser() {
-  const navUserEl = document.getElementById('navUser');
-  let user;
+  const refs = getNavbar();
+  if (!refs) return null;
 
+  let user;
   try {
     user = await checkAuth();
   } catch (error) {
-    if (navUserEl) {
-      navUserEl.innerHTML = `
-        <span id="logoutStatus" class="nav-auth-status status-error" role="status" aria-live="polite" title="${escapeHTML(error.message)}">Unable to load account</span>
-      `;
-    }
+    setAuthError(refs, error);
     return null;
   }
 
-  if (!navUserEl) return user;
-
-  if (user) {
-    navUserEl.innerHTML = `
-      <a href="/account.html" id="navUsername" class="nav-username" title="Account settings">👤 ${escapeHTML(user.username)}</a>
-      <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
-      <span id="logoutStatus" class="nav-auth-status" role="status" aria-live="polite"></span>
-    `;
-    setupLogout();
-
-    if (user.role === 'admin') {
-      document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = '';
-      });
-    }
-
-    const welcomeName = document.getElementById('welcomeName');
-    if (welcomeName) welcomeName.textContent = user.username;
-  } else {
-    navUserEl.innerHTML = `
-      <a href="/login.html" class="btn btn-sm btn-primary">Login</a>
-      <span id="logoutStatus" class="nav-auth-status" role="status" aria-live="polite"></span>
-    `;
+  if (!user) {
+    setSignedOut(refs);
+    return null;
   }
 
+  refs.username.textContent = `👤 ${user.username}`;
+  refs.username.hidden = false;
+  refs.login.hidden = true;
+  refs.logout.hidden = false;
+  refs.dropdown.hidden = false;
+  refs.admin.hidden = user.role !== 'admin';
+  refs.status.textContent = '';
+  refs.status.className = 'nav-auth-status';
+  refs.status.removeAttribute('title');
+  setupLogout(refs);
+
+  const welcomeName = document.getElementById('welcomeName');
+  if (welcomeName) welcomeName.textContent = user.username;
   return user;
 }
 
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+function dropdownStatus(message, error = false) {
+  return element('div', {
+    className: `nav-dropdown-status${error ? ' nav-dropdown-error' : ''}`,
+    text: message,
+  });
 }
 
-async function setupWebsiteDropdown() {
-  const navLinks = document.querySelector('.nav-links');
-  const rollerLink = navLinks?.querySelector('a[href^="/roller.html"]');
-  if (!navLinks || !rollerLink || document.getElementById('websiteDropdown')) return;
+async function setupWebsiteDropdown(refs = getNavbar()) {
+  if (!refs || dropdowns.has(refs.dropdown)) return;
+  dropdowns.add(refs.dropdown);
 
-  const dropdown = document.createElement('div');
-  dropdown.className = 'nav-dropdown';
-  dropdown.id = 'websiteDropdown';
-  dropdown.innerHTML = `
-    <button type="button" class="nav-link nav-dropdown-toggle" aria-expanded="false" aria-controls="websiteDropdownMenu">
-      <span>Connected websites</span>
-      <span class="dropdown-chevron" aria-hidden="true">▾</span>
-    </button>
-    <div class="nav-dropdown-menu" id="websiteDropdownMenu" role="menu" hidden>
-      <div class="nav-dropdown-status">Loading...</div>
-    </div>
-  `;
-  rollerLink.insertAdjacentElement('afterend', dropdown);
-
-  const toggle = dropdown.querySelector('.nav-dropdown-toggle');
-  const menu = dropdown.querySelector('.nav-dropdown-menu');
-
-  function setOpen(open) {
-    toggle.setAttribute('aria-expanded', String(open));
-    menu.hidden = !open;
-  }
-
-  toggle.addEventListener('click', () => {
-    setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+  const setOpen = open => {
+    refs.dropdownToggle.setAttribute('aria-expanded', String(open));
+    refs.dropdownMenu.hidden = !open;
+  };
+  refs.dropdownToggle.addEventListener('click', () => {
+    setOpen(refs.dropdownToggle.getAttribute('aria-expanded') !== 'true');
   });
   document.addEventListener('click', event => {
-    if (!dropdown.contains(event.target)) setOpen(false);
+    if (!refs.dropdown.contains(event.target)) setOpen(false);
   });
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') {
-      setOpen(false);
-      toggle.focus();
-    }
+    if (event.key !== 'Escape' || refs.dropdownMenu.hidden) return;
+    setOpen(false);
+    refs.dropdownToggle.focus();
   });
 
   try {
     const data = await requestJSON('/api/connections');
-
-    const connections = data.connections || [];
+    const connections = data?.connections || [];
     if (connections.length === 0) {
-      menu.innerHTML = '<div class="nav-dropdown-status">No websites available</div>';
+      replaceChildren(refs.dropdownMenu, [dropdownStatus('No websites available')]);
       return;
     }
 
-    menu.innerHTML = connections.map(connection => `
-      <a href="/connect/${encodeURIComponent(connection.slug)}/" role="menuitem" target="_blank" rel="noopener">
-        <span>${escapeHTML(connection.name)}</span>
-        <span class="nav-dropdown-open" aria-hidden="true">↗</span>
-      </a>
-    `).join('');
-  } catch (err) {
-    menu.innerHTML = '<div class="nav-dropdown-status nav-dropdown-error">Unable to load websites</div>';
+    replaceChildren(refs.dropdownMenu, connections.map(connection => element('a', {
+      attributes: {
+        href: `/connect/${encodeURIComponent(connection.slug)}/`,
+        role: 'menuitem',
+        target: '_blank',
+        rel: 'noopener',
+      },
+    }, [
+      element('span', { text: connection.name }),
+      element('span', { className: 'nav-dropdown-open', text: '↗', attributes: { 'aria-hidden': 'true' } }),
+    ])));
+  } catch (_) {
+    replaceChildren(refs.dropdownMenu, [dropdownStatus('Unable to load websites', true)]);
   }
 }
 
 if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', async () => {
+    const refs = getNavbar();
     const user = await setupNavUser();
-    if (user) setupWebsiteDropdown();
+    if (user) await setupWebsiteDropdown(refs);
   });
 }

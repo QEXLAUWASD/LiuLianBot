@@ -70,7 +70,7 @@ test('open reveals the dialog, focuses its first control, and close restores the
 
   assert.equal(controller.close('saved'), true);
   assert.equal(dialog.hidden, true);
-  assert.equal(document.activeElement, opener);
+  assert.equal(document.activeElement.id, opener.id);
   assert.equal(background.inert, false);
   assert.equal(background.getAttribute('aria-hidden'), 'false');
   assert.deepEqual(events, [['open', opener], ['close', 'saved']]);
@@ -460,12 +460,12 @@ test('admin dialog integration wires existing helpers, close controls, and backd
   const dom = new JSDOM(html, { url: 'https://example.test/admin.html' });
   const document = dom.window.document;
   const controllers = setupAdminDialogs(document);
-  const opener = document.querySelector('a[href="/admin.html"]');
+  const opener = document.getElementById('users-tab');
   controllers.open('groupEditModal', opener);
   const dialog = document.getElementById('groupEditModal');
   dialog.querySelector('[data-dialog-close]').click();
   assert.equal(dialog.hidden, true);
-  assert.equal(document.activeElement, opener);
+  assert.equal(document.activeElement.id, opener.id);
 
   controllers.open('groupEditModal', opener);
   dialog.querySelector('.modal').click();
