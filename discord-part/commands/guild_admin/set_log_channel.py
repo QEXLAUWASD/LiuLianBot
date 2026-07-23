@@ -1,4 +1,4 @@
-from features.message_logger.modify import set_log_channel
+from features.server_logger.base import set_log_channel
 import discord
 from commands.language_manager import get_translation
 
