@@ -63,6 +63,20 @@ class MySqlSessionStore extends session.Store {
     }
   }
 
+  async destroyUserSessions(userId, exceptSid, callback = () => {}) {
+    try {
+      const pool = await this.getPool();
+      await pool.execute(
+        `DELETE FROM website_sessions
+         WHERE JSON_UNQUOTE(JSON_EXTRACT(data, '$.user.id')) = ? AND sid <> ?`,
+        [userId, exceptSid]
+      );
+      callback(null);
+    } catch (err) {
+      callback(err);
+    }
+  }
+
   async touch(sid, sessionData, callback = () => {}) {
     try {
       const pool = await this.getPool();

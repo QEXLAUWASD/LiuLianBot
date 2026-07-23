@@ -12,6 +12,7 @@ const {
   validatePasswordChange,
 } = require('../services/account_validation');
 const { requireApiAuth } = require('../middleware/auth');
+const { revokeOtherUserSessions } = require('../services/session');
 
 const router = express.Router();
 
@@ -94,6 +95,7 @@ router.put('/password', requireApiAuth, async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(passwords.newPassword, 10);
     await updatePasswordHash(user.id, hashedPassword);
+    await revokeOtherUserSessions(req, user.id);
     res.json({ success: true });
   } catch (err) {
     if (err instanceof AccountInputError) {

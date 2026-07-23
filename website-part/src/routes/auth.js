@@ -7,6 +7,7 @@ const {
   normalizeUsername,
   validateNewPassword,
 } = require('../services/account_validation');
+const { establishUserSession } = require('../services/session');
 
 const REMEMBER_LOGIN_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
@@ -31,11 +32,14 @@ router.post('/register', async (req, res) => {
     const id = generateId();
     const user = await createUser(id, username, hashedPassword);
 
-    req.session.user = { id: user.id, username: user.username };
+    await establishUserSession(req, user);
     res.json({ success: true, user: { id: user.id, username: user.username } });
   } catch (err) {
     if (err instanceof AccountInputError) {
       return res.status(400).json({ error: err.message });
+    }
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Username already exists' });
     }
     console.error('[Auth] Register error:', err);
     res.status(500).json({ error: 'Registration failed. Please try again.' });
@@ -64,8 +68,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    req.session.cookie.maxAge = remember ? REMEMBER_LOGIN_MAX_AGE : null;
-    req.session.user = { id: user.id, username: user.username };
+    await establishUserSession(
+      req,
+      user,
+      remember ? REMEMBER_LOGIN_MAX_AGE : null
+    );
     res.json({ success: true, user: { id: user.id, username: user.username } });
   } catch (err) {
     console.error('[Auth] Login error:', err);
