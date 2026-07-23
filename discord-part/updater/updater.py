@@ -30,10 +30,14 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
+
+if "_update_lock" not in globals():
+    _update_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -251,7 +255,7 @@ def reload_modules() -> Tuple[int, list[str]]:
     return len(reloaded), reloaded
 
 
-def perform_update(
+def _perform_update_unlocked(
     github_repo: str,
     github_token: str = "",
     branch: str = "master",
@@ -281,6 +285,28 @@ def perform_update(
         msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
 
     return True, msg
+
+
+def perform_update(
+    github_repo: str,
+    github_token: str = "",
+    branch: str = "master",
+    auto_restart: bool = False,
+) -> Tuple[bool, str]:
+    """執行 single-flight 更新；已有更新時立即拒絕新請求。"""
+    update_lock = _update_lock
+    if not update_lock.acquire(blocking=False):
+        return False, "❌ 更新正在進行中，請稍後再試。"
+
+    try:
+        return _perform_update_unlocked(
+            github_repo=github_repo,
+            github_token=github_token,
+            branch=branch,
+            auto_restart=auto_restart,
+        )
+    finally:
+        update_lock.release()
 
 
 def restart_bot() -> None:
