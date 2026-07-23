@@ -14,9 +14,11 @@ from datetime import datetime
 
 from core.config import get_config, reload_config
 from updater.updater import (
+    UPDATE_BUSY_MESSAGE,
+    _perform_git_update_unlocked,
+    begin_update,
     get_current_branch,
     get_latest_commit,
-    perform_git_update,
     reload_modules,
     restart_bot,
 )
@@ -105,6 +107,61 @@ class RestartConfirmView(discord.ui.View):
 # ---------------------------------------------------------------------------
 
 
+def _release_lease_after_worker(worker_task, lease) -> None:
+    """Consume a detached worker result and release its update lease."""
+    try:
+        worker_task.exception()
+    except asyncio.CancelledError:
+        pass
+    finally:
+        lease.release()
+
+
+async def _run_update(
+    *,
+    github_repo: str,
+    github_token: str,
+    branch: str,
+    auto_restart: bool,
+):
+    """Coordinate Git work and module reload under one update lease."""
+    lease = begin_update()
+    if lease is None:
+        return False, UPDATE_BUSY_MESSAGE
+
+    release_after_worker = False
+    try:
+        worker_task = asyncio.create_task(
+            asyncio.to_thread(
+                _perform_git_update_unlocked,
+                github_repo=github_repo,
+                github_token=github_token,
+                branch=branch,
+            )
+        )
+        try:
+            success, result_msg = await asyncio.shield(worker_task)
+        except asyncio.CancelledError:
+            worker_task.add_done_callback(
+                lambda completed: _release_lease_after_worker(completed, lease)
+            )
+            release_after_worker = True
+            raise
+
+        if not success:
+            return False, result_msg
+
+        count, _ = reload_modules()
+        result_msg += f"\n\n🔄 已重新載入 {count} 個模組"
+        if auto_restart:
+            result_msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
+
+        return True, result_msg
+    finally:
+        if not release_after_worker:
+            lease.release()
+
+
 async def update(message, bot):
     """從 GitHub 儲存庫拉取最新程式碼並更新 bot。
 
@@ -154,18 +211,12 @@ async def update(message, bot):
     await message.channel.send(embed=embed)
 
     # 執行更新
-    success, result_msg = await asyncio.to_thread(
-        perform_git_update,
+    success, result_msg = await _run_update(
         github_repo=github_repo,
         github_token=github_token,
         branch=branch,
+        auto_restart=auto_restart,
     )
-
-    if success:
-        count, _ = reload_modules()
-        result_msg += f"\n\n🔄 已重新載入 {count} 個模組"
-        if auto_restart:
-            result_msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
 
     # 更新後的 commit
     new_commit = get_latest_commit()

@@ -35,9 +35,34 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
+UPDATE_BUSY_MESSAGE = "❌ 更新正在進行中，請稍後再試。"
 
 if "_update_lock" not in globals():
     _update_lock = threading.Lock()
+
+
+class _UpdateLease:
+    """Own one update slot and release it at most once."""
+
+    def __init__(self, update_lock):
+        self._update_lock = update_lock
+        self._release_lock = threading.Lock()
+        self._released = False
+
+    def release(self) -> None:
+        with self._release_lock:
+            if self._released:
+                return
+            self._released = True
+            self._update_lock.release()
+
+
+def begin_update() -> Optional[_UpdateLease]:
+    """Non-blockingly acquire the process-wide update lease."""
+    update_lock = _update_lock
+    if not update_lock.acquire(blocking=False):
+        return None
+    return _UpdateLease(update_lock)
 
 
 # ---------------------------------------------------------------------------
@@ -278,26 +303,6 @@ def _perform_git_update_unlocked(
     return True, msg
 
 
-def perform_git_update(
-    github_repo: str,
-    github_token: str = "",
-    branch: str = "master",
-) -> Tuple[bool, str]:
-    """在 single-flight 邊界執行 Git 更新；已有更新時立即拒絕。"""
-    update_lock = _update_lock
-    if not update_lock.acquire(blocking=False):
-        return False, "❌ 更新正在進行中，請稍後再試。"
-
-    try:
-        return _perform_git_update_unlocked(
-            github_repo=github_repo,
-            github_token=github_token,
-            branch=branch,
-        )
-    finally:
-        update_lock.release()
-
-
 def perform_update(
     github_repo: str,
     github_token: str = "",
@@ -305,20 +310,27 @@ def perform_update(
     auto_restart: bool = False,
 ) -> Tuple[bool, str]:
     """同步相容入口：執行 Git 更新後重新載入模組。"""
-    success, msg = perform_git_update(
-        github_repo=github_repo,
-        github_token=github_token,
-        branch=branch,
-    )
-    if not success:
-        return False, msg
+    lease = begin_update()
+    if lease is None:
+        return False, UPDATE_BUSY_MESSAGE
 
-    count, _ = reload_modules()
-    msg += f"\n\n🔄 已重新載入 {count} 個模組"
-    if auto_restart:
-        msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
+    try:
+        success, msg = _perform_git_update_unlocked(
+            github_repo=github_repo,
+            github_token=github_token,
+            branch=branch,
+        )
+        if not success:
+            return False, msg
 
-    return True, msg
+        count, _ = reload_modules()
+        msg += f"\n\n🔄 已重新載入 {count} 個模組"
+        if auto_restart:
+            msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
+
+        return True, msg
+    finally:
+        lease.release()
 
 
 def restart_bot() -> None:
