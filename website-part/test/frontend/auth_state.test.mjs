@@ -189,3 +189,121 @@ test('account load error redirects only for ApiError status 401', async () => {
     assert.equal(status.className, 'status-msg status-error');
   }
 });
+
+async function waitFor(predicate) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (predicate()) return;
+    await new Promise(resolvePromise => setTimeout(resolvePromise, 0));
+  }
+  assert.fail('Timed out waiting for the account form submission');
+}
+
+async function exerciseAccountMutation({ formId, statusId, endpoint, fill }, failure) {
+  const html = await readFile(resolve(publicDir, 'account.html'), 'utf8');
+  const dom = new JSDOM(html);
+  const originalDocument = globalThis.document;
+  const originalWindow = globalThis.window;
+  const originalFetch = globalThis.fetch;
+  const location = { href: '/account.html' };
+  let mutationCalls = 0;
+
+  globalThis.document = dom.window.document;
+  globalThis.window = { location };
+  globalThis.fetch = async url => {
+    if (url === '/api/auth/me') {
+      return new Response(JSON.stringify({
+        loggedIn: true,
+        user: { id: 'user-1', username: 'tester', role: 'user' },
+      }), { headers: { 'content-type': 'application/json' } });
+    }
+
+    assert.equal(url, endpoint);
+    mutationCalls += 1;
+    if (failure.error) throw failure.error;
+    return new Response(JSON.stringify({ error: failure.message }), {
+      status: failure.status,
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+  authState.reset();
+
+  try {
+    const { initializeAccountPage } = await import('../../public/js/account.mjs');
+    assert.equal(typeof initializeAccountPage, 'function');
+    await initializeAccountPage();
+
+    fill(dom.window.document);
+    const form = dom.window.document.getElementById(formId);
+    const status = dom.window.document.getElementById(statusId);
+    const button = form.querySelector('button[type="submit"]');
+    form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+
+    await waitFor(() => mutationCalls === 1 && !button.disabled);
+    assert.equal(location.href, '/account.html');
+    assert.equal(status.textContent, failure.expectedMessage);
+    assert.equal(status.className, 'status-msg status-error');
+    assert.equal(button.disabled, false);
+    assert.equal(button.getAttribute('aria-busy'), 'false');
+  } finally {
+    authState.reset();
+    globalThis.document = originalDocument;
+    globalThis.window = originalWindow;
+    globalThis.fetch = originalFetch;
+    dom.window.close();
+  }
+}
+
+const accountMutationFailures = [
+  {
+    name: 'wrong current password',
+    status: 401,
+    message: 'Current password is incorrect',
+    expectedMessage: 'Current password is incorrect',
+  },
+  {
+    name: 'login required response',
+    status: 401,
+    message: 'Login required',
+    expectedMessage: 'Login required',
+  },
+  {
+    name: 'server failure',
+    status: 503,
+    message: 'Account service unavailable',
+    expectedMessage: 'Account service unavailable',
+  },
+  {
+    name: 'network failure',
+    error: new TypeError('socket closed'),
+    expectedMessage: 'Network request failed',
+  },
+];
+
+test('username form keeps the page and reports mutation failures', async t => {
+  for (const failure of accountMutationFailures) {
+    await t.test(failure.name, () => exerciseAccountMutation({
+      formId: 'usernameForm',
+      statusId: 'usernameStatus',
+      endpoint: '/api/auth/username',
+      fill(document) {
+        document.getElementById('newUsername').value = 'updated-name';
+        document.getElementById('usernameCurrentPassword').value = 'wrong-password';
+      },
+    }, failure));
+  }
+});
+
+test('password form keeps the page and reports mutation failures', async t => {
+  for (const failure of accountMutationFailures) {
+    await t.test(failure.name, () => exerciseAccountMutation({
+      formId: 'passwordForm',
+      statusId: 'passwordStatus',
+      endpoint: '/api/auth/password',
+      fill(document) {
+        document.getElementById('passwordCurrentPassword').value = 'wrong-password';
+        document.getElementById('newPassword').value = 'new-password';
+        document.getElementById('confirmPassword').value = 'new-password';
+      },
+    }, failure));
+  }
+});

@@ -29,7 +29,7 @@ async function sendAccountUpdate(url, body) {
   });
 }
 
-async function initializeAccountPage() {
+export async function initializeAccountPage() {
   const usernameForm = document.getElementById('usernameForm');
   const usernameInput = document.getElementById('newUsername');
   const usernameStatus = document.getElementById('usernameStatus');
@@ -68,10 +68,6 @@ async function initializeAccountPage() {
       if (navUsername) navUsername.textContent = `👤 ${data.user.username}`;
       setAccountStatus(usernameStatus, 'Username updated.', 'success');
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        window.location.href = '/login.html';
-        return;
-      }
       setAccountStatus(usernameStatus, error.message, 'error');
     } finally {
       setFormBusy(usernameForm, false);
@@ -99,10 +95,6 @@ async function initializeAccountPage() {
       passwordForm.reset();
       setAccountStatus(passwordStatus, 'Password updated.', 'success');
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        window.location.href = '/login.html';
-        return;
-      }
       setAccountStatus(passwordStatus, error.message, 'error');
     } finally {
       setFormBusy(passwordForm, false);
