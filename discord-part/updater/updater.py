@@ -158,7 +158,10 @@ def _origin_url_can_be_restored(origin_url: str) -> bool:
     if not origin_url:
         return False
 
-    parsed = urlsplit(origin_url)
+    try:
+        parsed = urlsplit(origin_url)
+    except ValueError:
+        return False
     scheme = parsed.scheme.lower()
     if scheme in {"http", "https"}:
         return parsed.username is None and parsed.password is None

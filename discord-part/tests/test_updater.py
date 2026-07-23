@@ -277,6 +277,44 @@ def test_restore_failure_keeps_fetch_error_primary_without_exposing_origin(monke
     assert ORIGINAL_SSH_URL not in message
 
 
+def test_fetch_failure_with_malformed_origin_returns_failure_tuple(monkeypatch, tmp_path):
+    malformed_origin = "https://[invalid/repo.git"
+    responses = {
+        ("status", "--porcelain"): (0, "", ""),
+        ("remote", "get-url", "origin"): (0, malformed_origin, ""),
+        ("rev-parse", "--short", "HEAD"): (0, "abc1234", ""),
+        ("fetch", "origin", REFSPEC): (128, "", "network failure"),
+    }
+    calls, _ = _prepare_repo(monkeypatch, tmp_path, responses)
+
+    success, message = updater.fetch_and_pull("owner/repo", TOKEN, "main")
+
+    assert success is False
+    assert "Fetch 失敗: network failure" in message
+    assert malformed_origin not in message
+    assert ["remote", "set-url", "origin", malformed_origin] not in calls
+
+
+def test_merge_failure_with_malformed_origin_returns_failure_tuple(monkeypatch, tmp_path):
+    malformed_origin = "https://[invalid/repo.git"
+    responses = {
+        ("status", "--porcelain"): (0, "", ""),
+        ("remote", "get-url", "origin"): (0, malformed_origin, ""),
+        ("rev-parse", "--short", "HEAD"): (0, "abc1234", ""),
+        ("fetch", "origin", REFSPEC): (0, "", ""),
+        ("merge", "--ff-only", "FETCH_HEAD"): (128, "", "not a fast-forward"),
+    }
+    calls, _ = _prepare_repo(monkeypatch, tmp_path, responses)
+
+    success, message = updater.fetch_and_pull("owner/repo", TOKEN, "main")
+
+    assert success is False
+    assert "已停止" in message
+    assert "not a fast-forward" in message
+    assert malformed_origin not in message
+    assert ["remote", "set-url", "origin", malformed_origin] not in calls
+
+
 def _git(cwd, *args):
     return subprocess.run(
         ["git", *args],
