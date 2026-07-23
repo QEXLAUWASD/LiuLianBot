@@ -1,8 +1,10 @@
 const express = require('express');
 const session = require('express-session');
+const { rateLimit } = require('express-rate-limit');
 const path = require('path');
 
 const { requirePageAuth } = require('./middleware/auth');
+const { AUTH_RATE_LIMIT } = require('./middleware/auth_rate_limit');
 const { requireAdmin } = require('./middleware/admin_auth');
 const { sqlInjectionGuard } = require('./middleware/security');
 
@@ -17,6 +19,9 @@ function createApp({ sessionOptions, routers }) {
   app.use('/api', express.urlencoded({ extended: false, limit: '16kb' }));
   app.use('/api/admin/connections', routers.adminConnections);
   app.use('/api', sqlInjectionGuard);
+  const authRateLimiter = rateLimit(AUTH_RATE_LIMIT);
+  app.use('/api/auth/login', authRateLimiter);
+  app.use('/api/auth/register', authRateLimiter);
   app.use('/api/auth', routers.auth);
   app.use('/api/roller', routers.roller);
   app.use('/api/admin', routers.admin);
