@@ -219,6 +219,7 @@ def test_migrate_private_voice_table_normalizes_schema_in_order():
     assert statements[2].startswith("ALTER TABLE private_voice_channels ADD COLUMN trigger_guild_id")
     assert statements[3].startswith("UPDATE private_voice_channels SET")
     assert "trigger_guild_id=CASE" in statements[3]
+    assert statements[3].endswith("updated_at=updated_at")
     assert statements[4] == (
         "SELECT id, guild_id, channel_id, config_type FROM private_voice_channels "
         "ORDER BY updated_at DESC, id DESC"
@@ -310,4 +311,24 @@ def test_migrate_private_voice_table_deletes_duplicate_rows_with_parameters():
     cursor.execute.assert_any_call(
         "DELETE FROM private_voice_channels WHERE id IN (%s,%s)",
         [4, 3],
+    )
+
+
+def test_migrate_private_voice_table_only_marks_triggers_that_are_kept():
+    from utils.migrations import migrate_private_voice_table
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchall.return_value = [
+        (10, 1, 100, "private"),
+        (9, 2, 100, "private"),
+        (8, 10, 100, "trigger"),
+        (7, 10, 101, "trigger"),
+    ]
+
+    migrate_private_voice_table(connection)
+
+    cursor.execute.assert_any_call(
+        "DELETE FROM private_voice_channels WHERE id IN (%s,%s)",
+        [9, 8],
     )

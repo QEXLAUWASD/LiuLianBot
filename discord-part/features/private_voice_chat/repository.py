@@ -61,13 +61,21 @@ class PrivateVoiceRepository:
             conn.close()
 
     def update_config(self, channel_id, config) -> None:
+        config_type = config.get("type", "private")
         conn = self._connection_factory()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "UPDATE private_voice_channels SET config_json=%s, updated_at=NOW() "
+                    "UPDATE private_voice_channels SET config_json=%s, config_type=%s, "
+                    "trigger_guild_id=CASE WHEN %s='trigger' THEN guild_id ELSE NULL END, "
+                    "updated_at=NOW() "
                     "WHERE channel_id=%s",
-                    (json.dumps(config, ensure_ascii=False), channel_id),
+                    (
+                        json.dumps(config, ensure_ascii=False),
+                        config_type,
+                        config_type,
+                        channel_id,
+                    ),
                 )
             conn.commit()
         finally:

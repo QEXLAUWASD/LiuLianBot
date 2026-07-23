@@ -88,16 +88,25 @@ def test_get_config_deserializes_json_and_closes(stored, expected):
     connection.close.assert_called_once_with()
 
 
-def test_update_config_serializes_json_commits_and_closes():
+@pytest.mark.parametrize(
+    ("config", "config_type"),
+    [
+        ({"name": "私人頻道", "limit": 8}, "private"),
+        ({"type": "trigger", "name": "觸發頻道"}, "trigger"),
+        ({"type": "custom", "name": "自訂頻道"}, "custom"),
+    ],
+)
+def test_update_config_synchronizes_type_columns_and_closes(config, config_type):
     repository, connection, cursor = make_repo()
-    config = {"name": "私人頻道", "limit": 8}
 
     repository.update_config(20, config)
 
     cursor.execute.assert_called_once_with(
-        "UPDATE private_voice_channels SET config_json=%s, updated_at=NOW() "
+        "UPDATE private_voice_channels SET config_json=%s, config_type=%s, "
+        "trigger_guild_id=CASE WHEN %s='trigger' THEN guild_id ELSE NULL END, "
+        "updated_at=NOW() "
         "WHERE channel_id=%s",
-        (json.dumps(config, ensure_ascii=False), 20),
+        (json.dumps(config, ensure_ascii=False), config_type, config_type, 20),
     )
     connection.commit.assert_called_once_with()
     connection.close.assert_called_once_with()

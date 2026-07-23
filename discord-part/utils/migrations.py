@@ -93,7 +93,7 @@ def migrate_private_voice_table(conn) -> None:
             "config_type=COALESCE(JSON_UNQUOTE(JSON_EXTRACT(config_json, '$.type')), 'private'), "
             "trigger_guild_id=CASE WHEN "
             "JSON_UNQUOTE(JSON_EXTRACT(config_json, '$.type'))='trigger' "
-            "THEN guild_id ELSE NULL END"
+            "THEN guild_id ELSE NULL END, updated_at=updated_at"
         )
         cursor.execute(
             "SELECT id, guild_id, channel_id, config_type FROM private_voice_channels "
@@ -104,14 +104,15 @@ def migrate_private_voice_table(conn) -> None:
         seen_triggers: set[int] = set()
         duplicate_ids: list[int] = []
         for row_id, guild_id, channel_id, config_type in rows:
-            duplicate = channel_id in seen_channels
-            if config_type == "trigger":
-                duplicate = duplicate or guild_id in seen_triggers
-                seen_triggers.add(guild_id)
+            duplicate = channel_id in seen_channels or (
+                config_type == "trigger" and guild_id in seen_triggers
+            )
             if duplicate:
                 duplicate_ids.append(row_id)
             else:
                 seen_channels.add(channel_id)
+                if config_type == "trigger":
+                    seen_triggers.add(guild_id)
         if duplicate_ids:
             placeholders = ",".join(["%s"] * len(duplicate_ids))
             cursor.execute(
