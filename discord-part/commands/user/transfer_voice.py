@@ -1,11 +1,7 @@
 import discord
-import logging
 from features.private_voice_chat.private_voice import get_manager
 from commands.language_manager import get_translation
 from utils.error_reporting import report_exception
-
-
-logger = logging.getLogger(__name__)
 
 
 async def transfervoice(message, bot):
@@ -87,7 +83,7 @@ async def transfervoice(message, bot):
         return get_translation('transfervoice_forbidden', gid)
     except Exception:
         return report_exception(
-            logger,
+            bot.logger,
             "transfervoice",
             get_translation('error_executing_command', gid),
         )
