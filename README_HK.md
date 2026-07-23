@@ -1,291 +1,203 @@
-# 🎮 LiuLianBot（榴槤 Bot）
+# LiuLianBot（榴槤 Bot）
 
-使用 [discord.py](https://github.com/Rapptz/discord.py) 開發嘅多功能 Discord 機械人，專為遊戲社群設計，整合《彩虹六號：圍攻》工具、私人語音頻道、伺服器事件記錄及多語言支援。
+LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。提供《彩虹六號：圍攻》抽選、臨時私人語音頻道、伺服器事件記錄、可設定抽選系統，以及帳戶同連線管理網站。
 
----
+## 功能
 
-## ✨ 功能特色
+### Discord 機械人
 
-### 🎯 彩虹六號：圍攻工具
-- **隨機地圖抽選** — 隨機抽出 R6 地圖，附帶 playlist 資訊
-- **隨機幹員抽選** — 隨機選擇幹員（進攻方 / 防守方 / 全部）
-- **地圖資訊查詢** — 查看指定地圖嘅詳細資料
+- 《彩虹六號：圍攻》地圖、幹員同地圖資訊指令
+- 可設定抽選頻道，支援根據身份組隨機揀選
+- 臨時私人語音頻道，支援轉移擁有權同自動清理空頻道
+- 記錄訊息、語音狀態、成員、頻道、身份組同伺服器事件
+- 每個伺服器可獨立揀英文或繁體中文（`zh_TW`）
+- Bot 擁有者、Bot 管理員、伺服器擁有者、伺服器管理員同一般用戶嘅分層權限
+- 可透過 Git 從已設定嘅儲存庫分支更新程式碼
 
-### 🔊 私人語音頻道
-- 用戶可以自創臨時語音頻道
-- 完全控制頻道名稱、人數上限同權限
-- 自動清理閒置嘅空頻道
-- 支援語音頻道擁有權轉移
+### 網站儀表板
 
-### 📋 伺服器事件記錄
-全面記錄伺服器事件到指定頻道：
-- 訊息編輯、刪除、大量刪除
-- 語音狀態變更（加入、離開、移動、靜音、拒絕收聽）
-- 成員加入、離開、更新、封鎖、解封
-- 頻道建立、刪除、更新
-- 身份組建立、刪除、更新
-- 伺服器更新
+- 註冊、登入、登出、改帳戶名稱、改密碼同持久登入 Session
+- 管理員可以管理用戶、群組、伺服器資訊同網站連線
+- 用戶群組同連線授權均支援多對多關係
+- 已授權嘅 HTTP 及 WebSocket 代理連線
+- 可隱藏連線：唔會出現喺導覽內，但已授權用戶仍可用直接網址存取
+- 使用 MySQL 儲存 Session、限制登入嘗試，並會自動執行網站 migration
 
-### 🎲 抽選系統
-- 可設定抽選頻道同自訂模式
-- 基於身份組嘅隨機抽選，適合組隊使用
-
-### 🌐 網站儀表板
-- 網頁版 R6 抽選介面，用瀏覽器就可以用
-- 用戶登入系統（註冊 / 登入）
-- 管理面板，可以管理 Bot 同用戶
-- SQL 注入防護同 Session 安全機制
-
-### 🔄 自動更新
-- 透過 Bot 指令從 GitHub 拉取最新程式碼
-- 支援公開同私人 Repo
-- 可設定更新後自動重啟 Bot
-
-### 🌐 多語言支援
-- **English**（英文）
-- **繁體中文**（`zh_TW`）
-- 每個伺服器可以獨立設定語言
-
-### 🔐 權限系統
-階層式權限模型：
-| 級別 | 說明 |
-|------|------|
-| **Bot 擁有者** | 完整控制權，可使用所有指令 |
-| **Bot 管理員** | 跨伺服器管理權限 |
-| **伺服器擁有者** | 管理伺服器管理員同伺服器權限 |
-| **伺服器管理員** | 設定伺服器特定功能 |
-
----
-
-## 📁 專案結構
+## 專案結構
 
 ```
 LiuLianBot/
-├── start.sh                     # Linux Bot 管理腳本
-├── discord-part/
-│   ├── main.py                  # Bot 主入口
-│   ├── default_config.json      # 設定範本
-│   ├── requirements.txt         # Python 依賴
-│   ├── commands/
-│   │   ├── handler.py           # 指令探索與路由
-│   │   ├── language_manager.py  # 翻譯服務
-│   │   ├── permission_checker.py
-│   │   ├── roller_service.py
-│   │   ├── user/                # 一般使用者指令
-│   │   ├── guild_admin/         # 伺服器管理員指令
-│   │   ├── guild_owner/         # 伺服器擁有者指令
-│   │   └── owner/               # Bot 擁有者指令
-│   ├── core/                    # Bot 生命週期與設定
-│   ├── features/                # Discord 事件功能
-│   ├── locales/                 # 翻譯資源
-│   ├── tools/                   # 開發工具
-│   ├── updater/                 # Git 更新器
-│   └── utils/                   # 資料庫與記錄輔助
-├── website-part/
-│   ├── package.json
-│   ├── public/                  # 靜態 HTML、CSS 與瀏覽器端 JS
-│   └── src/
-│       ├── server.js            # Express 主入口
-│       ├── db.js                # 資料庫相容 facade
-│       ├── db/                  # 領域 repositories 同 migrations
-│       ├── middleware/          # 驗證與安全中介層
-│       └── routes/              # HTTP API 路由
-├── shared/
-│   ├── database/                # 共用資料庫設定
-│   └── r6/                      # R6 資料與爬蟲模組
-└── logs/                        # 執行記錄（自動產生）
+|-- discord-part/                 # Python Discord 機械人
+|   |-- main.py                   # Bot 主入口
+|   |-- default_config.json       # Bot 設定範本
+|   |-- commands/                 # 前綴指令處理器
+|   |-- core/                     # Bot 生命週期、設定與 Slash adapter
+|   |-- features/                 # Discord 事件功能
+|   |-- locales/                  # 英文及繁體中文字串
+|   |-- tests/                    # Python 測試
+|   |-- updater/                  # Git 更新功能
+|   `-- utils/                    # 資料庫及日誌工具
+|-- website-part/                 # Node.js / Express 網站
+|   |-- public/                   # HTML、CSS 同瀏覽器端 JavaScript
+|   |-- src/                      # App、路由、中介層、資料庫 repository 及服務
+|   `-- test/                     # Node.js 測試
+|-- shared/
+|   |-- database/                 # 共用 MySQL 設定與範本
+|   `-- r6/                       # R6 資料及爬蟲
+|-- .github/workflows/            # CI 設定
+|-- start.sh                      # Linux Bot 管理腳本
+|-- PRIVACY_POLICY.md
+`-- TERMS_OF_SERVICE.md
 ```
 
----
+## 環境要求
 
-## 🚀 快速開始
+- Python 3.10 或以上
+- Node.js 18 或以上，以及 npm
+- MySQL 或 MariaDB
+- [Discord 開發者平台](https://discord.com/developers/applications)建立嘅 Bot Token
 
-### 環境要求
-- **Python 3.8+**
-- **MySQL** / **MariaDB** 伺服器
-- Discord Bot Token（[Discord 開發者平台](https://discord.com/developers/applications)）
+## 安裝
 
-### Linux 安裝
+Clone 專案，之後設定 Bot 同共用資料庫連線。
 
 ```bash
-# 1. Clone 專案
 git clone https://github.com/QEXLAUWASD/LiuLianBot.git
 cd LiuLianBot
-
-# 2. 設定啟動腳本權限
-chmod +x start.sh
-
-# 3. 設定 Bot
-cp discord-part/default_config.json discord-part/config.json
-cp shared/database/config.example.json shared/database/config.json
-nano discord-part/config.json  # 編輯你嘅設定
-
-# 4. 啟動 Bot
-./start.sh
 ```
 
-### 手動安裝
+### 1. 設定 Discord 機械人
+
+從範本建立 `discord-part/config.json`。將 `token` 設為 Bot Token，並將範例 Discord 用戶 ID 換成真實 ID。
 
 ```bash
-# 建立虛擬環境
-python3 -m venv .venv
-source .venv/bin/activate
-
-# 安裝依賴
-pip install -r discord-part/requirements.txt
-
-# 啟動 Bot
-python discord-part/main.py
+cp discord-part/default_config.json discord-part/config.json
 ```
 
----
+Windows PowerShell：
 
-## ⚙️ 設定說明
+```powershell
+Copy-Item discord-part\default_config.json discord-part\config.json
+```
 
-Discord token、指令前綴、擁有者、活動狀態同更新器設定放喺
-`discord-part/config.json`：
+重要 Bot 設定：
+
+| 設定 | 用途 |
+|---|---|
+| `token` | Discord Bot Token |
+| `prefix` | 文字指令前綴；預設係 `>` |
+| `bot_owner` | 擁有完整 Bot 存取權嘅 Discord 用戶 ID |
+| `bot_admin` | 有跨伺服器管理權嘅 Discord 用戶 ID |
+| `guild_admins` | 可選嘅個別伺服器管理員 ID |
+| `activity` | Discord 顯示嘅活動 |
+| `updater` | `>update` 使用嘅儲存庫、分支及重啟設定 |
+
+### 2. 設定共用資料庫
+
+Bot 同網站都會讀取 `shared/database/config.json` 入面嘅 MySQL 設定。由已追蹤嘅範本建立檔案，再換掉範例帳密。
+
+```bash
+cp shared/database/config.example.json shared/database/config.json
+```
+
+Windows PowerShell：
+
+```powershell
+Copy-Item shared\database\config.example.json shared\database\config.json
+```
+
+範本使用以下結構：
 
 ```json
 {
-    "logging_level": "WARNING",
-    "prefix": ">",
-    "bot_owner": ["你的Discord用戶ID"],
-    "bot_admin": ["管理員用戶ID"],
-    "activity": {
-        "type": "playing",
-        "name": "Rainbow Six Siege"
-    },
-    "token": "你的Bot Token",
-    "updater": {
-        "github_repo": "owner/repo",
-        "branch": "master",
-        "auto_restart": false
-    }
+  "mysql": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "liulianbot",
+    "password": "replace-me",
+    "database": "discordbot",
+    "charset": "utf8mb4"
+  }
 }
 ```
 
-| 設定項 | 說明 |
-|--------|------|
-| `logging_level` | 記錄等級：`DEBUG`、`INFO`、`WARNING`、`ERROR` |
-| `prefix` | 指令前綴（預設：`>`） |
-| `bot_owner` | Bot 擁有者嘅 Discord 用戶 ID 陣列 |
-| `bot_admin` | Bot 管理員嘅 Discord 用戶 ID 陣列 |
-| `activity` | Bot 顯示嘅活動狀態 |
-| `token` | 你嘅 Discord Bot Token |
-| `updater.github_repo` | 自動更新用嘅 GitHub Repo（`owner/repo`） |
-| `updater.branch` | 要追蹤嘅 Git 分支（預設：`master`） |
-| `updater.auto_restart` | 更新後自動重啟 Bot |
+只要 MySQL 帳戶有相關權限，Bot 會建立指定資料庫；網站首次連線時會建立並 migration 所需資料表。
 
-Discord Bot 同網站共用嘅 MySQL 設定放喺 `shared/database/config.json`。
-先由安全範例建立 runtime 設定，再編輯當中嘅 `mysql` 物件：
+### 3. 安裝及執行 Discord 機械人
 
-```bash
-cp shared/database/config.example.json shared/database/config.json
+Windows PowerShell：
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r discord-part\requirements.txt
+.\.venv\Scripts\python.exe discord-part\main.py
 ```
 
----
+Linux 或 macOS：
 
-## 📝 指令列表
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r discord-part/requirements.txt
+python discord-part/main.py
+```
 
-### 用戶指令（前綴：`>`）
-| 指令 | 說明 |
-|------|------|
-| `>help` | 顯示所有可用指令 |
-| `>help <指令>` | 顯示特定指令嘅說明 |
-| `>getlang` | 查閱目前伺服器語言 |
-| `>r6maproll` | 隨機抽選 R6 地圖 |
-| `>r6opsroll` | 隨機抽選 R6 幹員 |
-| `>getr6mapinfo <地圖>` | 查閱指定地圖資訊 |
-| `>roller` | 從已設定嘅抽選頻道抽選 |
-| `>mypermissions` | 檢查你嘅權限等級 |
-| `>listguildadmins` | 列出伺服器管理員 |
-| `>transfervoice <@用戶>` | 轉移語音頻道擁有權 |
+喺 Linux，先執行 `chmod +x start.sh`，之後亦可以用 `./start.sh` 管理 Bot 程序。
 
-### 伺服器管理員指令
-| 指令 | 說明 |
-|------|------|
-| `>setlang <en/zh_TW>` | 設定伺服器語言 |
-| `>setlogchannel <#頻道>` | 設定記錄頻道 |
-| `>setprivatevoice <#頻道>` | 設定私人語音建立頻道 |
-| `>setupvoice` | 設定語音系統 |
-| `>removeprivatevoice` | 移除私人語音頻道設定 |
-| `>setrollerchannel <#頻道>` | 設定抽選頻道 |
-| `>setrollermode <模式>` | 設定抽選模式 |
+### 4. 安裝及執行網站
 
-### 伺服器擁有者指令
-| 指令 | 說明 |
-|------|------|
-| `>addguildadmin <@用戶>` | 新增伺服器管理員 |
-| `>removeguildadmin <@用戶>` | 移除伺服器管理員 |
-| `>guildpermissions` | 查看伺服器權限設定 |
-
-### Bot 擁有者指令
-| 指令 | 說明 |
-|------|------|
-| `>addAdmin <@用戶>` | 新增 Bot 管理員 |
-| `>removeAdmin <@用戶>` | 移除 Bot 管理員 |
-| `>getInfo` | 獲取 Bot 執行資訊 |
-| `>getServerList` | 列出 Bot 所在嘅所有伺服器 |
-| `>r6update` | 更新 R6 地圖同幹員資料 |
-| `>update` | 從 GitHub 拉取最新程式碼 |
-
----
-
-## 🌐 網站設定
-
-網站部分提供網頁版 R6 抽選介面同用戶管理功能。
+從範本建立網站環境檔。喺非本機開發環境，務必設定夠長而且唯一嘅 `SESSION_SECRET`。
 
 ```bash
 cd website-part
-
-# 安裝依賴
-npm install
-
-# 設定環境變數
 cp .env.example .env
-# 編輯 .env 填入 Session 同伺服器設定
-
-# 啟動伺服器
-npm run start
+npm ci
+npm start
 ```
 
-網站預設喺 `http://localhost:3000` 執行。
+Windows PowerShell：
 
----
+```powershell
+Set-Location website-part
+Copy-Item .env.example .env
+npm ci
+npm start
+```
 
-## 🛠️ 依賴套件
+網站預設喺 `http://localhost:3000` 運行。執行自動化測試：
 
-| 套件 | 版本 | 用途 |
-|------|------|------|
-| `discord.py` | 2.3.0 | Discord API 封裝 |
-| `pymysql` | 1.1.2 | MySQL 資料庫驅動 |
-| `colorama` | 0.4.6 | 終端機彩色輸出 |
-| `psutil` | ≥5.9.0 | 系統資源監控 |
-| `cryptography` | 46.0.3 | 加密操作 |
-| `requests` | ≥2.31.0 | HTTP 請求（R6 資料爬蟲） |
-| `beautifulsoup4` | ≥4.12.0 | HTML 解析（R6 資料爬蟲） |
+```bash
+npm test
+```
 
-### 網站依賴 (Node.js)
+## Discord 指令
 
-| 套件 | 版本 | 用途 |
-|------|------|------|
-| `express` | ^4.18.2 | 網頁伺服器框架 |
-| `express-session` | ^1.17.3 | Session 管理 |
-| `bcryptjs` | ^2.4.3 | 密碼雜湊 |
-| `dotenv` | ^16.3.1 | 環境變數 |
-| `mysql2` | ^3.9.0 | MySQL 資料庫驅動 |
-| `http-proxy-middleware` | ^3.0.7 | 已授權網站連線代理 |
-| `express-rate-limit` | ^7.5.1 | 登入及註冊速率限制 |
-| `jsdom` | ^26.1.0 | 前端 DOM 測試（只限開發） |
+預設前綴係 `>`。下表列出目前已註冊嘅指令處理器；請喺 Discord 使用 `>help` 查看個別指令用法。
 
----
+| 存取級別 | 指令 |
+|---|---|
+| 一般用戶 | `>help`, `>getlang`, `>r6maproll`, `>r6opsroll`, `>getr6mapinfo`, `>roller`, `>mypermissions`, `>listguildadmins`, `>transfervoice` |
+| 伺服器管理員 | `>setlang`, `>setlogchannel`, `>setprivatevoice`, `>setupvoice`, `>removeprivatevoice`, `>setrollerchannel`, `>setrollermode` |
+| 伺服器擁有者 | `>addguildadmin`, `>removeguildadmin`, `>guildpermissions` |
+| Bot 擁有者 | `>addadmin`, `>removeadmin`, `>getinfo`, `>getserverlist`, `>r6update`, `>update` |
 
-## 📄 授權
+## 安全注意事項
 
-本專案僅供個人 / 社群使用。保留所有權利。
+- 唔好提交 `discord-part/config.json`、`shared/database/config.json` 或 `website-part/.env`。
+- 請使用只擁有本程式所需權限嘅專用 MySQL 帳戶。
+- 喺受信任嘅本機網絡以外部署網站時，請使用 HTTPS 同安全嘅 Session Cookie 設定。
+- 只好設定你信任嘅代理目標；已授權用戶可以經 `/connect/<slug>/` 存取獲分配嘅連線。
 
----
+## 依賴套件
 
-## 🤝 貢獻
+Discord Bot 嘅依賴已列喺 `discord-part/requirements.txt`。網站嘅依賴同 lockfile 喺 `website-part/package.json` 同 `website-part/package-lock.json`。
 
-歡迎提出 Issues、功能請求同 Pull Requests！
+主要執行期套件包括 `discord.py`、`PyMySQL`、`Express`、`express-session`、`express-rate-limit`、`bcryptjs`、`mysql2` 同 `http-proxy-middleware`。
+
+## 授權
+
+本專案僅供個人及社群使用。保留所有權利。
+
+## 貢獻
+
+歡迎提交 Issue 及 Pull Request。除非改動確實需要跨專案，否則請將修改範圍限制喺 `discord-part/`、`website-part/` 或 `shared/` 其中一個目錄。
