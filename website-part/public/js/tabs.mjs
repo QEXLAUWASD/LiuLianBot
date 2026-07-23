@@ -4,7 +4,8 @@ export function setupTabs(root) {
   if (!root) return null;
   if (initializedRoots.has(root)) return initializedRoots.get(root);
 
-  const tabs = [...root.querySelectorAll('[role="tab"]')];
+  const tabs = [...root.querySelectorAll('[role="tab"]')]
+    .filter(tab => tab.closest('[data-tabs]') === root);
   if (tabs.length === 0) return null;
 
   const pairs = tabs.map(tab => {
@@ -13,17 +14,19 @@ export function setupTabs(root) {
       throw new Error(`setupTabs: tab ${tab.id || '(without id)'} needs aria-controls`);
     }
 
-    const panel = root.ownerDocument.getElementById(panelId);
-    if (!panel || !root.contains(panel)) {
+    const matchingPanels = [...root.querySelectorAll('[id]')]
+      .filter(panel => panel.id === panelId && panel.closest('[data-tabs]') === root);
+    if (matchingPanels.length !== 1) {
       throw new Error(`setupTabs: panel #${panelId} was not found inside the tabs root`);
     }
-    return { tab, panel };
+    return { tab, panel: matchingPanels[0] };
   });
-  const enabledTabs = tabs.filter(tab => !tab.disabled && tab.getAttribute('aria-disabled') !== 'true');
+  const isEnabled = tab => !tab.disabled && tab.getAttribute('aria-disabled') !== 'true';
 
   function activate(target, { focus = true, emit = true } = {}) {
     const pair = pairs.find(item => item.tab === target || item.tab.id === target || item.panel.id === target);
-    if (!pair || !enabledTabs.includes(pair.tab)) return false;
+    if (!pair || !isEnabled(pair.tab)) return false;
+    const changed = pair.tab.getAttribute('aria-selected') !== 'true';
 
     for (const item of pairs) {
       const selected = item === pair;
@@ -35,7 +38,7 @@ export function setupTabs(root) {
     }
 
     if (focus) pair.tab.focus();
-    if (emit) {
+    if (emit && changed) {
       const CustomEvent = root.ownerDocument.defaultView?.CustomEvent;
       if (CustomEvent) {
         root.dispatchEvent(new CustomEvent('tabs:change', {
@@ -52,20 +55,31 @@ export function setupTabs(root) {
     tab.addEventListener('keydown', event => {
       if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
+      const enabledTabs = tabs.filter(isEnabled);
       if (enabledTabs.length === 0) return;
 
-      const currentIndex = enabledTabs.indexOf(tab);
-      let nextIndex;
-      if (event.key === 'Home') nextIndex = 0;
-      else if (event.key === 'End') nextIndex = enabledTabs.length - 1;
-      else {
-        const direction = event.key === 'ArrowRight' ? 1 : -1;
-        nextIndex = (currentIndex + direction + enabledTabs.length) % enabledTabs.length;
+      if (event.key === 'Home') {
+        activate(enabledTabs[0]);
+        return;
       }
-      activate(enabledTabs[nextIndex]);
+      if (event.key === 'End') {
+        activate(enabledTabs.at(-1));
+        return;
+      }
+
+      const direction = event.key === 'ArrowRight' ? 1 : -1;
+      const currentIndex = tabs.indexOf(tab);
+      for (let offset = 1; offset <= tabs.length; offset += 1) {
+        const candidate = tabs[(currentIndex + (direction * offset) + tabs.length) % tabs.length];
+        if (isEnabled(candidate)) {
+          activate(candidate);
+          return;
+        }
+      }
     });
   }
 
+  const enabledTabs = tabs.filter(isEnabled);
   const selected = enabledTabs.filter(tab => tab.getAttribute('aria-selected') === 'true');
   const initial = selected.length === 1 ? selected[0] : enabledTabs[0];
   if (initial) activate(initial, { focus: false, emit: false });

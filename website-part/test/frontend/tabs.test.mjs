@@ -57,6 +57,91 @@ test('missing or ambiguous initial selection falls back to the first enabled tab
   }
 });
 
+test('initializing an outer root does not collect or mutate a nested tabs root', () => {
+  const dom = new JSDOM(`
+    <div id="outer" data-tabs>
+      <button id="outer-one-tab" role="tab" aria-controls="outer-one" aria-selected="true">Outer one</button>
+      <button id="outer-two-tab" role="tab" aria-controls="outer-two" aria-selected="false">Outer two</button>
+      <section id="outer-one" role="tabpanel">
+        <div id="inner" data-tabs>
+          <button id="inner-one-tab" role="tab" aria-controls="inner-one" aria-selected="false" tabindex="-1">Inner one</button>
+          <button id="inner-two-tab" role="tab" aria-controls="inner-two" aria-selected="true" tabindex="0">Inner two</button>
+          <section id="inner-one" role="tabpanel" hidden></section>
+          <section id="inner-two" role="tabpanel"></section>
+        </div>
+      </section>
+      <section id="outer-two" role="tabpanel" hidden></section>
+    </div>
+  `);
+  const document = dom.window.document;
+  setupTabs(document.getElementById('outer'));
+
+  assert.equal(document.getElementById('inner-one-tab').getAttribute('aria-selected'), 'false');
+  assert.equal(document.getElementById('inner-one').hidden, true);
+  assert.equal(document.getElementById('inner-two-tab').getAttribute('aria-selected'), 'true');
+  assert.equal(document.getElementById('inner-two').hidden, false);
+  dom.window.close();
+});
+
+test('nested roots remain independent when both are initialized', () => {
+  const dom = new JSDOM(`
+    <div id="outer" data-tabs>
+      <button id="outer-one-tab" role="tab" aria-controls="outer-one" aria-selected="true">Outer one</button>
+      <button id="outer-two-tab" role="tab" aria-controls="outer-two" aria-selected="false">Outer two</button>
+      <section id="outer-one" role="tabpanel">
+        <div id="inner" data-tabs>
+          <button id="inner-one-tab" role="tab" aria-controls="inner-one" aria-selected="true">Inner one</button>
+          <button id="inner-two-tab" role="tab" aria-controls="inner-two" aria-selected="false">Inner two</button>
+          <section id="inner-one" role="tabpanel"></section>
+          <section id="inner-two" role="tabpanel" hidden></section>
+        </div>
+      </section>
+      <section id="outer-two" role="tabpanel" hidden></section>
+    </div>
+  `);
+  const document = dom.window.document;
+  const outer = document.getElementById('outer');
+  const inner = document.getElementById('inner');
+  setupTabs(outer);
+  setupTabs(inner);
+
+  document.getElementById('inner-two-tab').click();
+  assert.equal(document.getElementById('outer-one-tab').getAttribute('aria-selected'), 'true');
+  document.getElementById('outer-two-tab').click();
+  assert.equal(document.getElementById('inner-two-tab').getAttribute('aria-selected'), 'true');
+  assert.equal(document.getElementById('inner-two').hidden, false);
+  dom.window.close();
+});
+
+test('an outer tab cannot resolve its panel from a nested root', () => {
+  const dom = new JSDOM(`
+    <div id="outer" data-tabs>
+      <button role="tab" aria-controls="shared-panel" aria-selected="true">Outer</button>
+      <div data-tabs>
+        <section id="shared-panel" role="tabpanel"></section>
+      </div>
+    </div>
+  `);
+  assert.throws(
+    () => setupTabs(dom.window.document.getElementById('outer')),
+    /setupTabs: panel #shared-panel/,
+  );
+  dom.window.close();
+});
+
+test('setupTabs is idempotent for the same root', () => {
+  const { dom, root } = createTabs('first');
+  let changes = 0;
+  root.addEventListener('tabs:change', () => { changes += 1; });
+  const first = setupTabs(root);
+  const second = setupTabs(root);
+
+  assert.equal(second, first);
+  root.querySelector('#second-tab').click();
+  assert.equal(changes, 1);
+  dom.window.close();
+});
+
 test('click activates and focuses a tab and dispatches a useful change event', () => {
   const { dom, root } = createTabs('first');
   const changes = [];
@@ -94,6 +179,43 @@ test('arrow, Home, and End keys wrap through enabled tabs and prevent default', 
   assert.equal(dom.window.document.activeElement, first);
   first.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
   assert.equal(dom.window.document.activeElement, second);
+  dom.window.close();
+});
+
+test('navigation and activation use the current disabled state', () => {
+  const { dom, root } = createTabs('first');
+  const controller = setupTabs(root);
+  const first = root.querySelector('#first-tab');
+  const second = root.querySelector('#second-tab');
+  const third = root.querySelector('#third-tab');
+
+  second.setAttribute('aria-disabled', 'true');
+  first.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+  assert.equal(dom.window.document.activeElement, first);
+  assert.equal(controller.activate(second), false);
+
+  second.removeAttribute('aria-disabled');
+  third.disabled = false;
+  first.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+  assert.equal(dom.window.document.activeElement, third);
+
+  third.disabled = true;
+  third.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+  assert.equal(dom.window.document.activeElement, second);
+  dom.window.close();
+});
+
+test('activating the selected tab focuses without dispatching another change', () => {
+  const { dom, root } = createTabs('first');
+  let changes = 0;
+  root.addEventListener('tabs:change', () => { changes += 1; });
+  const controller = setupTabs(root);
+  const first = root.querySelector('#first-tab');
+
+  assert.equal(controller.activate(first), true);
+  first.click();
+  assert.equal(dom.window.document.activeElement, first);
+  assert.equal(changes, 0);
   dom.window.close();
 });
 
@@ -197,6 +319,8 @@ test('admin tab bootstrap preserves initial and selected-tab data loading', asyn
     dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
     assert.deepEqual(calls, ['users']);
 
+    dom.window.document.getElementById('groups-tab').click();
+    assert.deepEqual(calls, ['users', 'groups']);
     dom.window.document.getElementById('groups-tab').click();
     assert.deepEqual(calls, ['users', 'groups']);
   } finally {
