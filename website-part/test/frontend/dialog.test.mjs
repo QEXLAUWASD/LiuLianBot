@@ -275,6 +275,96 @@ test('closing the root dialog early still restores the stack session external op
   dom.window.close();
 });
 
+test('root session backgrounds restore focus when the root closes before a dialog without background', () => {
+  const dom = new JSDOM(`
+    <main id="root-background"><button id="root-fallback">Fallback</button><button id="outside">Open A</button></main>
+    <div id="a" role="dialog" aria-labelledby="a-title" hidden><h2 id="a-title">A</h2><button id="a-action">A action</button></div>
+    <div id="b" role="dialog" aria-labelledby="b-title" hidden><h2 id="b-title">B</h2><button id="b-action">B action</button></div>
+  `);
+  const document = dom.window.document;
+  const a = createDialog(document.getElementById('a'), {
+    background: document.getElementById('root-background'),
+  });
+  const b = createDialog(document.getElementById('b'));
+  const outside = document.getElementById('outside');
+
+  a.open(outside);
+  b.open(document.getElementById('a-action'));
+  outside.remove();
+  a.close();
+  b.close();
+
+  assert.equal(document.activeElement.id, 'root-fallback');
+  assert.notEqual(document.activeElement.id, 'b-action');
+  dom.window.close();
+});
+
+test('a later dialog background cannot replace the root session fallback order', () => {
+  const dom = new JSDOM(`
+    <main id="root-background"><button id="root-fallback">Root fallback</button><button id="outside">Open A</button></main>
+    <aside id="later-background"><button id="later-fallback">Later fallback</button></aside>
+    <div id="a" role="dialog" aria-labelledby="a-title" hidden><h2 id="a-title">A</h2><button id="a-action">A action</button></div>
+    <div id="b" role="dialog" aria-labelledby="b-title" hidden><h2 id="b-title">B</h2><button id="b-action">B action</button></div>
+  `);
+  const document = dom.window.document;
+  const a = createDialog(document.getElementById('a'), {
+    background: document.getElementById('root-background'),
+  });
+  const b = createDialog(document.getElementById('b'), {
+    background: document.getElementById('later-background'),
+  });
+  const outside = document.getElementById('outside');
+
+  a.open(outside);
+  b.open(document.getElementById('a-action'));
+  outside.remove();
+  b.close();
+  a.close();
+
+  assert.equal(document.activeElement.id, 'root-fallback');
+  dom.window.close();
+});
+
+test('invalid session fallback controls are skipped before focusing the document body', () => {
+  const dom = new JSDOM(`
+    <main id="root-background"><button id="disabled" disabled>Disabled</button><button id="outside">Open</button></main>
+    <div id="dialog" role="dialog" aria-labelledby="title" hidden><h2 id="title">Dialog</h2><button id="dialog-action">Action</button></div>
+  `);
+  const document = dom.window.document;
+  const background = document.getElementById('root-background');
+  const controller = createDialog(document.getElementById('dialog'), { background });
+  controller.open(document.getElementById('outside'));
+  document.getElementById('outside').remove();
+  background.hidden = true;
+
+  controller.close();
+
+  assert.equal(document.activeElement, document.body);
+  assert.equal(document.getElementById('dialog').hidden, true);
+  assert.notEqual(document.activeElement.id, 'dialog-action');
+  dom.window.close();
+});
+
+test('session fallback skips a removed background and uses the next valid background', () => {
+  const dom = new JSDOM(`
+    <main id="removed-background"><button id="outside">Open</button></main>
+    <aside id="backup-background"><button id="backup">Backup</button></aside>
+    <div id="dialog" role="dialog" aria-labelledby="title" hidden><h2 id="title">Dialog</h2><button>Action</button></div>
+  `);
+  const document = dom.window.document;
+  const removed = document.getElementById('removed-background');
+  const controller = createDialog(document.getElementById('dialog'), {
+    background: [removed, document.getElementById('backup-background'), removed],
+  });
+  controller.open(document.getElementById('outside'));
+  removed.remove();
+
+  controller.close();
+
+  assert.equal(document.activeElement.id, 'backup');
+  dom.window.close();
+});
+
 test('programmatic focus escaping to the background or a non-top dialog returns to the top', () => {
   const dom = new JSDOM(`
     <main><button id="outside">Outside</button></main>

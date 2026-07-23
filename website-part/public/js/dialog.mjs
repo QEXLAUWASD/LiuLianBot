@@ -118,7 +118,7 @@ function ensureDocumentState(document) {
   const existing = documentStates.get(document);
   if (existing) return existing;
 
-  const state = { stack: [], externalOpener: null, redirectingFocus: false };
+  const state = { stack: [], session: null, redirectingFocus: false };
   document.addEventListener('focusin', event => {
     const top = state.stack.at(-1);
     if (!top || top.element.contains(event.target) || state.redirectingFocus) return;
@@ -227,7 +227,9 @@ export function createDialog(element, { background } = {}) {
   function openDialog(candidateOpener = document.activeElement) {
     if (open) return false;
     opener = isFocusable(candidateOpener) ? candidateOpener : null;
-    if (state.stack.length === 0) state.externalOpener = opener;
+    if (state.stack.length === 0) {
+      state.session = { opener, backgrounds: [...backgrounds] };
+    }
     activation = captureAccessibility(element);
     const previousTop = state.stack.at(-1);
     if (previousTop) suspendEntry(previousTop);
@@ -244,18 +246,26 @@ export function createDialog(element, { background } = {}) {
     return true;
   }
 
-  function focusExternalFallback(preferred) {
+  function focusExternalFallback(preferred, fallbackBackgrounds) {
     if (isFocusable(preferred)) {
       preferred.focus();
       return;
     }
-    for (const item of backgrounds) {
+    for (const item of fallbackBackgrounds) {
       const fallback = focusableElements(item)[0];
       if (fallback) {
         fallback.focus();
         return;
       }
     }
+
+    const body = document.body;
+    if (!body?.isConnected || body.closest('[hidden], [inert]')) return;
+    const tabindex = body.getAttribute('tabindex');
+    body.tabIndex = -1;
+    body.focus();
+    if (tabindex === null) body.removeAttribute('tabindex');
+    else body.setAttribute('tabindex', tabindex);
   }
 
   function closeDialog(reason = 'programmatic') {
@@ -280,9 +290,9 @@ export function createDialog(element, { background } = {}) {
       if (isFocusable(opener) && newTop.element.contains(opener)) opener.focus();
       else newTop.focusInitial();
     } else if (wasTop) {
-      const externalOpener = state.externalOpener;
-      state.externalOpener = null;
-      focusExternalFallback(externalOpener);
+      const session = state.session;
+      state.session = null;
+      focusExternalFallback(session?.opener, session?.backgrounds || []);
     }
 
     element.dispatchEvent(new document.defaultView.CustomEvent('dialog:close', {
