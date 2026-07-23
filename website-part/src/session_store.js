@@ -14,6 +14,7 @@ class MySqlSessionStore extends session.Store {
     super();
     this.getPool = options.getPool || getPool;
     this.fallbackTtlMs = options.fallbackTtlMs || DEFAULT_SESSION_TTL_MS;
+    this.cleanupTimer = null;
   }
 
   async get(sid, callback) {
@@ -75,6 +76,27 @@ class MySqlSessionStore extends session.Store {
     } catch (err) {
       callback(err);
     }
+  }
+
+  async cleanupExpired(now = Date.now()) {
+    const pool = await this.getPool();
+    await pool.execute(
+      'DELETE FROM website_sessions WHERE expires_at <= ?',
+      [now]
+    );
+  }
+
+  startCleanup(intervalMs = 60 * 60 * 1000) {
+    if (this.cleanupTimer) return;
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupExpired().catch(err => this.emit('disconnect', err));
+    }, intervalMs);
+    this.cleanupTimer.unref?.();
+  }
+
+  stopCleanup() {
+    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+    this.cleanupTimer = null;
   }
 
   async touch(sid, sessionData, callback = () => {}) {

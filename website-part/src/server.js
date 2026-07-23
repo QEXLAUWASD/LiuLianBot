@@ -28,15 +28,21 @@ async function startServer() {
       connectionProxy,
     },
   });
-  const server = app.listen(PORT, () => {
-    console.log(`LiuLianBot Website running at http://localhost:${PORT}`);
+  const server = app.listen(PORT);
+  await new Promise((resolve, reject) => {
+    server.once('listening', resolve);
+    server.once('error', reject);
   });
+  console.log(`LiuLianBot Website running at http://localhost:${PORT}`);
 
   connectionProxy.attachWebSocketServer(server, {
     sessionStore,
     sessionCookieName: sessionOptions.name,
     sessionSecret: sessionOptions.secret,
   });
+  sessionStore.startCleanup();
+  server.once('close', () => sessionStore.stopCleanup());
+  server.once('error', () => sessionStore.stopCleanup());
 
   return server;
 }

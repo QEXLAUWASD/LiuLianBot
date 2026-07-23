@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
 const path = require('path');
+const { createRollerData } = require('../services/roller_data');
 
 const OPS_FILE = path.join(__dirname, '..', '..', '..', 'shared', 'r6', 'operatorlist.json');
 const MAPS_FILE = path.join(__dirname, '..', '..', '..', 'shared', 'r6', 'maplist.json');
 
-function loadJSON(filePath) {
-  const data = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(data);
-}
+const rollerData = createRollerData({
+  operatorPath: OPS_FILE,
+  mapPath: MAPS_FILE,
+});
 
 function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -19,7 +19,7 @@ function pickRandom(arr) {
 router.get('/operator', (req, res) => {
   try {
     const side = req.query.side || null; // "att", "def", or null for both
-    const data = loadJSON(OPS_FILE);
+    const data = rollerData.operators();
 
     let bucketKeys = [];
     if (!side) {
@@ -62,7 +62,7 @@ router.get('/operator', (req, res) => {
 // Roll a random map
 router.get('/map', (req, res) => {
   try {
-    const data = loadJSON(MAPS_FILE);
+    const data = rollerData.maps();
     const entries = [];
 
     for (const [key, info] of Object.entries(data)) {
@@ -96,7 +96,7 @@ router.get('/map', (req, res) => {
 // Get all operators (for display)
 router.get('/operators', (req, res) => {
   try {
-    const data = loadJSON(OPS_FILE);
+    const data = rollerData.operators();
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Failed to load operators' });
