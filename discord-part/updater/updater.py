@@ -52,12 +52,17 @@ def _get_repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def _run_git(args: list[str], cwd: Path | None = None) -> Tuple[int, str, str]:
+def _run_git(
+    args: list[str],
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> Tuple[int, str, str]:
     """執行 git 指令並回傳 (returncode, stdout, stderr)。
 
     Args:
         args: git 指令參數列表（不含 "git"）
         cwd: 工作目錄，預設為 repo root
+        env: 僅傳給此 Git 子程序的環境變數覆寫
 
     Returns:
         (returncode, stdout, stderr)
@@ -66,6 +71,11 @@ def _run_git(args: list[str], cwd: Path | None = None) -> Tuple[int, str, str]:
         cwd = _get_repo_root()
 
     cmd = ["git"] + args
+    child_env = None
+    if env is not None:
+        child_env = os.environ.copy()
+        child_env.update(env)
+
     try:
         proc = subprocess.run(
             cmd,
@@ -73,6 +83,7 @@ def _run_git(args: list[str], cwd: Path | None = None) -> Tuple[int, str, str]:
             capture_output=True,
             text=True,
             timeout=120,
+            env=child_env,
         )
         return proc.returncode, proc.stdout.strip(), proc.stderr.strip()
     except subprocess.TimeoutExpired:
@@ -83,25 +94,23 @@ def _run_git(args: list[str], cwd: Path | None = None) -> Tuple[int, str, str]:
         return -1, "", str(e)
 
 
-def _fetch_args(remote_url: str, branch: str, token: str) -> list[str]:
-    """建立 fetch 參數，並以單次 Git 設定傳入私人儲存庫憑證。"""
+def _fetch_args(branch: str) -> list[str]:
+    """建立會同步 origin remote-tracking ref 的 fetch 參數。"""
+    refspec = f"+refs/heads/{branch}:refs/remotes/origin/{branch}"
+    return ["fetch", "origin", refspec]
+
+
+def _fetch_env(token: str) -> dict[str, str] | None:
+    """建立只供單次 authenticated fetch 使用的 Git 設定環境。"""
     if not token:
-        return ["fetch", remote_url, branch]
+        return None
 
     credential = base64.b64encode(f"x-access-token:{token}".encode()).decode("ascii")
-    return [
-        "-c",
-        f"http.extraHeader=Authorization: Basic {credential}",
-        "fetch",
-        remote_url,
-        branch,
-    ]
-
-
-def _worktree_is_clean() -> bool:
-    """確認工作目錄沒有未提交的變更。"""
-    rc, stdout, _ = _run_git(["status", "--porcelain"])
-    return rc == 0 and not stdout
+    return {
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": "http.extraHeader",
+        "GIT_CONFIG_VALUE_0": f"Authorization: Basic {credential}",
+    }
 
 
 def _redact_git_output(output: str, token: str) -> str:
@@ -178,7 +187,7 @@ def fetch_and_pull(
 
     # 2. Fetch 最新變更
     rc, stdout, stderr = _run_git(
-        _fetch_args(remote_url, branch, github_token), cwd=repo_root
+        _fetch_args(branch), cwd=repo_root, env=_fetch_env(github_token)
     )
     if rc != 0:
         detail = _redact_git_output(stderr, github_token)
