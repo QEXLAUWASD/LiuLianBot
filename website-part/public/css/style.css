@@ -580,6 +580,8 @@ a:hover { color: var(--accent-hover); }
 .badge-moderator { background: rgba(46, 204, 113, 0.2); color: var(--success); }
 
 /* ===== Modal ===== */
+[role="dialog"][hidden] { display: none; }
+
 .modal-overlay {
   position: fixed;
   inset: 0;

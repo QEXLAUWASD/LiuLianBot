@@ -20,12 +20,12 @@ function showToast(message, type) {
   setTimeout(() => toast.remove(), 3000);
 }
 
-function closeModal(modalId) {
-  document.getElementById(modalId).style.display = 'none';
+function closeModal(modalId, reason = 'programmatic') {
+  return window.adminDialogs.close(modalId, reason);
 }
 
-function openModal(modalId) {
-  document.getElementById(modalId).style.display = 'flex';
+function openModal(modalId, opener = document.activeElement) {
+  return window.adminDialogs.open(modalId, opener);
 }
 
 // ---------- Confirm Dialog ----------
@@ -36,13 +36,17 @@ function showConfirm(title, message, callback) {
   document.getElementById('confirmTitle').textContent = title;
   document.getElementById('confirmMsg').textContent = message;
   confirmCallback = callback;
-  document.getElementById('confirmDialog').style.display = 'flex';
+  openModal('confirmDialog');
 }
 
 function closeConfirm() {
   confirmCallback = null;
-  document.getElementById('confirmDialog').style.display = 'none';
+  closeModal('confirmDialog');
 }
+
+document.getElementById('confirmDialog').addEventListener('dialog:close', () => {
+  confirmCallback = null;
+});
 
 document.getElementById('confirmOkBtn').addEventListener('click', () => {
   if (confirmCallback) confirmCallback();
