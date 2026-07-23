@@ -62,13 +62,11 @@ test('initializing an outer root does not collect or mutate a nested tabs root',
     <div id="outer" data-tabs>
       <button id="outer-one-tab" role="tab" aria-controls="outer-one" aria-selected="true">Outer one</button>
       <button id="outer-two-tab" role="tab" aria-controls="outer-two" aria-selected="false">Outer two</button>
-      <section id="outer-one" role="tabpanel">
-        <div id="inner" data-tabs>
-          <button id="inner-one-tab" role="tab" aria-controls="inner-one" aria-selected="false" tabindex="-1">Inner one</button>
-          <button id="inner-two-tab" role="tab" aria-controls="inner-two" aria-selected="true" tabindex="0">Inner two</button>
-          <section id="inner-one" role="tabpanel" hidden></section>
-          <section id="inner-two" role="tabpanel"></section>
-        </div>
+      <section id="outer-one" role="tabpanel" data-tabs>
+        <button id="inner-one-tab" role="tab" aria-controls="inner-one" aria-selected="false" tabindex="-1">Inner one</button>
+        <button id="inner-two-tab" role="tab" aria-controls="inner-two" aria-selected="true" tabindex="0">Inner two</button>
+        <section id="inner-one" role="tabpanel" hidden></section>
+        <section id="inner-two" role="tabpanel"></section>
       </section>
       <section id="outer-two" role="tabpanel" hidden></section>
     </div>
@@ -88,20 +86,18 @@ test('nested roots remain independent when both are initialized', () => {
     <div id="outer" data-tabs>
       <button id="outer-one-tab" role="tab" aria-controls="outer-one" aria-selected="true">Outer one</button>
       <button id="outer-two-tab" role="tab" aria-controls="outer-two" aria-selected="false">Outer two</button>
-      <section id="outer-one" role="tabpanel">
-        <div id="inner" data-tabs>
-          <button id="inner-one-tab" role="tab" aria-controls="inner-one" aria-selected="true">Inner one</button>
-          <button id="inner-two-tab" role="tab" aria-controls="inner-two" aria-selected="false">Inner two</button>
-          <section id="inner-one" role="tabpanel"></section>
-          <section id="inner-two" role="tabpanel" hidden></section>
-        </div>
+      <section id="outer-one" role="tabpanel" data-tabs>
+        <button id="inner-one-tab" role="tab" aria-controls="inner-one" aria-selected="true">Inner one</button>
+        <button id="inner-two-tab" role="tab" aria-controls="inner-two" aria-selected="false">Inner two</button>
+        <section id="inner-one" role="tabpanel"></section>
+        <section id="inner-two" role="tabpanel" hidden></section>
       </section>
       <section id="outer-two" role="tabpanel" hidden></section>
     </div>
   `);
   const document = dom.window.document;
   const outer = document.getElementById('outer');
-  const inner = document.getElementById('inner');
+  const inner = document.getElementById('outer-one');
   setupTabs(outer);
   setupTabs(inner);
 
@@ -322,6 +318,27 @@ test('admin tab bootstrap preserves initial and selected-tab data loading', asyn
     dom.window.document.getElementById('groups-tab').click();
     assert.deepEqual(calls, ['users', 'groups']);
     dom.window.document.getElementById('groups-tab').click();
+    assert.deepEqual(calls, ['users', 'groups']);
+
+    const inner = dom.window.document.createElement('div');
+    inner.setAttribute('data-tabs', '');
+    inner.innerHTML = `
+      <button id="inner-users-tab" role="tab" data-tab="users" aria-controls="inner-users" aria-selected="true">Inner users</button>
+      <button id="inner-groups-tab" role="tab" data-tab="groups" aria-controls="inner-groups" aria-selected="false">Inner groups</button>
+      <section id="inner-users" role="tabpanel"></section>
+      <section id="inner-groups" role="tabpanel" hidden></section>
+    `;
+    dom.window.document.getElementById('usersTab').append(inner);
+    setupTabs(inner);
+    dom.window.document.getElementById('inner-groups-tab').click();
+    assert.deepEqual(calls, ['users', 'groups']);
+
+    dom.window.document.querySelector('.admin-container').dispatchEvent(new dom.window.CustomEvent('tabs:change', {
+      detail: {
+        tab: dom.window.document.getElementById('inner-groups-tab'),
+        panel: dom.window.document.getElementById('inner-groups'),
+      },
+    }));
     assert.deepEqual(calls, ['users', 'groups']);
   } finally {
     globalThis.document = originalDocument;

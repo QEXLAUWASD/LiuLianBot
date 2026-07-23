@@ -1,11 +1,12 @@
 const initializedRoots = new WeakMap();
+const containingTabsRoot = element => element.parentElement?.closest('[data-tabs]') ?? null;
 
 export function setupTabs(root) {
   if (!root) return null;
   if (initializedRoots.has(root)) return initializedRoots.get(root);
 
   const tabs = [...root.querySelectorAll('[role="tab"]')]
-    .filter(tab => tab.closest('[data-tabs]') === root);
+    .filter(tab => containingTabsRoot(tab) === root);
   if (tabs.length === 0) return null;
 
   const pairs = tabs.map(tab => {
@@ -15,7 +16,7 @@ export function setupTabs(root) {
     }
 
     const matchingPanels = [...root.querySelectorAll('[id]')]
-      .filter(panel => panel.id === panelId && panel.closest('[data-tabs]') === root);
+      .filter(panel => panel.id === panelId && containingTabsRoot(panel) === root);
     if (matchingPanels.length !== 1) {
       throw new Error(`setupTabs: panel #${panelId} was not found inside the tabs root`);
     }

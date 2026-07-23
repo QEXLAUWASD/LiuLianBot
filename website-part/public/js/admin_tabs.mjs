@@ -11,7 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const root = document.querySelector('[data-tabs]');
   setupTabs(root);
   root?.addEventListener('tabs:change', event => {
-    const loader = window[loaders[event.detail.tab.dataset.tab]];
+    const tab = event.detail?.tab;
+    if (event.target !== root || tab?.parentElement?.closest('[data-tabs]') !== root) return;
+
+    const loader = window[loaders[tab.dataset.tab]];
     if (typeof loader === 'function') loader();
   });
   window.loadUsers?.();
