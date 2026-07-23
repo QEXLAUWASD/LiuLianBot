@@ -1,30 +1,44 @@
 const { getPool, validateString, validateInt } = require('./pool');
 
+function groupBy(rows, key) {
+  const grouped = new Map();
+  for (const row of rows) {
+    const value = row[key];
+    if (!grouped.has(value)) grouped.set(value, []);
+    grouped.get(value).push(row);
+  }
+  return grouped;
+}
+
 async function getAllConnections() {
   const p = await getPool();
-  const [connections] = await p.execute(
-    `SELECT id, name, slug, target_url, description, enabled, hidden, created_at, updated_at
-     FROM website_connections ORDER BY name ASC`
-  );
-  const [roles] = await p.execute(
-    `SELECT cr.connection_id, r.id, r.name
-     FROM website_connection_roles cr
-     JOIN website_roles r ON r.id = cr.role_id
-     ORDER BY r.name ASC`
-  );
-  const [users] = await p.execute(
-    `SELECT cu.connection_id, u.id, u.username
-     FROM website_connection_users cu
-     JOIN website_users u ON u.id = cu.user_id
-     ORDER BY u.username ASC`
-  );
+  const [[connections], [roles], [users]] = await Promise.all([
+    p.execute(
+      `SELECT id, name, slug, target_url, description, enabled, hidden, created_at, updated_at
+       FROM website_connections ORDER BY name ASC`
+    ),
+    p.execute(
+      `SELECT cr.connection_id, r.id, r.name
+       FROM website_connection_roles cr
+       JOIN website_roles r ON r.id = cr.role_id
+       ORDER BY r.name ASC`
+    ),
+    p.execute(
+      `SELECT cu.connection_id, u.id, u.username
+       FROM website_connection_users cu
+       JOIN website_users u ON u.id = cu.user_id
+       ORDER BY u.username ASC`
+    ),
+  ]);
+  const rolesByConnection = groupBy(roles, 'connection_id');
+  const usersByConnection = groupBy(users, 'connection_id');
   return connections.map(connection => ({
     ...connection,
     enabled: Boolean(connection.enabled),
     hidden: Boolean(connection.hidden),
-    roles: roles.filter(role => role.connection_id === connection.id)
+    roles: (rolesByConnection.get(connection.id) || [])
       .map(({ id, name }) => ({ id, name })),
-    users: users.filter(user => user.connection_id === connection.id)
+    users: (usersByConnection.get(connection.id) || [])
       .map(({ id, username }) => ({ id, username })),
   }));
 }
@@ -104,16 +118,20 @@ async function replaceConnectionAccess(conn, connectionId, roleIds, userIds) {
     'DELETE FROM website_connection_users WHERE connection_id = ?',
     [connectionId]
   );
-  for (const roleId of roleIds) {
+  if (roleIds.length > 0) {
+    const valuesSql = roleIds.map(() => '(?, ?)').join(', ');
+    const values = roleIds.flatMap(roleId => [connectionId, roleId]);
     await conn.execute(
-      'INSERT INTO website_connection_roles (connection_id, role_id) VALUES (?, ?)',
-      [connectionId, roleId]
+      `INSERT INTO website_connection_roles (connection_id, role_id) VALUES ${valuesSql}`,
+      values
     );
   }
-  for (const userId of userIds) {
+  if (userIds.length > 0) {
+    const valuesSql = userIds.map(() => '(?, ?)').join(', ');
+    const values = userIds.flatMap(userId => [connectionId, userId]);
     await conn.execute(
-      'INSERT INTO website_connection_users (connection_id, user_id) VALUES (?, ?)',
-      [connectionId, userId]
+      `INSERT INTO website_connection_users (connection_id, user_id) VALUES ${valuesSql}`,
+      values
     );
   }
 }
@@ -194,6 +212,7 @@ async function deleteConnection(id) {
 }
 
 module.exports = {
+  groupBy,
   getAllConnections,
   getAccessibleConnections,
   getConnectionAccessBySlug,

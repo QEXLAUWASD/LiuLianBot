@@ -21,15 +21,13 @@ function loadDiscordConfig() {
 
 async function getAllGuilds() {
   const p = await getPool();
-  const [logChannels] = await p.execute(
-    'SELECT guild_id, channel_id FROM guild_log_channels'
-  );
-  const [rollerChannels] = await p.execute(
-    'SELECT guild_id, channel_id, dm_result FROM guild_roller_channels'
-  );
-  const [voiceChannels] = await p.execute(
-    'SELECT guild_id, COUNT(*) AS voice_count FROM private_voice_channels GROUP BY guild_id'
-  );
+  const [[logChannels], [rollerChannels], [voiceChannels]] = await Promise.all([
+    p.execute('SELECT guild_id, channel_id FROM guild_log_channels'),
+    p.execute('SELECT guild_id, channel_id, dm_result FROM guild_roller_channels'),
+    p.execute(
+      'SELECT guild_id, COUNT(*) AS voice_count FROM private_voice_channels GROUP BY guild_id'
+    ),
+  ]);
   const discordConfig = loadDiscordConfig();
   const guildLanguages = discordConfig.guild_languages || {};
   const guildAdmins = discordConfig.guild_admins || {};
@@ -67,18 +65,20 @@ async function getAllGuilds() {
 async function getGuildDetail(guildId) {
   const safeId = validateString(guildId, 'guild id');
   const p = await getPool();
-  const [logChannel] = await p.execute(
-    'SELECT channel_id FROM guild_log_channels WHERE guild_id = ?',
-    [safeId]
-  );
-  const [rollerChannel] = await p.execute(
-    'SELECT channel_id, dm_result FROM guild_roller_channels WHERE guild_id = ?',
-    [safeId]
-  );
-  const [voiceList] = await p.execute(
-    'SELECT channel_id, owner_id, config_json, created_at FROM private_voice_channels WHERE guild_id = ?',
-    [safeId]
-  );
+  const [[logChannel], [rollerChannel], [voiceList]] = await Promise.all([
+    p.execute(
+      'SELECT channel_id FROM guild_log_channels WHERE guild_id = ?',
+      [safeId]
+    ),
+    p.execute(
+      'SELECT channel_id, dm_result FROM guild_roller_channels WHERE guild_id = ?',
+      [safeId]
+    ),
+    p.execute(
+      'SELECT channel_id, owner_id, config_json, created_at FROM private_voice_channels WHERE guild_id = ?',
+      [safeId]
+    ),
+  ]);
   const discordConfig = loadDiscordConfig();
   const language = (discordConfig.guild_languages || {})[safeId] || 'en';
   const admins = (discordConfig.guild_admins || {})[safeId] || [];

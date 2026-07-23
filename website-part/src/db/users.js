@@ -182,12 +182,12 @@ async function updateUserRoles(userId, roleIds) {
     const orderedRoles = safeRoleIds.map(roleId => roleById.get(roleId));
     const primaryRole = orderedRoles.find(role => role.name === 'admin') || orderedRoles[0];
     await conn.execute('DELETE FROM website_user_roles WHERE user_id = ?', [safeUserId]);
-    for (const roleId of safeRoleIds) {
-      await conn.execute(
-        'INSERT INTO website_user_roles (user_id, role_id) VALUES (?, ?)',
-        [safeUserId, roleId]
-      );
-    }
+    const valuesSql = safeRoleIds.map(() => '(?, ?)').join(', ');
+    const values = safeRoleIds.flatMap(roleId => [safeUserId, roleId]);
+    await conn.execute(
+      `INSERT INTO website_user_roles (user_id, role_id) VALUES ${valuesSql}`,
+      values
+    );
     await conn.execute(
       'UPDATE website_users SET role_id = ? WHERE id = ?',
       [primaryRole.id, safeUserId]
