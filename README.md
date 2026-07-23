@@ -86,7 +86,8 @@ LiuLianBot/
 │   ├── public/                  # Static HTML, CSS, and browser JS
 │   └── src/
 │       ├── server.js            # Express entry point
-│       ├── db.js                # Database access
+│       ├── db.js                # Database compatibility facade
+│       ├── db/                  # Domain repositories and migrations
 │       ├── middleware/          # Auth and security middleware
 │       └── routes/              # HTTP API routes
 ├── shared/
@@ -116,6 +117,7 @@ chmod +x start.sh
 
 # 3. Configure the bot
 cp discord-part/default_config.json discord-part/config.json
+cp shared/database/config.example.json shared/database/config.json
 nano discord-part/config.json  # Edit with your settings
 
 # 4. Start the bot
@@ -140,7 +142,8 @@ python discord-part/main.py
 
 ## ⚙️ Configuration
 
-Edit `discord-part/config.json`:
+Discord token, prefix, owners, activity, and updater settings live in
+`discord-part/config.json`:
 
 ```json
 {
@@ -153,13 +156,6 @@ Edit `discord-part/config.json`:
         "name": "Rainbow Six Siege"
     },
     "token": "YOUR_BOT_TOKEN",
-    "mysql_config": {
-        "host": "localhost",
-        "user": "root",
-        "password": "your_password",
-        "database": "discordbot",
-        "charset": "utf8mb4"
-    },
     "updater": {
         "github_repo": "owner/repo",
         "branch": "master",
@@ -176,10 +172,16 @@ Edit `discord-part/config.json`:
 | `bot_admin` | Array of bot admin Discord user IDs |
 | `activity` | Bot's displayed activity status |
 | `token` | Your Discord bot token |
-| `mysql_config` | MySQL database connection settings |
 | `updater.github_repo` | GitHub repository for auto-updates (`owner/repo`) |
 | `updater.branch` | Git branch to track (default: `master`) |
 | `updater.auto_restart` | Automatically restart bot after update |
+
+MySQL settings are shared by the Discord bot and website. Create the runtime
+file from the safe example, then edit its `mysql` object:
+
+```bash
+cp shared/database/config.example.json shared/database/config.json
+```
 
 ---
 
@@ -241,7 +243,7 @@ npm install
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your database and session settings
+# Edit .env with your session and server settings
 
 # Start the server
 npm run start
@@ -272,6 +274,9 @@ The website runs on `http://localhost:3000` by default.
 | `bcryptjs` | ^2.4.3 | Password hashing |
 | `dotenv` | ^16.3.1 | Environment variables |
 | `mysql2` | ^3.9.0 | MySQL database driver |
+| `http-proxy-middleware` | ^3.0.7 | Authorized website connection proxy |
+| `express-rate-limit` | ^7.5.1 | Authentication rate limiting |
+| `jsdom` | ^26.1.0 | Frontend DOM tests (development only) |
 
 ---
 

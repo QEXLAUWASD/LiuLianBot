@@ -1,0 +1,10 @@
+{
+  "mysql": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "liulianbot",
+    "password": "replace-me",
+    "database": "discordbot",
+    "charset": "utf8mb4"
+  }
+}
