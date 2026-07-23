@@ -16,7 +16,11 @@ const adminRoot = document.querySelector('.admin-container');
 
 function showToast(message, type) {
   document.querySelector('.toast')?.remove();
-  const toast = element('div', { className: `toast toast-${type}`, text: message });
+  const toast = element('div', {
+    className: `toast toast-${type}`,
+    text: message,
+    attributes: { role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' },
+  });
   document.body.append(toast);
   setTimeout(() => toast.remove(), 3000);
 }

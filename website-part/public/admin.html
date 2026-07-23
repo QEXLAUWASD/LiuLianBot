@@ -10,22 +10,22 @@
   <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
 
   <main class="main-content">
-    <div class="admin-container" data-tabs>
+    <div class="admin-container tabs" data-tabs>
       <h2>⚙️ Admin Panel</h2>
 
-      <div class="admin-tabs" role="tablist" aria-label="Administration sections">
-        <button id="users-tab" class="tab-btn active" type="button" role="tab" data-tab="users"
+      <div class="tab-list" role="tablist" aria-label="Administration sections">
+        <button id="users-tab" class="tab active" type="button" role="tab" data-tab="users"
           aria-controls="usersTab" aria-selected="true" tabindex="0">👤 Users</button>
-        <button id="groups-tab" class="tab-btn" type="button" role="tab" data-tab="groups"
+        <button id="groups-tab" class="tab" type="button" role="tab" data-tab="groups"
           aria-controls="groupsTab" aria-selected="false" tabindex="-1">🔐 Groups</button>
-        <button id="guilds-tab" class="tab-btn" type="button" role="tab" data-tab="guilds"
+        <button id="guilds-tab" class="tab" type="button" role="tab" data-tab="guilds"
           aria-controls="guildsTab" aria-selected="false" tabindex="-1">🌐 Discord Guilds</button>
-        <button id="connections-tab" class="tab-btn" type="button" role="tab" data-tab="connections"
+        <button id="connections-tab" class="tab" type="button" role="tab" data-tab="connections"
           aria-controls="connectionsTab" aria-selected="false" tabindex="-1">🔗 Website Access</button>
       </div>
 
       <!-- ============ Users Tab ============ -->
-      <div id="usersTab" class="admin-tab active" role="tabpanel" aria-labelledby="users-tab">
+      <div id="usersTab" class="tab-panel active" role="tabpanel" aria-labelledby="users-tab">
         <div class="admin-table-wrapper">
           <table class="admin-table">
             <thead>
@@ -44,7 +44,7 @@
       </div>
 
       <!-- ============ Groups Tab ============ -->
-      <div id="groupsTab" class="admin-tab" role="tabpanel" aria-labelledby="groups-tab" hidden>
+      <div id="groupsTab" class="tab-panel" role="tabpanel" aria-labelledby="groups-tab" hidden>
         <div class="admin-toolbar">
           <button id="createGroupBtn" class="btn btn-primary">+ Create Group</button>
         </div>
@@ -66,7 +66,7 @@
       </div>
 
       <!-- ============ Website Connections Tab ============ -->
-      <div id="connectionsTab" class="admin-tab" role="tabpanel" aria-labelledby="connections-tab" hidden>
+      <div id="connectionsTab" class="tab-panel" role="tabpanel" aria-labelledby="connections-tab" hidden>
         <div class="admin-toolbar">
           <button id="createConnectionBtn" class="btn btn-primary">+ Add Website</button>
         </div>
@@ -89,7 +89,7 @@
       </div>
 
       <!-- ============ Guilds Tab ============ -->
-      <div id="guildsTab" class="admin-tab" role="tabpanel" aria-labelledby="guilds-tab" hidden>
+      <div id="guildsTab" class="tab-panel" role="tabpanel" aria-labelledby="guilds-tab" hidden>
         <div class="admin-table-wrapper">
           <table class="admin-table">
             <thead>
