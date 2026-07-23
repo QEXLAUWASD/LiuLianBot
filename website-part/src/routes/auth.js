@@ -18,7 +18,7 @@ function generateId() {
 }
 
 // Register
-router.post('/register', async (req, res) => {
+router.post('/register', async (req, res, next) => {
   try {
     const username = normalizeUsername(req.body.username);
     const password = validateNewPassword(req.body.password);
@@ -41,13 +41,12 @@ router.post('/register', async (req, res) => {
     if (err.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ error: 'Username already exists' });
     }
-    console.error('[Auth] Register error:', err);
-    res.status(500).json({ error: 'Registration failed. Please try again.' });
+    next(err);
   }
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req, res, next) => {
   try {
     const { username, password, remember = false } = req.body;
 
@@ -75,8 +74,7 @@ router.post('/login', async (req, res) => {
     );
     res.json({ success: true, user: { id: user.id, username: user.username } });
   } catch (err) {
-    console.error('[Auth] Login error:', err);
-    res.status(500).json({ error: 'Login failed. Please try again.' });
+    next(err);
   }
 });
 

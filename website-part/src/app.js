@@ -6,7 +6,8 @@ const path = require('path');
 const { requirePageAuth } = require('./middleware/auth');
 const { AUTH_RATE_LIMIT } = require('./middleware/auth_rate_limit');
 const { requireAdmin } = require('./middleware/admin_auth');
-const { sqlInjectionGuard } = require('./middleware/security');
+const { requestContext } = require('./middleware/request_context');
+const { errorHandler } = require('./middleware/error_handler');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -15,10 +16,10 @@ function createApp({ sessionOptions, routers }) {
 
   if (sessionOptions.cookie.secure) app.set('trust proxy', 1);
   app.use(session(sessionOptions));
+  app.use('/api', requestContext);
   app.use('/api', express.json({ limit: '16kb' }));
   app.use('/api', express.urlencoded({ extended: false, limit: '16kb' }));
   app.use('/api/admin/connections', routers.adminConnections);
-  app.use('/api', sqlInjectionGuard);
   const authRateLimiter = rateLimit(AUTH_RATE_LIMIT);
   app.use('/api/auth/login', authRateLimiter);
   app.use('/api/auth/register', authRateLimiter);
@@ -45,6 +46,7 @@ function createApp({ sessionOptions, routers }) {
   app.get('/', (req, res) => {
     res.redirect(req.session.user ? '/index.html' : '/login.html');
   });
+  app.use(errorHandler);
   app.use((req, res) => {
     res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
   });

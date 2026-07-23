@@ -101,20 +101,20 @@ router.get('/groups', async (req, res) => {
 });
 
 // POST /api/admin/groups — create a new role
-router.post('/groups', async (req, res) => {
+router.post('/groups', async (req, res, next) => {
   try {
     const { name, description } = normalizeGroupInput(req.body);
     const role = await createRole(name, description);
     res.json({ success: true, group: role });
   } catch (err) {
     const status = groupErrorStatus(err);
-    if (status === 500) console.error('[Admin] POST /groups error:', err);
+    if (status === 500) return next(err);
     res.status(status).json({ error: err.message });
   }
 });
 
 // PUT /api/admin/groups/:id — update a role
-router.put('/groups/:id', async (req, res) => {
+router.put('/groups/:id', async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id)) {
@@ -126,13 +126,13 @@ router.put('/groups/:id', async (req, res) => {
     res.json({ success: true, group: role });
   } catch (err) {
     const status = groupErrorStatus(err);
-    if (status === 500) console.error('[Admin] PUT /groups/:id error:', err);
+    if (status === 500) return next(err);
     res.status(status).json({ error: err.message });
   }
 });
 
 // DELETE /api/admin/groups/:id — delete a role
-router.delete('/groups/:id', async (req, res) => {
+router.delete('/groups/:id', async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id)) {
@@ -143,7 +143,7 @@ router.delete('/groups/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     const status = groupErrorStatus(err);
-    if (status === 500) console.error('[Admin] DELETE /groups/:id error:', err);
+    if (status === 500) return next(err);
     res.status(status).json({ error: err.message });
   }
 });

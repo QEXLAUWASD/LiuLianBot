@@ -28,7 +28,7 @@ async function verifyCurrentPassword(userId, currentPassword) {
   return valid ? user : false;
 }
 
-router.put('/username', requireApiAuth, async (req, res) => {
+router.put('/username', requireApiAuth, async (req, res, next) => {
   try {
     const username = normalizeUsername(req.body.username);
     const user = await verifyCurrentPassword(
@@ -65,12 +65,11 @@ router.put('/username', requireApiAuth, async (req, res) => {
     if (err.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ error: 'Username already exists' });
     }
-    console.error('[Auth] Change username error:', err);
-    res.status(500).json({ error: 'Username change failed. Please try again.' });
+    next(err);
   }
 });
 
-router.put('/password', requireApiAuth, async (req, res) => {
+router.put('/password', requireApiAuth, async (req, res, next) => {
   try {
     const passwords = validatePasswordChange(
       req.body.currentPassword,
@@ -101,8 +100,7 @@ router.put('/password', requireApiAuth, async (req, res) => {
     if (err instanceof AccountInputError) {
       return res.status(400).json({ error: err.message });
     }
-    console.error('[Auth] Change password error:', err);
-    res.status(500).json({ error: 'Password change failed. Please try again.' });
+    next(err);
   }
 });
 

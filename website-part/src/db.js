@@ -15,9 +15,6 @@ const DISCORD_CONFIG_PATH = path.join(__dirname, '..', '..', 'discord-part', 'co
 
 // ---------- input validation ----------
 
-/** Characters / patterns that must never appear in query parameters */
-const FORBIDDEN_IN_INPUT = /['";\\]/;
-
 /** Maximum length for string-type parameters */
 const MAX_STRING_LEN = 255;
 
@@ -35,9 +32,6 @@ function validateString(value, label) {
   }
   if (trimmed.length > MAX_STRING_LEN) {
     throw new Error(`[DB] ${label}: exceeds max length (${MAX_STRING_LEN})`);
-  }
-  if (FORBIDDEN_IN_INPUT.test(trimmed)) {
-    throw new Error(`[DB] ${label}: contains forbidden characters`);
   }
   return trimmed;
 }
