@@ -9,30 +9,78 @@ class PrivateVoiceRepository:
 
     def save(self, guild_id, channel_id, owner_id, config) -> None:
         config_type = config.get("type", "private")
-        trigger_guild_id = guild_id if config_type == "trigger" else None
+        if config_type == "trigger":
+            self.set_trigger(guild_id, channel_id, owner_id, config)
+            return
+
         conn = self._connection_factory()
         try:
             with conn.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO private_voice_channels "
-                    "(guild_id, channel_id, owner_id, config_json, config_type, trigger_guild_id) "
-                    "VALUES (%s, %s, %s, %s, %s, %s) "
-                    "ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id), "
-                    "owner_id=VALUES(owner_id), config_json=VALUES(config_json), "
-                    "config_type=VALUES(config_type), trigger_guild_id=VALUES(trigger_guild_id), "
-                    "updated_at=NOW()",
-                    (
-                        guild_id,
-                        channel_id,
-                        owner_id,
-                        json.dumps(config, ensure_ascii=False),
-                        config_type,
-                        trigger_guild_id,
-                    ),
+                self._upsert(
+                    cursor,
+                    guild_id,
+                    channel_id,
+                    owner_id,
+                    config,
+                    config_type,
+                    None,
                 )
             conn.commit()
         finally:
             conn.close()
+
+    def set_trigger(self, guild_id, channel_id, owner_id, config) -> None:
+        conn = self._connection_factory()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM private_voice_channels WHERE guild_id=%s "
+                    "AND config_type='trigger' AND channel_id<>%s",
+                    (guild_id, channel_id),
+                )
+                self._upsert(
+                    cursor,
+                    guild_id,
+                    channel_id,
+                    owner_id,
+                    config,
+                    "trigger",
+                    guild_id,
+                )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    @staticmethod
+    def _upsert(
+        cursor,
+        guild_id,
+        channel_id,
+        owner_id,
+        config,
+        config_type,
+        trigger_guild_id,
+    ) -> None:
+        cursor.execute(
+            "INSERT INTO private_voice_channels "
+            "(guild_id, channel_id, owner_id, config_json, config_type, trigger_guild_id) "
+            "VALUES (%s, %s, %s, %s, %s, %s) "
+            "ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id), "
+            "owner_id=VALUES(owner_id), config_json=VALUES(config_json), "
+            "config_type=VALUES(config_type), trigger_guild_id=VALUES(trigger_guild_id), "
+            "updated_at=NOW()",
+            (
+                guild_id,
+                channel_id,
+                owner_id,
+                json.dumps(config, ensure_ascii=False),
+                config_type,
+                trigger_guild_id,
+            ),
+        )
 
     def remove_trigger(self, guild_id) -> None:
         conn = self._connection_factory()

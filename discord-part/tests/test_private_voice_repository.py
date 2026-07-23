@@ -12,23 +12,42 @@ def make_repo():
     return PrivateVoiceRepository(lambda: connection), connection, cursor
 
 
-def test_save_trigger_serializes_config_and_uses_one_trigger_key_per_guild():
+def test_save_trigger_removes_old_guild_trigger_before_upserting_target_channel():
     repository, connection, cursor = make_repo()
+    config = {"type": "trigger", "name": "觸發器"}
 
-    repository.save(10, 20, 30, {"type": "trigger", "name": "觸發器"})
+    repository.save(10, 20, 30, config)
 
-    sql, params = cursor.execute.call_args.args
-    assert "trigger_guild_id" in sql
-    assert "ON DUPLICATE KEY UPDATE" in sql
-    assert params == (
-        10,
-        20,
-        30,
-        json.dumps({"type": "trigger", "name": "觸發器"}, ensure_ascii=False),
-        "trigger",
-        10,
-    )
+    upsert_sql = cursor.execute.call_args_list[1].args[0]
+    assert cursor.execute.call_args_list == [
+        call(
+            "DELETE FROM private_voice_channels WHERE guild_id=%s "
+            "AND config_type='trigger' AND channel_id<>%s",
+            (10, 20),
+        ),
+        call(
+            upsert_sql,
+            (10, 20, 30, json.dumps(config, ensure_ascii=False), "trigger", 10),
+        ),
+    ]
+    assert "trigger_guild_id" in upsert_sql
+    assert "ON DUPLICATE KEY UPDATE" in upsert_sql
     connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_save_trigger_rolls_back_and_closes_when_upsert_fails():
+    repository, connection, cursor = make_repo()
+    error = RuntimeError("upsert failed")
+    cursor.execute.side_effect = [None, error]
+
+    with pytest.raises(RuntimeError, match="upsert failed"):
+        repository.save(10, 20, 30, {"type": "trigger"})
+
+    assert cursor.execute.call_count == 2
+    connection.rollback.assert_called_once_with()
+    connection.commit.assert_not_called()
     connection.close.assert_called_once_with()
 
 
@@ -194,6 +213,73 @@ def test_manager_uses_injected_repository_for_persistence():
         call.update_owner(21, 31),
         call.cleanup_old(14),
     ]
+
+
+def test_manager_does_not_change_trigger_cache_when_persistence_fails():
+    from features.private_voice_chat.private_voice import PrivateVoiceManager
+
+    repository = MagicMock()
+    repository.load_triggers.return_value = {10: 20}
+    repository.save.side_effect = RuntimeError("database unavailable")
+    manager = PrivateVoiceManager(MagicMock(), repository=repository)
+
+    with pytest.raises(RuntimeError, match="database unavailable"):
+        manager.save_channel_config(10, 21, 30, {"type": "trigger"})
+
+    assert manager.trigger_channels == {10: 20}
+
+
+def test_manager_updates_trigger_cache_after_persistence_succeeds():
+    from features.private_voice_chat.private_voice import PrivateVoiceManager
+
+    events = []
+    repository = MagicMock()
+    repository.load_triggers.return_value = {10: 20}
+    repository.save.side_effect = lambda *args: events.append("repository")
+    manager = PrivateVoiceManager(MagicMock(), repository=repository)
+
+    class RecordingCache(dict):
+        def __setitem__(self, key, value):
+            events.append("cache")
+            return super().__setitem__(key, value)
+
+    manager.trigger_channels = RecordingCache(manager.trigger_channels)
+    manager.save_channel_config(10, 21, 30, {"type": "trigger"})
+
+    assert events == ["repository", "cache"]
+    assert manager.trigger_channels == {10: 21}
+
+
+async def test_set_private_voice_command_does_not_prewrite_trigger_cache(monkeypatch):
+    from commands.guild_admin import set_private_voice
+
+    class FakeVoiceChannel:
+        id = 20
+        name = "Trigger"
+        mention = "<#20>"
+        category = None
+
+    manager = MagicMock()
+    message = MagicMock()
+    message.content = ">setprivatevoice 20"
+    message.channel_mentions = []
+    message.guild.id = 10
+    message.guild.get_channel.return_value = FakeVoiceChannel()
+    message.author.id = 30
+    message.author.display_avatar = None
+    monkeypatch.setattr(set_private_voice.discord, "VoiceChannel", FakeVoiceChannel)
+    monkeypatch.setattr(set_private_voice, "get_manager", MagicMock(return_value=manager))
+    monkeypatch.setattr(set_private_voice, "get_translation", lambda key, guild_id: key)
+
+    await set_private_voice.setprivatevoice(message, MagicMock())
+
+    manager.set_trigger_channel.assert_not_called()
+    manager.save_channel_config.assert_called_once_with(
+        10,
+        20,
+        30,
+        {"type": "trigger"},
+    )
 
 
 def test_remove_trigger_persists_before_popping_memory_cache():

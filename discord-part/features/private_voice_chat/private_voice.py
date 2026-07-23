@@ -41,9 +41,6 @@ class PrivateVoiceManager:
     def load_trigger_channels_from_db(self):
         self.trigger_channels = self.repository.load_triggers()
 
-    def set_trigger_channel(self, guild_id: int, channel_id: int):
-        self.trigger_channels[guild_id] = channel_id
-
     def remove_trigger_channel(self, guild_id: int) -> None:
         self.repository.remove_trigger(guild_id)
         self.trigger_channels.pop(guild_id, None)
@@ -53,6 +50,8 @@ class PrivateVoiceManager:
 
     def save_channel_config(self, guild_id, channel_id, owner_id, config_dict):
         self.repository.save(guild_id, channel_id, owner_id, config_dict)
+        if config_dict.get("type") == "trigger":
+            self.trigger_channels[guild_id] = channel_id
 
     def get_channel_config(self, channel_id):
         return self.repository.get_config(channel_id)

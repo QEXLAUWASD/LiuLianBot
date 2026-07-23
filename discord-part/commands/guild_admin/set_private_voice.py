@@ -77,11 +77,7 @@ async def setprivatevoice(message, bot):
     if not isinstance(channel, discord.VoiceChannel):
         return get_translation('pv_not_voice_channel', message.guild.id)
     
-    # Set the trigger channel
     manager = get_manager(bot)
-    manager.set_trigger_channel(message.guild.id, channel.id)
-
-    # Save the channel configuration
     manager.save_channel_config(message.guild.id, channel.id, message.author.id, {"type": "trigger"})
     
     # Create success embed
