@@ -6,6 +6,7 @@ Bot 客戶端模組 - 包含 MyClient (discord.py commands.Bot 子類別)。
 
 from datetime import datetime
 from typing import Optional
+from uuid import uuid4
 
 import discord
 from discord import app_commands
@@ -206,14 +207,18 @@ class MyClient(commands.Bot):
             self.logger.info(
                 f"Command '{command_name}' executed successfully"
             )
-        except Exception as e:
+        except Exception:
+            error_id = uuid4().hex[:12]
             self.logger.error(
-                f"Error executing command '{command_name}': {e}",
+                "Command '%s' failed [reference=%s]",
+                command_name,
+                error_id,
                 exc_info=True,
             )
             guild_id = message.guild.id if message.guild else None
+            message = get_translation(
+                "error_executing_command", guild_id
+            ).replace("{error}", "").rstrip(" :：")
             await responder(
-                content=get_translation(
-                    "error_executing_command", guild_id
-                ).replace("{error}", str(e))
+                content=f"{message} (Reference: {error_id})"
             )

@@ -148,7 +148,8 @@ async def update(message, bot):
     await message.channel.send(embed=embed)
 
     # 執行更新
-    success, result_msg = perform_update(
+    success, result_msg = await asyncio.to_thread(
+        perform_update,
         github_repo=github_repo,
         github_token=github_token,
         branch=branch,
