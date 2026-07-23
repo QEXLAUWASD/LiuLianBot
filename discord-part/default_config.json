@@ -9,13 +9,6 @@
         "name": "N/A"
     },
     "token": "your-token-here",
-    "mysql_config": {
-        "host": "localhost",
-        "user": "root",
-        "password": "password",
-        "database": "discordbot",
-        "charset": "utf8mb4"
-    },
     "updater": {
         "github_repo": "owner/repo",
         "branch": "master",

@@ -11,13 +11,10 @@ const {
   normalizeUsername,
   validatePasswordChange,
 } = require('../services/account_validation');
+const { requireApiAuth } = require('../middleware/auth');
+const { revokeOtherUserSessions } = require('../services/session');
 
 const router = express.Router();
-
-function requireAuth(req, res, next) {
-  if (req.session && req.session.user) return next();
-  return res.status(401).json({ error: 'Login required' });
-}
 
 async function verifyCurrentPassword(userId, currentPassword) {
   if (typeof currentPassword !== 'string' || currentPassword.length === 0) {
@@ -31,7 +28,7 @@ async function verifyCurrentPassword(userId, currentPassword) {
   return valid ? user : false;
 }
 
-router.put('/username', requireAuth, async (req, res) => {
+router.put('/username', requireApiAuth, async (req, res, next) => {
   try {
     const username = normalizeUsername(req.body.username);
     const user = await verifyCurrentPassword(
@@ -68,12 +65,11 @@ router.put('/username', requireAuth, async (req, res) => {
     if (err.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ error: 'Username already exists' });
     }
-    console.error('[Auth] Change username error:', err);
-    res.status(500).json({ error: 'Username change failed. Please try again.' });
+    next(err);
   }
 });
 
-router.put('/password', requireAuth, async (req, res) => {
+router.put('/password', requireApiAuth, async (req, res, next) => {
   try {
     const passwords = validatePasswordChange(
       req.body.currentPassword,
@@ -98,13 +94,13 @@ router.put('/password', requireAuth, async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(passwords.newPassword, 10);
     await updatePasswordHash(user.id, hashedPassword);
+    await revokeOtherUserSessions(req, user.id);
     res.json({ success: true });
   } catch (err) {
     if (err instanceof AccountInputError) {
       return res.status(400).json({ error: err.message });
     }
-    console.error('[Auth] Change password error:', err);
-    res.status(500).json({ error: 'Password change failed. Please try again.' });
+    next(err);
   }
 });
 

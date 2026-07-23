@@ -47,12 +47,16 @@ function rewriteLocation(location, targetUrl, slug) {
     const redirected = new URL(location, target);
     if (redirected.origin !== target.origin) return location;
 
-    const basePath = target.pathname.endsWith('/') ? target.pathname : `${target.pathname}/`;
-    const path = redirected.pathname.startsWith(basePath)
-      ? redirected.pathname.slice(basePath.length)
-      : redirected.pathname.replace(/^\//, '');
+    const targetPath = target.pathname.replace(/\/$/, '');
+    const withinTargetPath = !targetPath
+      || redirected.pathname === targetPath
+      || redirected.pathname.startsWith(`${targetPath}/`);
+    if (!withinTargetPath) {
+      return `/connect/${slug}/__upstream_root__${redirected.pathname}${redirected.search}${redirected.hash}`;
+    }
 
-    return `/connect/${slug}/${path}${redirected.search}${redirected.hash}`;
+    const path = redirected.pathname.slice(targetPath.length) || '/';
+    return `/connect/${slug}${path}${redirected.search}${redirected.hash}`;
   } catch (_) {
     return location;
   }

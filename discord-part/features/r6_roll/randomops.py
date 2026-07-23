@@ -1,7 +1,8 @@
-import json
 import os
 import random
 from typing import Dict, Tuple, Optional
+
+from features.r6_roll.data_cache import JsonDataCache
 
 # Resolve shared/ folder at project root (3 levels up from this file)
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -12,11 +13,11 @@ def _operator_file_path() -> str:
 	return os.path.join(_SHARED_R6, "operatorlist.json")
 
 
+OPERATOR_CACHE = JsonDataCache(_operator_file_path())
+
+
 def load_ops() -> Dict[str, Dict[str, dict]]:
-	path = _operator_file_path()
-	with open(path, "r", encoding="utf-8") as f:
-		data = json.load(f)
-	return data
+	return OPERATOR_CACHE.get()
 
 
 def _flatten_ops(data: Dict[str, Dict[str, dict]], side: Optional[str]) -> Tuple[str, dict]:

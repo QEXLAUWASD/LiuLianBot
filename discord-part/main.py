@@ -24,7 +24,8 @@ from core.bot_client import MyClient
 import commands.handler as cmd_handler_mod
 
 # ---- 資料庫 ----
-from utils.database import get_db_conn, ensure_database
+from utils.database import ensure_database
+from utils.migrations import run_migrations
 
 # ---------------------------------------------------------------------------
 # 初始化
@@ -45,23 +46,12 @@ TOKEN = get_bot_token()
 COMMAND_PREFIX = get_command_prefix()
 BOT_OWNER_ID = get_first_owner_id()
 
-# ---------------------------------------------------------------------------
-# 資料庫連線檢查
-# ---------------------------------------------------------------------------
 
-try:
+def initialize_database(logger) -> None:
     ensure_database()
-    conn = get_db_conn()
-    with conn.cursor() as cursor:
-        cursor.execute("SELECT DATABASE()")
-        db_name = cursor.fetchone()[0]
-        logger.info(f"Connected to MySQL database: {db_name}")
-        cursor.execute("SHOW TABLES")
-        tables = cursor.fetchall()
-        logger.info(f"Tables in database '{db_name}': {[t[0] for t in tables]}")
-    conn.close()
-except Exception as e:
-    logger.error(f"MySQL connection failed: {e}")
+    run_migrations()
+    logger.info("MySQL migrations completed")
+
 
 # ---------------------------------------------------------------------------
 # Discord Intents
@@ -90,6 +80,7 @@ bot = MyClient(
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    initialize_database(logger)
     try:
         if TOKEN is None:
             raise ValueError("Bot token is not set in config.json")

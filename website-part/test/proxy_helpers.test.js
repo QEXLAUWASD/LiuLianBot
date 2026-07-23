@@ -50,3 +50,10 @@ test('rewrites same-origin redirects and preserves external redirects', () => {
     'https://accounts.example/login'
   );
 });
+
+test('marks redirects outside the configured target base path', () => {
+  assert.equal(
+    rewriteLocation('/login', 'https://example.test/app/', 'reports'),
+    '/connect/reports/__upstream_root__/login'
+  );
+});

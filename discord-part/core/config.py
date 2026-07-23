@@ -4,9 +4,12 @@
 將 main.py 中的設定載入邏輯抽離至此。
 """
 
+import copy
 import json
-import os
 import logging
+import os
+import tempfile
+from collections.abc import Callable
 from typing import Optional
 
 import utils.logger as logger_util
@@ -54,6 +57,31 @@ def get_config() -> dict:
     if not _config:
         return load_config()
     return _config
+
+
+def update_config(mutator: Callable[[dict], None]) -> dict:
+    """Atomically mutate config.json and replace the in-memory cache."""
+    global _config
+    current = copy.deepcopy(get_config())
+    mutator(current)
+    directory = os.path.dirname(CONFIG_PATH)
+    fd, temp_path = tempfile.mkstemp(
+        prefix="config-",
+        suffix=".tmp",
+        dir=directory,
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(current, stream, indent=2, ensure_ascii=False)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temp_path, CONFIG_PATH)
+    except Exception:
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+        raise
+    _config = current
+    return copy.deepcopy(current)
 
 
 # ---------------------------------------------------------------------------

@@ -3,6 +3,25 @@ from features.private_voice_chat.private_voice import get_manager
 from commands.language_manager import get_translation
 
 
+def _parse_voice_channel_id(raw_value):
+    try:
+        return int(raw_value.strip('<>#'))
+    except ValueError:
+        return None
+
+
+def resolve_voice_channel(message, raw_value):
+    channel_id = _parse_voice_channel_id(raw_value)
+    if channel_id is None:
+        return None
+
+    for mentioned_channel in message.channel_mentions:
+        if mentioned_channel.id == channel_id:
+            return mentioned_channel
+
+    return message.guild.get_channel(channel_id)
+
+
 async def setprivatevoice(message, bot):
     """Set a voice channel as the trigger for creating private channels
     
@@ -56,33 +75,25 @@ async def setprivatevoice(message, bot):
         embed.set_footer(text=get_translation('field_requested_by', gid).replace('{user}', str(message.author)), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
         return embed
     
-    # Try to get channel from mention or ID
-    channel = None
-    
-    # Check for channel mention
-    if message.channel_mentions:
-        return get_translation('pv_provide_voice_only', message.guild.id)
-    
-    # Try to parse as channel ID
-    try:
-        channel_id = int(parts[1].strip('<>#'))
-        channel = message.guild.get_channel(channel_id)
-    except ValueError:
-        return get_translation('pv_invalid_channel_id', message.guild.id)
+    raw_channel = parts[1]
+    channel = resolve_voice_channel(message, raw_channel)
     
     # Validate channel
     if not channel:
+        if _parse_voice_channel_id(raw_channel) is None:
+            return get_translation('pv_invalid_channel_id', message.guild.id)
         return get_translation('pv_channel_not_found', message.guild.id)
     
     if not isinstance(channel, discord.VoiceChannel):
         return get_translation('pv_not_voice_channel', message.guild.id)
     
-    # Set the trigger channel
     manager = get_manager(bot)
-    manager.set_trigger_channel(message.guild.id, channel.id)
-
-    # Save the channel configuration
-    manager.save_channel_config(message.guild.id, channel.id, message.author.id, {"type": "trigger"})
+    await manager.save_channel_config(
+        message.guild.id,
+        channel.id,
+        message.author.id,
+        {"type": "trigger"},
+    )
     
     # Create success embed
     gid = message.guild.id

@@ -52,9 +52,11 @@ class CommandHandler:
                     for name, obj in inspect.getmembers(module):
                         # Only load functions that don't start with _ and are async (command functions)
                         # Also exclude imported functions from other modules
-                        if (inspect.isfunction(obj) and 
-                            not name.startswith('_') and 
-                            obj.__module__ == module.__name__):
+                        if (
+                            inspect.iscoroutinefunction(obj)
+                            and not name.startswith('_')
+                            and obj.__module__ == module.__name__
+                        ):
                             self.commands[name] = obj
                             self.command_types[name] = command_type
                             print(f"Loaded {command_type} command: {name}")

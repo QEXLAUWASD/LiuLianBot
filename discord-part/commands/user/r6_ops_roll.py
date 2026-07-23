@@ -1,5 +1,6 @@
 from features.r6_roll.randomops import random_operator
 from commands.language_manager import get_translation
+from utils.error_reporting import report_exception
 
 async def r6opsroll(message, bot):
 	parts = message.content.split()
@@ -7,8 +8,8 @@ async def r6opsroll(message, bot):
 
 	try:
 		result = random_operator(side_arg)
-	except Exception as exc:  # pragma: no cover - defensive
-		return f"Roll failed: {exc}"
+	except Exception:  # pragma: no cover - defensive
+		return report_exception(bot.logger, "r6opsroll", "Roll failed")
 
 	side_label = "Attacker" if result.get("side") == "Att" else "Defender"
 	lines = [

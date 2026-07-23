@@ -86,7 +86,8 @@ LiuLianBot/
 │   ├── public/                  # 靜態 HTML、CSS 與瀏覽器端 JS
 │   └── src/
 │       ├── server.js            # Express 主入口
-│       ├── db.js                # 資料庫存取
+│       ├── db.js                # 資料庫相容 facade
+│       ├── db/                  # 領域 repositories 同 migrations
 │       ├── middleware/          # 驗證與安全中介層
 │       └── routes/              # HTTP API 路由
 ├── shared/
@@ -116,6 +117,7 @@ chmod +x start.sh
 
 # 3. 設定 Bot
 cp discord-part/default_config.json discord-part/config.json
+cp shared/database/config.example.json shared/database/config.json
 nano discord-part/config.json  # 編輯你嘅設定
 
 # 4. 啟動 Bot
@@ -140,7 +142,8 @@ python discord-part/main.py
 
 ## ⚙️ 設定說明
 
-編輯 `discord-part/config.json`：
+Discord token、指令前綴、擁有者、活動狀態同更新器設定放喺
+`discord-part/config.json`：
 
 ```json
 {
@@ -153,13 +156,6 @@ python discord-part/main.py
         "name": "Rainbow Six Siege"
     },
     "token": "你的Bot Token",
-    "mysql_config": {
-        "host": "localhost",
-        "user": "root",
-        "password": "你的密碼",
-        "database": "discordbot",
-        "charset": "utf8mb4"
-    },
     "updater": {
         "github_repo": "owner/repo",
         "branch": "master",
@@ -176,10 +172,16 @@ python discord-part/main.py
 | `bot_admin` | Bot 管理員嘅 Discord 用戶 ID 陣列 |
 | `activity` | Bot 顯示嘅活動狀態 |
 | `token` | 你嘅 Discord Bot Token |
-| `mysql_config` | MySQL 資料庫連線設定 |
 | `updater.github_repo` | 自動更新用嘅 GitHub Repo（`owner/repo`） |
 | `updater.branch` | 要追蹤嘅 Git 分支（預設：`master`） |
 | `updater.auto_restart` | 更新後自動重啟 Bot |
+
+Discord Bot 同網站共用嘅 MySQL 設定放喺 `shared/database/config.json`。
+先由安全範例建立 runtime 設定，再編輯當中嘅 `mysql` 物件：
+
+```bash
+cp shared/database/config.example.json shared/database/config.json
+```
 
 ---
 
@@ -241,7 +243,7 @@ npm install
 
 # 設定環境變數
 cp .env.example .env
-# 編輯 .env 填入你嘅資料庫同 Session 設定
+# 編輯 .env 填入 Session 同伺服器設定
 
 # 啟動伺服器
 npm run start
@@ -272,6 +274,9 @@ npm run start
 | `bcryptjs` | ^2.4.3 | 密碼雜湊 |
 | `dotenv` | ^16.3.1 | 環境變數 |
 | `mysql2` | ^3.9.0 | MySQL 資料庫驅動 |
+| `http-proxy-middleware` | ^3.0.7 | 已授權網站連線代理 |
+| `express-rate-limit` | ^7.5.1 | 登入及註冊速率限制 |
+| `jsdom` | ^26.1.0 | 前端 DOM 測試（只限開發） |
 
 ---
 

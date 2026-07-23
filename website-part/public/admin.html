@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,33 +7,25 @@
   <link rel="stylesheet" href="/css/style.css?v=20260722-3">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="nav-brand">🎮 LiuLianBot</div>
-    <div class="nav-links">
-      <a href="/index.html" class="nav-link">Home</a>
-      <a href="/roller.html" class="nav-link">R6 Roller</a>
-      <a href="/account.html" class="nav-link">Account</a>
-      <a href="/admin.html" class="nav-link active">Admin</a>
-    </div>
-    <div class="nav-user" id="navUser">
-      <span id="navUsername"></span>
-      <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
-    </div>
-  </nav>
+  <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
 
   <main class="main-content">
-    <div class="admin-container">
+    <div class="admin-container tabs" data-tabs>
       <h2>⚙️ Admin Panel</h2>
 
-      <div class="admin-tabs">
-        <button class="tab-btn active" data-tab="users">👤 Users</button>
-        <button class="tab-btn" data-tab="groups">🔐 Groups</button>
-        <button class="tab-btn" data-tab="guilds">🌐 Discord Guilds</button>
-        <button class="tab-btn" data-tab="connections">🔗 Website Access</button>
+      <div class="tab-list" role="tablist" aria-label="Administration sections">
+        <button id="users-tab" class="tab active" type="button" role="tab" data-tab="users"
+          aria-controls="usersTab" aria-selected="true" tabindex="0">👤 Users</button>
+        <button id="groups-tab" class="tab" type="button" role="tab" data-tab="groups"
+          aria-controls="groupsTab" aria-selected="false" tabindex="-1">🔐 Groups</button>
+        <button id="guilds-tab" class="tab" type="button" role="tab" data-tab="guilds"
+          aria-controls="guildsTab" aria-selected="false" tabindex="-1">🌐 Discord Guilds</button>
+        <button id="connections-tab" class="tab" type="button" role="tab" data-tab="connections"
+          aria-controls="connectionsTab" aria-selected="false" tabindex="-1">🔗 Website Access</button>
       </div>
 
       <!-- ============ Users Tab ============ -->
-      <div id="usersTab" class="admin-tab active">
+      <div id="usersTab" class="tab-panel active" role="tabpanel" aria-labelledby="users-tab">
         <div class="admin-table-wrapper">
           <table class="admin-table">
             <thead>
@@ -52,7 +44,7 @@
       </div>
 
       <!-- ============ Groups Tab ============ -->
-      <div id="groupsTab" class="admin-tab">
+      <div id="groupsTab" class="tab-panel" role="tabpanel" aria-labelledby="groups-tab" hidden>
         <div class="admin-toolbar">
           <button id="createGroupBtn" class="btn btn-primary">+ Create Group</button>
         </div>
@@ -74,7 +66,7 @@
       </div>
 
       <!-- ============ Website Connections Tab ============ -->
-      <div id="connectionsTab" class="admin-tab">
+      <div id="connectionsTab" class="tab-panel" role="tabpanel" aria-labelledby="connections-tab" hidden>
         <div class="admin-toolbar">
           <button id="createConnectionBtn" class="btn btn-primary">+ Add Website</button>
         </div>
@@ -97,7 +89,7 @@
       </div>
 
       <!-- ============ Guilds Tab ============ -->
-      <div id="guildsTab" class="admin-tab">
+      <div id="guildsTab" class="tab-panel" role="tabpanel" aria-labelledby="guilds-tab" hidden>
         <div class="admin-table-wrapper">
           <table class="admin-table">
             <thead>
@@ -122,11 +114,12 @@
   </main>
 
   <!-- ===== User Edit Modal ===== -->
-  <div id="userEditModal" class="modal-overlay" style="display:none;">
+  <div id="userEditModal" class="modal-overlay" role="dialog" aria-modal="true"
+    aria-labelledby="userEditModalTitle" hidden>
     <div class="modal">
       <div class="modal-header">
-        <h3>Edit User Groups</h3>
-        <button class="modal-close" onclick="closeModal('userEditModal')">&times;</button>
+        <h3 id="userEditModalTitle">Edit User Groups</h3>
+        <button class="modal-close" type="button" data-dialog-close title="Close">&times;</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -140,18 +133,19 @@
         <div class="error-msg" id="userEditError"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline" onclick="closeModal('userEditModal')">Cancel</button>
+        <button class="btn btn-outline" type="button" data-dialog-close>Cancel</button>
         <button class="btn btn-primary" id="saveUserGroupsBtn">Save</button>
       </div>
     </div>
   </div>
 
   <!-- ===== Group Create/Edit Modal ===== -->
-  <div id="groupEditModal" class="modal-overlay" style="display:none;">
+  <div id="groupEditModal" class="modal-overlay" role="dialog" aria-modal="true"
+    aria-labelledby="groupModalTitle" hidden>
     <div class="modal">
       <div class="modal-header">
         <h3 id="groupModalTitle">Create Group</h3>
-        <button class="modal-close" onclick="closeModal('groupEditModal')">&times;</button>
+        <button class="modal-close" type="button" data-dialog-close title="Close">&times;</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="editGroupId">
@@ -166,18 +160,19 @@
         <div class="error-msg" id="groupEditError"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline" onclick="closeModal('groupEditModal')">Cancel</button>
+        <button class="btn btn-outline" type="button" data-dialog-close>Cancel</button>
         <button class="btn btn-primary" id="saveGroupBtn">Save</button>
       </div>
     </div>
   </div>
 
   <!-- ===== Website Connection Modal ===== -->
-  <div id="connectionEditModal" class="modal-overlay" style="display:none;">
+  <div id="connectionEditModal" class="modal-overlay" role="dialog" aria-modal="true"
+    aria-labelledby="connectionModalTitle" hidden>
     <div class="modal connection-modal">
       <div class="modal-header">
         <h3 id="connectionModalTitle">Add Website</h3>
-        <button class="modal-close" type="button" title="Close" onclick="closeModal('connectionEditModal')">&times;</button>
+        <button class="modal-close" type="button" title="Close" data-dialog-close>&times;</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="editConnectionId">
@@ -216,39 +211,41 @@
         <div class="error-msg" id="connectionEditError"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline" type="button" onclick="closeModal('connectionEditModal')">Cancel</button>
+        <button class="btn btn-outline" type="button" data-dialog-close>Cancel</button>
         <button class="btn btn-primary" type="button" id="saveConnectionBtn">Save</button>
       </div>
     </div>
   </div>
 
   <!-- ===== Guild Detail Modal ===== -->
-  <div id="guildDetailModal" class="modal-overlay" style="display:none;">
+  <div id="guildDetailModal" class="modal-overlay" role="dialog" aria-modal="true"
+    aria-labelledby="guildDetailModalTitle" hidden>
     <div class="modal" style="max-width:600px;">
       <div class="modal-header">
-        <h3>Guild Details</h3>
-        <button class="modal-close" onclick="closeModal('guildDetailModal')">&times;</button>
+        <h3 id="guildDetailModalTitle">Guild Details</h3>
+        <button class="modal-close" type="button" data-dialog-close title="Close">&times;</button>
       </div>
       <div class="modal-body" id="guildDetailContent"></div>
       <div class="modal-footer">
-        <button class="btn btn-outline" onclick="closeModal('guildDetailModal')">Close</button>
+        <button class="btn btn-outline" type="button" data-dialog-close>Close</button>
       </div>
     </div>
   </div>
 
   <!-- ===== Confirm Delete Dialog ===== -->
-  <div id="confirmDialog" class="confirm-overlay" style="display:none;">
+  <div id="confirmDialog" class="confirm-overlay" role="dialog" aria-modal="true"
+    aria-labelledby="confirmTitle" hidden>
     <div class="confirm-box">
       <h3 id="confirmTitle">Confirm Delete</h3>
       <p id="confirmMsg">Are you sure?</p>
       <div class="btn-group">
-        <button class="btn btn-outline" onclick="closeConfirm()">Cancel</button>
+        <button class="btn btn-outline" type="button" data-dialog-close>Cancel</button>
         <button class="btn btn-danger" id="confirmOkBtn">Delete</button>
       </div>
     </div>
   </div>
 
-  <script src="/js/app.js?v=20260722-3"></script>
-  <script src="/js/admin.js?v=20260722-3"></script>
+  <script type="module" src="/js/app.mjs"></script>
+  <script type="module" src="/js/admin.mjs?v=20260723-1"></script>
 </body>
 </html>

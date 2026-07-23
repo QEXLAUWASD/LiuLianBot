@@ -15,6 +15,24 @@ test('extracts the connection slug and upstream WebSocket path', () => {
   assert.equal(connectionProxy.websocketRequest({ url: '/socket.io/' }), null);
 });
 
+test('maps upstream-root markers without mutating the configured connection', () => {
+  const configured = {
+    id: 1,
+    target_url: 'https://internal.example/app/',
+  };
+  const req = {
+    url: '/__upstream_root__/socket.io/?EIO=4',
+    connectionTarget: configured,
+  };
+
+  connectionProxy.applyUpstreamRootPath(req);
+
+  assert.equal(req.url, '/socket.io/?EIO=4');
+  assert.equal(req.connectionTarget.target_url, 'https://internal.example');
+  assert.notEqual(req.connectionTarget, configured);
+  assert.equal(configured.target_url, 'https://internal.example/app/');
+});
+
 test('rejects a WebSocket upgrade without a signed session cookie', async () => {
   const server = http.createServer();
   connectionProxy.attachWebSocketServer(server, {

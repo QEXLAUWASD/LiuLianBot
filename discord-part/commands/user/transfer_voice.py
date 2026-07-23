@@ -1,6 +1,38 @@
 import discord
 from features.private_voice_chat.private_voice import get_manager
 from commands.language_manager import get_translation
+from utils.error_reporting import report_exception
+
+
+async def _compensate_permissions(
+    channel,
+    previous_owner,
+    previous_overwrite,
+    new_owner,
+    new_owner_overwrite,
+    logger,
+):
+    try:
+        await channel.set_permissions(
+            previous_owner,
+            overwrite=previous_overwrite,
+        )
+    except Exception:
+        logger.error(
+            "Private voice permission compensation failed for previous owner",
+            exc_info=True,
+        )
+
+    try:
+        await channel.set_permissions(
+            new_owner,
+            overwrite=new_owner_overwrite,
+        )
+    except Exception:
+        logger.error(
+            "Private voice permission compensation failed for new owner",
+            exc_info=True,
+        )
 
 
 async def transfervoice(message, bot):
@@ -33,7 +65,7 @@ async def transfervoice(message, bot):
 
     manager = get_manager(bot)
 
-    channel_id = manager.user_channels.get(message.author.id)
+    channel_id = manager.get_user_channel(gid, message.author.id)
     if channel_id is None or channel_id not in manager.private_channels:
         return get_translation('transfervoice_no_channel', gid)
 
@@ -51,6 +83,9 @@ async def transfervoice(message, bot):
             .replace('{channel}', channel.name)
 
     try:
+        overwrites = channel.overwrites
+        previous_overwrite = overwrites.get(message.author)
+        new_owner_overwrite = overwrites.get(target)
         # Revoke management perms from old owner, grant to new owner
         await channel.set_permissions(
             message.author,
@@ -61,18 +96,27 @@ async def transfervoice(message, bot):
             mute_members=False,
             deafen_members=False,
         )
-        await channel.set_permissions(
-            target,
-            connect=True,
-            speak=True,
-            manage_channels=True,
-            move_members=True,
-            mute_members=True,
-            deafen_members=True,
-        )
-
-        # Update tracking and DB atomically via manager method
-        manager.transfer_channel_owner(channel_id, target.id)
+        try:
+            await channel.set_permissions(
+                target,
+                connect=True,
+                speak=True,
+                manage_channels=True,
+                move_members=True,
+                mute_members=True,
+                deafen_members=True,
+            )
+            await manager.transfer_channel_owner(gid, channel_id, target.id)
+        except Exception:
+            await _compensate_permissions(
+                channel,
+                message.author,
+                previous_overwrite,
+                target,
+                new_owner_overwrite,
+                bot.logger,
+            )
+            raise
 
         return get_translation('transfervoice_success', gid) \
             .replace('{user}', target.display_name) \
@@ -80,5 +124,9 @@ async def transfervoice(message, bot):
 
     except discord.Forbidden:
         return get_translation('transfervoice_forbidden', gid)
-    except Exception as e:
-        return get_translation('error_executing_command', gid).replace('{error}', str(e))
+    except Exception:
+        return report_exception(
+            bot.logger,
+            "transfervoice",
+            get_translation('error_executing_command', gid),
+        )

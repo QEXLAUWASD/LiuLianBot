@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,31 +7,21 @@
   <link rel="stylesheet" href="/css/style.css?v=20260722-3">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="nav-brand">🎮 LiuLianBot</div>
-    <div class="nav-links">
-      <a href="/index.html" class="nav-link">Home</a>
-      <a href="/roller.html" class="nav-link active">R6 Roller</a>
-      <a href="/account.html" class="nav-link">Account</a>
-      <a href="/admin.html" class="nav-link admin-only" style="display:none;">Admin</a>
-    </div>
-    <div class="nav-user" id="navUser">
-      <span id="navUsername"></span>
-      <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
-    </div>
-  </nav>
+  <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
 
   <main class="main-content">
-    <div class="roller-container">
+    <div class="roller-container tabs" data-tabs>
       <h2>🎲 R6 Roller</h2>
 
-      <div class="roller-tabs">
-        <button class="tab-btn active" data-tab="operator">Operator Roll</button>
-        <button class="tab-btn" data-tab="map">Map Roll</button>
+      <div class="tab-list" role="tablist" aria-label="Roll type">
+        <button id="operator-tab" class="tab active" type="button" role="tab" data-tab="operator"
+          aria-controls="operatorTab" aria-selected="true" tabindex="0">Operator Roll</button>
+        <button id="map-tab" class="tab" type="button" role="tab" data-tab="map"
+          aria-controls="mapTab" aria-selected="false" tabindex="-1">Map Roll</button>
       </div>
 
       <!-- Operator Roller -->
-      <div id="operatorTab" class="roller-tab active">
+      <div id="operatorTab" class="tab-panel active" role="tabpanel" aria-labelledby="operator-tab">
         <div class="roller-controls">
           <label>
             <input type="radio" name="opSide" value="" checked> Both Sides
@@ -45,7 +35,7 @@
           <button id="rollOpBtn" class="btn btn-primary btn-roll">🎯 Roll Operator</button>
         </div>
 
-        <div id="opResult" class="roll-result">
+        <div id="opResult" class="roll-result" role="status" aria-live="polite">
           <div class="result-placeholder">
             <p>Click "Roll Operator" to get started!</p>
           </div>
@@ -58,12 +48,12 @@
       </div>
 
       <!-- Map Roller -->
-      <div id="mapTab" class="roller-tab">
+      <div id="mapTab" class="tab-panel" role="tabpanel" aria-labelledby="map-tab" hidden>
         <div class="roller-controls">
           <button id="rollMapBtn" class="btn btn-primary btn-roll">🗺️ Roll Map</button>
         </div>
 
-        <div id="mapResult" class="roll-result">
+        <div id="mapResult" class="roll-result" role="status" aria-live="polite">
           <div class="result-placeholder">
             <p>Click "Roll Map" to get started!</p>
           </div>
@@ -77,7 +67,7 @@
     </div>
   </main>
 
-  <script src="/js/app.js?v=20260722-3"></script>
-  <script src="/js/roller.js"></script>
+  <script type="module" src="/js/app.mjs"></script>
+  <script type="module" src="/js/roller.mjs"></script>
 </body>
 </html>

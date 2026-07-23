@@ -6,12 +6,13 @@ Bot 客戶端模組 - 包含 MyClient (discord.py commands.Bot 子類別)。
 
 from datetime import datetime
 from typing import Optional
+from uuid import uuid4
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from commands.language_manager import get_translation
+from commands.language_manager import get_translation, resolve_command_description
 from features.private_voice_chat.private_voice import get_manager
 from features.server_logger import register_handlers
 from core.slash_adapter import (
@@ -56,7 +57,12 @@ class MyClient(commands.Bot):
 
         # 為每個已載入的指令註冊 slash command
         for cmd_name, info in self._cmd_handler.list_commands_info().items():
-            desc = (info.get("doc") or f"Run {cmd_name}")[:99]
+            desc = resolve_command_description(
+                cmd_name,
+                guild_id=None,
+                command_func=info.get("callable"),
+                fallback_doc=info.get("doc"),
+            )[:100]
             option_specs = arg_specs.get(cmd_name) or []
 
             if option_specs:
@@ -76,7 +82,7 @@ class MyClient(commands.Bot):
 
             command = app_commands.Command(
                 name=cmd_name,
-                description=desc or "Run command",
+                description=desc,
                 callback=wrapper,
             )
             try:
@@ -97,6 +103,7 @@ class MyClient(commands.Bot):
         """Bot 就緒時初始化私人語音管理員與狀態。"""
         self.start_time = datetime.now()
         self.private_voice_manager = get_manager(self)
+        await self.private_voice_manager.initialize()
         self.private_voice_manager.start_cleanup_task()
         self.logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
         self.logger.info("------")
@@ -206,14 +213,18 @@ class MyClient(commands.Bot):
             self.logger.info(
                 f"Command '{command_name}' executed successfully"
             )
-        except Exception as e:
+        except Exception:
+            error_id = uuid4().hex[:12]
             self.logger.error(
-                f"Error executing command '{command_name}': {e}",
+                "Command '%s' failed [reference=%s]",
+                command_name,
+                error_id,
                 exc_info=True,
             )
             guild_id = message.guild.id if message.guild else None
+            message = get_translation(
+                "error_executing_command", guild_id
+            ).replace("{error}", "").rstrip(" :：")
             await responder(
-                content=get_translation(
-                    "error_executing_command", guild_id
-                ).replace("{error}", str(e))
+                content=f"{message} (Reference: {error_id})"
             )

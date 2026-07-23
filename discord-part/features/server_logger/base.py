@@ -18,6 +18,7 @@ from typing import Optional
 from commands.language_manager import get_translation
 import utils.logger as log_helper
 from utils.database import get_db_conn
+from utils.async_io import run_blocking
 
 
 # ---------------------------------------------------------------------------
@@ -38,10 +39,6 @@ def init_log_channel_table() -> None:
         conn.commit()
     finally:
         conn.close()
-
-
-# Initialise on module load
-init_log_channel_table()
 
 # ---------------------------------------------------------------------------
 # Logger
@@ -203,7 +200,7 @@ class LogBatcher:
         if not embeds:
             return
 
-        log_channel_id = get_log_channel(guild.id)
+        log_channel_id = await run_blocking(get_log_channel, guild.id)
         if not log_channel_id:
             return
 
@@ -245,7 +242,7 @@ async def _send_log_embed(
 
     Returns ``True`` if the log channel is configured, ``False`` otherwise.
     """
-    log_channel_id = get_log_channel(guild.id)
+    log_channel_id = await run_blocking(get_log_channel, guild.id)
     if not log_channel_id:
         return False
 
@@ -270,4 +267,4 @@ def _set_footer_id(embed: discord.Embed, member: discord.Member | discord.User) 
 
 
 def _now() -> datetime:
-    return datetime.now()
+    return discord.utils.utcnow()

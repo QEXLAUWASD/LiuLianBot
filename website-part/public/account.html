@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,16 +7,7 @@
   <link rel="stylesheet" href="/css/style.css?v=20260722-3">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="nav-brand">🎮 LiuLianBot</div>
-    <div class="nav-links">
-      <a href="/index.html" class="nav-link">Home</a>
-      <a href="/roller.html" class="nav-link">R6 Roller</a>
-      <a href="/account.html" class="nav-link active">Account</a>
-      <a href="/admin.html" class="nav-link admin-only" style="display:none;">Admin</a>
-    </div>
-    <div class="nav-user" id="navUser"></div>
-  </nav>
+  <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
 
   <main class="main-content">
     <div class="account-container">
@@ -36,7 +27,7 @@
               <input type="password" id="usernameCurrentPassword" required autocomplete="current-password">
             </div>
             <div class="status-msg" id="usernameStatus" aria-live="polite"></div>
-            <button type="submit" class="btn btn-primary">Save username</button>
+            <button type="submit" class="btn btn-primary" disabled aria-busy="true">Save username</button>
           </form>
         </section>
 
@@ -56,14 +47,14 @@
               <input type="password" id="confirmPassword" required minlength="6" maxlength="128" autocomplete="new-password">
             </div>
             <div class="status-msg" id="passwordStatus" aria-live="polite"></div>
-            <button type="submit" class="btn btn-primary">Save password</button>
+            <button type="submit" class="btn btn-primary" disabled aria-busy="true">Save password</button>
           </form>
         </section>
       </div>
     </div>
   </main>
 
-  <script src="/js/app.js?v=20260722-3"></script>
-  <script src="/js/account.js?v=20260722-1"></script>
+  <script type="module" src="/js/app.mjs"></script>
+  <script type="module" src="/js/account.mjs"></script>
 </body>
 </html>

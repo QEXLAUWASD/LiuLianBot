@@ -1,6 +1,7 @@
-from features.message_logger.modify import set_log_channel
+from features.server_logger.base import set_log_channel
 import discord
 from commands.language_manager import get_translation
+from utils.async_io import run_blocking
 
 
 async def setlogchannel(message, bot):
@@ -31,7 +32,7 @@ async def setlogchannel(message, bot):
             if not isinstance(channel, (discord.TextChannel, discord.Thread)):
                  return get_translation("setlogchannel_not_text", message.guild.id)
 
-            set_log_channel(message.guild.id, channel_id)
+            await run_blocking(set_log_channel, message.guild.id, channel_id)
             return get_translation("setlogchannel_success", message.guild.id).replace("{channel}", channel.mention)
         else:
             return get_translation("setlogchannel_channel_not_found", message.guild.id)

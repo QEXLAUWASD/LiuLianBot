@@ -3,6 +3,7 @@ import discord
 from features.r6_roll.roller_channel import get_roller_channel, get_roller_dm_result
 from commands.language_manager import get_translation
 from commands.roller_service import send_roller_prompt, roll_operator_text, roll_map_text
+from utils.async_io import run_blocking
 
 async def roller(message, bot) -> str | None:
 	"""Send buttons to choose what to roll (operator or map) in-channel."""
@@ -30,7 +31,7 @@ async def roller(message, bot) -> str | None:
 	# - send the UI message in that channel
 	# - send roll results via DM when buttons are clicked
 	if message.guild:
-		roller_channel_id = get_roller_channel(message.guild.id)
+		roller_channel_id = await run_blocking(get_roller_channel, message.guild.id)
 		if roller_channel_id:
 			if getattr(message.channel, "id", None) != roller_channel_id:
 				ch = message.guild.get_channel(roller_channel_id)
@@ -39,7 +40,7 @@ async def roller(message, bot) -> str | None:
 
 			# Post the roller message in the configured channel.
 			# The interaction result will be DM'd to the clicking user.
-			dm_result = get_roller_dm_result(message.guild.id)
+			dm_result = await run_blocking(get_roller_dm_result, message.guild.id)
 			await send_roller_prompt(message.channel, guild_id, dm_result=dm_result)
 			return None
 

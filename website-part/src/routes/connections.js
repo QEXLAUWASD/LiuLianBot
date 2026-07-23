@@ -1,14 +1,10 @@
 const express = require('express');
 const { getAccessibleConnections } = require('../db');
+const { requireApiAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.use((req, res, next) => {
-  if (!req.session || !req.session.user) {
-    return res.status(401).json({ error: 'Please login first' });
-  }
-  return next();
-});
+router.use(requireApiAuth);
 
 router.get('/', async (req, res) => {
   try {

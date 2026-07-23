@@ -1,90 +1,57 @@
-const express = require('express');
-const session = require('express-session');
-const path = require('path');
 require('dotenv').config();
 
-const { sqlInjectionGuard } = require('./middleware/security');
-const { requireAdmin } = require('./middleware/admin_auth');
-const authRoutes = require('./routes/auth');
-const rollerRoutes = require('./routes/roller');
-const adminRoutes = require('./routes/admin');
-const adminConnectionRoutes = require('./routes/admin_connections');
-const connectionRoutes = require('./routes/connections');
-const connectionProxy = require('./routes/connection_proxy');
+const { createApp } = require('./app');
+const { buildSessionOptions } = require('./config/session');
+const { getPool } = require('./db');
 const { MySqlSessionStore } = require('./session_store');
 
-const app = express();
 const PORT = process.env.PORT || 3000;
-const PUBLIC_DIR = path.join(__dirname, '..', 'public');
-const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
-const SESSION_SECRET = process.env.SESSION_SECRET || 'liulianbot-secret-key-change-in-production';
-const sessionStore = new MySqlSessionStore();
 
-app.use(session({
-  store: sessionStore,
-  name: SESSION_COOKIE_NAME,
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    sameSite: 'strict',
-    secure: false,
-  },
-}));
+async function startServer() {
+  await getPool();
+  const auth = require('./routes/auth');
+  const roller = require('./routes/roller');
+  const admin = require('./routes/admin');
+  const adminConnections = require('./routes/admin_connections');
+  const connections = require('./routes/connections');
+  const connectionProxy = require('./routes/connection_proxy');
+  const sessionStore = new MySqlSessionStore();
+  const sessionOptions = buildSessionOptions(process.env, sessionStore);
+  const app = createApp({
+    sessionOptions,
+    routers: {
+      auth,
+      roller,
+      admin,
+      adminConnections,
+      connections,
+      connectionProxy,
+    },
+  });
+  const server = app.listen(PORT);
+  await new Promise((resolve, reject) => {
+    server.once('listening', resolve);
+    server.once('error', reject);
+  });
+  console.log(`LiuLianBot Website running at http://localhost:${PORT}`);
 
-app.use('/api', express.json({ limit: '16kb' }));
-app.use('/api', express.urlencoded({ extended: false, limit: '16kb' }));
-app.use('/api/admin/connections', adminConnectionRoutes);
-app.use('/api', sqlInjectionGuard);
+  connectionProxy.attachWebSocketServer(server, {
+    sessionStore,
+    sessionCookieName: sessionOptions.name,
+    sessionSecret: sessionOptions.secret,
+  });
+  sessionStore.startCleanup();
+  server.once('close', () => sessionStore.stopCleanup());
+  server.once('error', () => sessionStore.stopCleanup());
 
-app.use('/api/auth', authRoutes);
-app.use('/api/roller', rollerRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/connections', connectionRoutes);
-
-function requireAuth(req, res, next) {
-  if (req.session.user) return next();
-  return res.redirect('/login.html');
+  return server;
 }
 
-app.get('/roller.html', (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'roller.html'));
-});
+if (require.main === module) {
+  startServer().catch(err => {
+    console.error('[Server] Startup failed:', err);
+    process.exitCode = 1;
+  });
+}
 
-app.get('/index.html', requireAuth, (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
-});
-
-app.get('/account.html', requireAuth, (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'account.html'));
-});
-
-app.get('/admin.html', requireAuth, requireAdmin, (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
-});
-
-app.use('/connect/:slug', connectionProxy);
-app.use(express.static(PUBLIC_DIR, { index: false }));
-
-app.get('/', (req, res) => {
-  if (req.session.user) {
-    res.redirect('/index.html');
-  } else {
-    res.redirect('/login.html');
-  }
-});
-
-app.use((req, res) => {
-  res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
-});
-
-const server = app.listen(PORT, () => {
-  console.log(`LiuLianBot Website running at http://localhost:${PORT}`);
-});
-
-connectionProxy.attachWebSocketServer(server, {
-  sessionStore,
-  sessionCookieName: SESSION_COOKIE_NAME,
-  sessionSecret: SESSION_SECRET,
-});
+module.exports = { startServer };

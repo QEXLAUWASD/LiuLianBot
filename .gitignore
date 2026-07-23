@@ -218,3 +218,4 @@ AGENTS.md
 config.json
 node_modules/
 .env
+.worktrees/

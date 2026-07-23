@@ -4,8 +4,8 @@
 支援：
 - 公開儲存庫（無需 token）
 - 私人儲存庫（使用 GitHub Personal Access Token 驗證）
-- git pull 更新
-- 更新後重新載入 Python 模組
+- 安全的 fast-forward 更新
+- 更新後重新啟動 bot 套用變更
 
 設定 (config.json):
     # 公開 repo（僅需 github_repo）:
@@ -24,15 +24,49 @@
     }
 """
 
+import base64
+import ipaddress
+import logging
+import os
+import re
 import subprocess
 import sys
-import os
-import importlib
-import logging
-from typing import Optional, Tuple
+import threading
 from pathlib import Path
+from typing import Optional, Tuple
+from urllib.parse import urlsplit
 
 logger = logging.getLogger(__name__)
+UPDATE_BUSY_MESSAGE = "❌ 更新正在進行中，請稍後再試。"
+RESTART_REQUIRED_MESSAGE = "✅ 檔案已更新；必須重啟 bot 才能套用變更。"
+AUTO_RESTART_MESSAGE = "♻️ auto_restart 已啟用，bot 程序將自動重啟..."
+
+if "_update_lock" not in globals():
+    _update_lock = threading.Lock()
+
+
+class _UpdateLease:
+    """Own one update slot and release it at most once."""
+
+    def __init__(self, update_lock):
+        self._update_lock = update_lock
+        self._release_lock = threading.Lock()
+        self._released = False
+
+    def release(self) -> None:
+        with self._release_lock:
+            if self._released:
+                return
+            self._released = True
+            self._update_lock.release()
+
+
+def begin_update() -> Optional[_UpdateLease]:
+    """Non-blockingly acquire the process-wide update lease."""
+    update_lock = _update_lock
+    if not update_lock.acquire(blocking=False):
+        return None
+    return _UpdateLease(update_lock)
 
 
 # ---------------------------------------------------------------------------
@@ -51,12 +85,17 @@ def _get_repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def _run_git(args: list[str], cwd: Path | None = None) -> Tuple[int, str, str]:
+def _run_git(
+    args: list[str],
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> Tuple[int, str, str]:
     """執行 git 指令並回傳 (returncode, stdout, stderr)。
 
     Args:
         args: git 指令參數列表（不含 "git"）
         cwd: 工作目錄，預設為 repo root
+        env: 僅傳給此 Git 子程序的環境變數覆寫
 
     Returns:
         (returncode, stdout, stderr)
@@ -65,6 +104,11 @@ def _run_git(args: list[str], cwd: Path | None = None) -> Tuple[int, str, str]:
         cwd = _get_repo_root()
 
     cmd = ["git"] + args
+    child_env = None
+    if env is not None:
+        child_env = os.environ.copy()
+        child_env.update(env)
+
     try:
         proc = subprocess.run(
             cmd,
@@ -72,6 +116,7 @@ def _run_git(args: list[str], cwd: Path | None = None) -> Tuple[int, str, str]:
             capture_output=True,
             text=True,
             timeout=120,
+            env=child_env,
         )
         return proc.returncode, proc.stdout.strip(), proc.stderr.strip()
     except subprocess.TimeoutExpired:
@@ -80,6 +125,153 @@ def _run_git(args: list[str], cwd: Path | None = None) -> Tuple[int, str, str]:
         return -1, "", "git 指令不存在，請確認已安裝 Git 並加入 PATH"
     except Exception as e:
         return -1, "", str(e)
+
+
+def _fetch_args(branch: str) -> list[str]:
+    """建立會同步 origin remote-tracking ref 的 fetch 參數。"""
+    refspec = f"+refs/heads/{branch}:refs/remotes/origin/{branch}"
+    return ["fetch", "origin", refspec]
+
+
+def _fetch_env(token: str) -> dict[str, str] | None:
+    """建立只供單次 authenticated fetch 使用的 Git 設定環境。"""
+    if not token:
+        return None
+
+    credential = base64.b64encode(f"x-access-token:{token}".encode()).decode("ascii")
+    return {
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": "http.extraHeader",
+        "GIT_CONFIG_VALUE_0": f"Authorization: Basic {credential}",
+    }
+
+
+def _redact_git_output(output: str, token: str) -> str:
+    """避免 Git 錯誤輸出洩漏 token 或其 Basic auth credential。"""
+    if not token:
+        return output
+
+    credential = base64.b64encode(f"x-access-token:{token}".encode()).decode("ascii")
+    return output.replace(token, "***").replace(credential, "***")
+
+
+def _origin_host_is_valid(hostname: str | None) -> bool:
+    if not hostname or len(hostname) > 253:
+        return False
+
+    if ":" in hostname or re.fullmatch(r"[0-9.]+", hostname):
+        try:
+            ipaddress.ip_address(hostname)
+            return True
+        except ValueError:
+            return False
+
+    labels = hostname.rstrip(".").split(".")
+    return all(
+        re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
+        for label in labels
+    )
+
+
+def _origin_repo_path_is_valid(path: str) -> bool:
+    if not path.startswith("/"):
+        return False
+    segments = path[1:].split("/")
+    return bool(segments) and all(
+        segment not in {"", ".", ".."}
+        and re.fullmatch(r"(?:[A-Za-z0-9._~+-]|%[0-9A-Fa-f]{2})+", segment)
+        for segment in segments
+    )
+
+
+def _origin_local_path_is_valid(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    if normalized.startswith("//"):
+        return False
+
+    is_windows_absolute = bool(re.match(r"^[A-Za-z]:/", normalized))
+    is_posix_absolute = normalized.startswith("/")
+    if is_windows_absolute:
+        normalized = normalized[3:]
+    elif is_posix_absolute:
+        normalized = normalized[1:]
+    elif "@" in normalized or ":" in normalized:
+        return False
+
+    parts = normalized.split("/")
+    while parts and parts[0] in {".", ".."}:
+        parts.pop(0)
+    return bool(parts) and all(
+        part not in {"", ".", ".."}
+        and re.fullmatch(r"[A-Za-z0-9._ -]+", part)
+        for part in parts
+    )
+
+
+def _origin_url_can_be_restored(origin_url: str) -> bool:
+    """只允許結構完整且不含 credentials 的 origin 被寫回。"""
+    if (
+        not origin_url
+        or origin_url != origin_url.strip()
+        or any(ord(character) < 32 or ord(character) == 127 for character in origin_url)
+        or origin_url.startswith("//")
+    ):
+        return False
+
+    scp_match = re.fullmatch(r"git@([^:/@\s]+):([^:@\s]+)", origin_url)
+    if scp_match:
+        hostname, path = scp_match.groups()
+        return _origin_host_is_valid(hostname) and _origin_repo_path_is_valid(f"/{path}")
+
+    if re.match(r"^[A-Za-z]:[\\/]", origin_url):
+        return _origin_local_path_is_valid(origin_url)
+
+    try:
+        parsed = urlsplit(origin_url)
+        port = parsed.port
+    except ValueError:
+        return False
+
+    scheme = parsed.scheme.lower()
+    if scheme in {"git", "http", "https", "ssh"}:
+        return (
+            parsed.username is None
+            and parsed.password is None
+            and not parsed.netloc.endswith(":")
+            and _origin_host_is_valid(parsed.hostname)
+            and (port is None or port > 0)
+            and _origin_repo_path_is_valid(parsed.path)
+            and not parsed.query
+            and not parsed.fragment
+        )
+    if scheme == "file":
+        return (
+            parsed.username is None
+            and parsed.password is None
+            and not parsed.netloc.endswith(":")
+            and parsed.hostname in {None, "", "localhost"}
+            and port is None
+            and _origin_repo_path_is_valid(parsed.path)
+            and not parsed.query
+            and not parsed.fragment
+        )
+    if scheme:
+        return False
+
+    return _origin_local_path_is_valid(origin_url)
+
+
+def _restore_origin(repo_root: Path, original_url: str) -> str:
+    """在 URL 安全時 best-effort 還原 origin，並只回傳固定安全說明。"""
+    if not _origin_url_can_be_restored(original_url):
+        return ""
+
+    rc, _, _ = _run_git(
+        ["remote", "set-url", "origin", original_url], cwd=repo_root
+    )
+    if rc != 0:
+        return "\n原 origin 還原失敗，已保留公開 origin 設定"
+    return ""
 
 
 def get_current_branch() -> Optional[str]:
@@ -121,13 +313,21 @@ def fetch_and_pull(
     if not (repo_root / ".git").exists():
         return False, "目前目錄不是 git 儲存庫"
 
-    # 建構 remote URL（有 token 用私人驗證，無 token 用公開 URL）
-    if github_token:
-        remote_url = f"https://{github_token}@github.com/{github_repo}.git"
-        display_url = f"https://***@github.com/{github_repo}.git"
-    else:
-        remote_url = f"https://github.com/{github_repo}.git"
-        display_url = remote_url
+    # 更新前先拒絕未提交內容，避免自動更新覆蓋本地工作。
+    rc, stdout, stderr = _run_git(["status", "--porcelain"], cwd=repo_root)
+    if rc != 0:
+        detail = _redact_git_output(stderr, github_token)
+        return False, f"檢查工作目錄狀態失敗: {detail}"
+    if stdout:
+        return False, "偵測到未提交的變更，已停止更新；請先提交或自行處理變更"
+
+    rc, original_url, _ = _run_git(
+        ["remote", "get-url", "origin"], cwd=repo_root
+    )
+    if rc != 0 or not original_url:
+        return False, "讀取 origin URL 失敗，已停止更新"
+
+    remote_url = f"https://github.com/{github_repo}.git"
 
     # 記錄更新前的 commit
     old_commit = get_latest_commit()
@@ -135,84 +335,76 @@ def fetch_and_pull(
     steps: list[str] = []
 
     # 1. 設定 remote URL
-    rc, stdout, stderr = _run_git(["remote", "set-url", "origin", remote_url])
+    rc, stdout, stderr = _run_git(
+        ["remote", "set-url", "origin", remote_url], cwd=repo_root
+    )
     if rc != 0:
-        return False, f"設定 remote URL 失敗: {stderr}"
-    steps.append(f"✓ 已設定 remote URL: {display_url}")
+        return False, "設定公開 origin URL 失敗，已停止更新"
+    steps.append(f"✓ 已設定 remote URL: {remote_url}")
 
     # 2. Fetch 最新變更
-    rc, stdout, stderr = _run_git(["fetch", "origin", branch])
+    rc, stdout, stderr = _run_git(
+        _fetch_args(branch), cwd=repo_root, env=_fetch_env(github_token)
+    )
     if rc != 0:
-        return False, f"Fetch 失敗: {stderr}"
+        detail = _redact_git_output(stderr, github_token)
+        restore_note = _restore_origin(repo_root, original_url)
+        return False, f"Fetch 失敗: {detail}{restore_note}"
     steps.append(f"✓ Fetch {branch} 完成")
 
-    # 3. 檢查是否有更新
+    # 3. 只允許 fast-forward，避免自動建立 merge commit 或覆蓋本地歷史。
     rc, stdout, stderr = _run_git(
-        ["rev-list", "--count", f"HEAD..origin/{branch}"]
+        ["merge", "--ff-only", "FETCH_HEAD"], cwd=repo_root
     )
-    if rc == 0 and stdout == "0":
-        return True, f"已是最新版本 (commit: {old_commit})\n" + "\n".join(steps)
-
-    # 4. 儲存本地變更（stash）
-    rc, stdout, stderr = _run_git(["stash", "push", "--include-untracked", "-m", "auto-stash before update"])
-    stash_applied = (rc == 0 and "No local changes" not in stdout)
-    if stash_applied:
-        steps.append("✓ 已暫存本地變更 (stash)")
-
-    # 5. Pull / reset
-    rc, stdout, stderr = _run_git(["reset", "--hard", f"origin/{branch}"])
     if rc != 0:
-        # 嘗試 merge
-        rc2, stdout2, stderr2 = _run_git(["pull", "origin", branch])
-        if rc2 != 0:
-            return False, f"Pull 失敗: {stderr2}"
-        steps.append(f"✓ git pull 完成: {stdout2}")
-    else:
-        steps.append(f"✓ git reset --hard origin/{branch} 完成")
+        detail = _redact_git_output(stderr, github_token)
+        restore_note = _restore_origin(repo_root, original_url)
+        return False, (
+            f"無法以 fast-forward 合併，更新已停止且工作目錄未修改: "
+            f"{detail}{restore_note}"
+        )
+    steps.append("✓ git merge --ff-only FETCH_HEAD 完成")
 
-    # 6. 取得新 commit
+    # 4. 取得新 commit
     new_commit = get_latest_commit()
+
+    if old_commit == new_commit:
+        return True, f"已是最新版本 (commit: {old_commit})\n" + "\n".join(steps)
 
     steps.append(f"\n更新摘要: {old_commit or '???'} → {new_commit or '???'}")
 
     return True, "\n".join(steps)
 
 
-def reload_modules() -> Tuple[int, list[str]]:
-    """重新載入所有 discord-part 下的自訂模組。
+def _perform_git_update_unlocked(
+    github_repo: str,
+    github_token: str = "",
+    branch: str = "master",
+) -> Tuple[bool, str]:
+    """執行 credential-safe Git 更新，不重新載入 Python 模組。
 
-    走訪所有已載入的模組，將屬於此專案的模組重新載入。
+    Args:
+        github_repo: GitHub 儲存庫全名
+        github_token: GitHub Personal Access Token（公開 repo 可留空）
+        branch: 分支名稱
 
     Returns:
-        (reloaded_count, list_of_module_names)
+        (success: bool, message: str)
     """
-    project_prefixes = [
-        "commands.",
-        "features.",
-        "utils.",
-        "core.",
-        "updater.",
-    ]
+    # 步驟 1: Git 更新
+    success, msg = fetch_and_pull(github_repo, github_token, branch)
+    if not success:
+        return False, f"❌ 更新失敗:\n{msg}"
 
-    reloaded = []
+    return True, msg
 
-    # 先收集要重載的模組（避免在迭代時修改 dict）
-    modules_to_reload = []
-    for name, module in sorted(sys.modules.items()):
-        if any(name.startswith(prefix) for prefix in project_prefixes):
-            modules_to_reload.append(name)
-        # 也包含直接匹配的頂層模組
-        elif name in ("commands", "features", "utils", "core", "updater"):
-            modules_to_reload.append(name)
 
-    for name in modules_to_reload:
-        try:
-            importlib.reload(sys.modules[name])
-            reloaded.append(name)
-        except Exception as e:
-            logger.warning(f"重載模組 {name} 失敗: {e}")
-
-    return len(reloaded), reloaded
+def format_update_success(message: str, auto_restart: bool) -> str:
+    """Add restart guidance after files have been updated successfully."""
+    message += f"\n\n{RESTART_REQUIRED_MESSAGE}"
+    if auto_restart:
+        message += f"\n\n{AUTO_RESTART_MESSAGE}"
+    return message
 
 
 def perform_update(
@@ -221,30 +413,23 @@ def perform_update(
     branch: str = "master",
     auto_restart: bool = False,
 ) -> Tuple[bool, str]:
-    """執行完整的更新流程：git pull → 重新載入模組 → 可選重啟。
+    """同步相容入口：更新檔案，完成後需重啟 bot 才能套用變更。"""
+    lease = begin_update()
+    if lease is None:
+        return False, UPDATE_BUSY_MESSAGE
 
-    Args:
-        github_repo: GitHub 儲存庫全名
-        github_token: GitHub Personal Access Token（公開 repo 可留空）
-        branch: 分支名稱
-        auto_restart: 是否在更新後自動重啟 bot 程序
+    try:
+        success, msg = _perform_git_update_unlocked(
+            github_repo=github_repo,
+            github_token=github_token,
+            branch=branch,
+        )
+        if not success:
+            return False, msg
 
-    Returns:
-        (success: bool, message: str)
-    """
-    # 步驟 1: Git pull
-    success, msg = fetch_and_pull(github_repo, github_token, branch)
-    if not success:
-        return False, f"❌ 更新失敗:\n{msg}"
-
-    # 步驟 2: 重新載入模組
-    count, modules = reload_modules()
-    msg += f"\n\n🔄 已重新載入 {count} 個模組"
-
-    if auto_restart:
-        msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
-
-    return True, msg
+        return True, format_update_success(msg, auto_restart)
+    finally:
+        lease.release()
 
 
 def restart_bot() -> None:

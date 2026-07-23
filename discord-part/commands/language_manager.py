@@ -1,10 +1,12 @@
+import inspect
 import json
 import os
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
+
+from core.config import get_config, update_config
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCALES_DIR = os.path.join(BASE_DIR, "locales")
-CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
 
 _supported_cache: Optional[Dict[str, dict]] = None
 
@@ -37,18 +39,12 @@ def supported_locales() -> Dict[str, dict]:
 def get_guild_language(guild_id: int | None) -> str:
     """Get the preferred language code for a guild (or default)."""
     default = "en"
-    try:
-        if os.path.exists(CONFIG_PATH):
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-                if guild_id is not None:
-                    guild_langs = cfg.get("guild_languages", {})
-                    if str(guild_id) in guild_langs:
-                        return guild_langs[str(guild_id)]
-                return cfg.get("default_language", default)
-    except Exception:
-        pass
-    return default
+    config = get_config()
+    if guild_id is not None:
+        guild_languages = config.get("guild_languages", {})
+        if str(guild_id) in guild_languages:
+            return guild_languages[str(guild_id)]
+    return config.get("default_language", default)
 
 
 def get_translation(key: str, guild_id: Optional[int] = None, default: str = "en") -> str:
@@ -58,27 +54,41 @@ def get_translation(key: str, guild_id: Optional[int] = None, default: str = "en
     return data.get(key, key)
 
 
+def resolve_command_description(
+    command_name: str,
+    guild_id: Optional[int] = None,
+    command_func: Optional[Callable] = None,
+    fallback_doc: Optional[str] = None,
+) -> str:
+    """Resolve locale first, then a one-line docstring, then a safe default."""
+    key = f"cmd_desc_{command_name}"
+    localized = get_translation(key, guild_id)
+    if localized != key and localized.strip():
+        return localized.strip()
+
+    doc = fallback_doc
+    if not doc and command_func is not None:
+        try:
+            doc = inspect.getdoc(command_func)
+        except Exception:
+            doc = None
+    if doc:
+        summary = doc.strip().splitlines()[0].strip()
+        if summary:
+            return summary
+
+    return f"Run {command_name}"
+
+
 def set_guild_language(guild_id: int, lang_code: str) -> bool:
     locales = supported_locales()
     if lang_code not in locales:
         return False
-    # persist to config.json under `guild_languages` map
-    cfg = {}
     try:
-        if os.path.exists(CONFIG_PATH):
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-    except Exception:
-        cfg = {}
-    if "guild_languages" not in cfg:
-        cfg["guild_languages"] = {}
-    cfg["guild_languages"][str(guild_id)] = lang_code
-    try:
-        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(cfg, f, indent=2, ensure_ascii=False)
-        # invalidate cache if needed
-        global _supported_cache
-        _supported_cache = None
+        def apply(config):
+            config.setdefault("guild_languages", {})[str(guild_id)] = lang_code
+
+        update_config(apply)
         return True
     except Exception:
         return False

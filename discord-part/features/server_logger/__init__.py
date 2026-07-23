@@ -6,13 +6,12 @@ Usage (in main.py or bot setup)::
     from features.server_logger import register_handlers
     register_handlers(bot)
 
-The package exposes individual handler functions so older shims in
-``features.message_logger`` and ``features.user_logger`` can continue to work.
+The package exposes event registration, individual handlers, database helpers,
+and log flushing through one canonical namespace.
 """
 
 from __future__ import annotations
 
-import discord
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -40,7 +39,7 @@ from .role_events import (
     on_guild_role_update,
 )
 
-# Re-export DB helpers so old consumers don't break
+# Public database helpers
 set_log_channel = _base.set_log_channel
 get_log_channel = _base.get_log_channel
 init_log_channel_table = _base.init_log_channel_table
