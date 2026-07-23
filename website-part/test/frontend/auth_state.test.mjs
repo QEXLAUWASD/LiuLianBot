@@ -60,6 +60,25 @@ test('createAuthState reset forces the next load to refresh', async () => {
   assert.deepEqual(await state.load(), { version: 2 });
 });
 
+test('createAuthState reset prevents an older in-flight result from replacing the new generation', async () => {
+  const pendingLoads = [];
+  let calls = 0;
+  const state = createAuthState(() => {
+    calls += 1;
+    return new Promise(resolvePromise => pendingLoads.push(resolvePromise));
+  });
+
+  const staleLoad = state.load();
+  state.reset();
+  const currentLoad = state.load();
+  pendingLoads[0]({ version: 'stale' });
+  assert.deepEqual(await staleLoad, { version: 'stale' });
+  pendingLoads[1]({ version: 'current' });
+  assert.deepEqual(await currentLoad, { version: 'current' });
+  assert.deepEqual(await state.load(), { version: 'current' });
+  assert.equal(calls, 2);
+});
+
 test('default authState loads /api/auth/me through requestJSON', async t => {
   const originalFetch = globalThis.fetch;
   t.after(() => {
@@ -138,6 +157,21 @@ test('four authenticated pages load app.mjs as a module and contain no stale app
   }
 });
 
+test('four authenticated pages start with a dedicated navigation loading status', async () => {
+  for (const filename of ['index.html', 'account.html', 'admin.html', 'roller.html']) {
+    const html = await readFile(resolve(publicDir, filename), 'utf8');
+    const document = new JSDOM(html).window.document;
+    const navUser = document.getElementById('navUser');
+    const logoutStatus = navUser.querySelector('#logoutStatus');
+
+    assert.equal(navUser.querySelector('#logoutBtn'), null, `${filename} must not expose inert logout`);
+    assert.ok(logoutStatus, `${filename} should provide logoutStatus`);
+    assert.equal(logoutStatus.getAttribute('role'), 'status');
+    assert.equal(logoutStatus.getAttribute('aria-live'), 'polite');
+    assert.equal(logoutStatus.textContent.trim(), 'Loading account...');
+  }
+});
+
 test('account page loads account.mjs once as a module with no stale account script', async () => {
   const html = await readFile(resolve(publicDir, 'account.html'), 'utf8');
   const document = new JSDOM(html).window.document;
@@ -148,6 +182,17 @@ test('account page loads account.mjs once as a module with no stale account scri
   assert.equal(accountScripts[0].getAttribute('src'), '/js/account.mjs');
   assert.equal(accountScripts[0].type, 'module');
   assert.doesNotMatch(html, /\/js\/account\.js(?:[?"'])/);
+});
+
+test('account page ships submit buttons disabled until authentication initializes', async () => {
+  const html = await readFile(resolve(publicDir, 'account.html'), 'utf8');
+  const document = new JSDOM(html).window.document;
+
+  for (const formId of ['usernameForm', 'passwordForm']) {
+    const button = document.querySelector(`#${formId} button[type="submit"]`);
+    assert.equal(button.disabled, true);
+    assert.equal(button.getAttribute('aria-busy'), 'true');
+  }
 });
 
 test('app and account consumers use shared auth and logout modules without direct auth fetches', async () => {
@@ -305,5 +350,255 @@ test('password form keeps the page and reports mutation failures', async t => {
         document.getElementById('confirmPassword').value = 'new-password';
       },
     }, failure));
+  }
+});
+
+test('account forms prevent submission while authentication is pending', async () => {
+  const html = await readFile(resolve(publicDir, 'account.html'), 'utf8');
+  const dom = new JSDOM(html);
+  const originalDocument = globalThis.document;
+  const originalWindow = globalThis.window;
+  const originalFetch = globalThis.fetch;
+  let resolveAuth;
+  let mutationCalls = 0;
+  let initialization;
+
+  globalThis.document = dom.window.document;
+  globalThis.window = { location: { href: '/account.html' } };
+  globalThis.fetch = url => {
+    if (url !== '/api/auth/me') {
+      mutationCalls += 1;
+      return Promise.resolve(new Response('{}', {
+        headers: { 'content-type': 'application/json' },
+      }));
+    }
+
+    return new Promise(resolvePromise => {
+      resolveAuth = () => resolvePromise(new Response(JSON.stringify({
+        loggedIn: true,
+        user: { id: 'user-1', username: 'tester', role: 'user' },
+      }), { headers: { 'content-type': 'application/json' } }));
+    });
+  };
+  authState.reset();
+
+  try {
+    const { initializeAccountPage } = await import('../../public/js/account.mjs');
+    initialization = initializeAccountPage();
+
+    const usernameForm = dom.window.document.getElementById('usernameForm');
+    const passwordForm = dom.window.document.getElementById('passwordForm');
+    const usernameButton = usernameForm.querySelector('button[type="submit"]');
+    const passwordButton = passwordForm.querySelector('button[type="submit"]');
+    const usernameEvent = new dom.window.Event('submit', { bubbles: true, cancelable: true });
+    const passwordEvent = new dom.window.Event('submit', { bubbles: true, cancelable: true });
+    usernameForm.dispatchEvent(usernameEvent);
+    passwordForm.dispatchEvent(passwordEvent);
+
+    const pendingState = {
+      usernamePrevented: usernameEvent.defaultPrevented,
+      passwordPrevented: passwordEvent.defaultPrevented,
+      usernameDisabled: usernameButton.disabled,
+      passwordDisabled: passwordButton.disabled,
+      usernameBusy: usernameButton.getAttribute('aria-busy'),
+      passwordBusy: passwordButton.getAttribute('aria-busy'),
+      status: dom.window.document.getElementById('usernameStatus').textContent,
+      mutationCalls,
+    };
+
+    resolveAuth();
+    await initialization;
+
+    assert.deepEqual(pendingState, {
+      usernamePrevented: true,
+      passwordPrevented: true,
+      usernameDisabled: true,
+      passwordDisabled: true,
+      usernameBusy: 'true',
+      passwordBusy: 'true',
+      status: 'Loading account...',
+      mutationCalls: 0,
+    });
+    assert.equal(usernameButton.disabled, false);
+    assert.equal(passwordButton.disabled, false);
+    assert.equal(usernameButton.getAttribute('aria-busy'), 'false');
+    assert.equal(passwordButton.getAttribute('aria-busy'), 'false');
+  } finally {
+    if (resolveAuth) resolveAuth();
+    if (initialization) await initialization.catch(() => {});
+    authState.reset();
+    globalThis.document = originalDocument;
+    globalThis.window = originalWindow;
+    globalThis.fetch = originalFetch;
+    dom.window.close();
+  }
+});
+
+test('account authentication failures leave forms disabled and report the load error', async t => {
+  for (const failure of [
+    {
+      name: 'server failure',
+      fetch: async () => new Response(JSON.stringify({ error: 'Account service unavailable' }), {
+        status: 503,
+        headers: { 'content-type': 'application/json' },
+      }),
+      message: 'Account service unavailable',
+    },
+    {
+      name: 'network failure',
+      fetch: async () => { throw new TypeError('network unavailable'); },
+      message: 'Network request failed',
+    },
+  ]) {
+    await t.test(failure.name, async () => {
+      const html = await readFile(resolve(publicDir, 'account.html'), 'utf8');
+      const dom = new JSDOM(html);
+      const originalDocument = globalThis.document;
+      const originalWindow = globalThis.window;
+      const originalFetch = globalThis.fetch;
+      const location = { href: '/account.html' };
+      globalThis.document = dom.window.document;
+      globalThis.window = { location };
+      globalThis.fetch = failure.fetch;
+      authState.reset();
+
+      try {
+        const { initializeAccountPage } = await import('../../public/js/account.mjs');
+        await initializeAccountPage();
+
+        assert.equal(location.href, '/account.html');
+        assert.equal(dom.window.document.getElementById('usernameStatus').textContent, failure.message);
+        for (const formId of ['usernameForm', 'passwordForm']) {
+          const button = dom.window.document.querySelector(`#${formId} button[type="submit"]`);
+          assert.equal(button.disabled, true);
+          assert.equal(button.getAttribute('aria-busy'), 'true');
+        }
+      } finally {
+        authState.reset();
+        globalThis.document = originalDocument;
+        globalThis.window = originalWindow;
+        globalThis.fetch = originalFetch;
+        dom.window.close();
+      }
+    });
+  }
+});
+
+async function exerciseLogoutClick({ logoutResponse, expectedLocation, expectedError }) {
+  const html = await readFile(resolve(publicDir, 'index.html'), 'utf8');
+  const dom = new JSDOM(html);
+  const originalDocument = globalThis.document;
+  const originalWindow = globalThis.window;
+  const originalLocation = globalThis.location;
+  const originalFetch = globalThis.fetch;
+  const location = { href: '/index.html' };
+  let resolveLogout;
+
+  globalThis.document = dom.window.document;
+  globalThis.window = { location };
+  globalThis.location = location;
+  globalThis.fetch = url => {
+    if (url === '/api/auth/me') {
+      return Promise.resolve(new Response(JSON.stringify({
+        loggedIn: true,
+        user: { id: 'user-1', username: 'tester', role: 'user' },
+      }), { headers: { 'content-type': 'application/json' } }));
+    }
+    if (url === '/api/auth/logout') {
+      return new Promise(resolvePromise => {
+        resolveLogout = () => resolvePromise(logoutResponse);
+      });
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  };
+  authState.reset();
+
+  try {
+    await new Promise(resolvePromise => setTimeout(resolvePromise, 0));
+    const { setupNavUser } = await import('../../public/js/app.mjs');
+    assert.equal(typeof setupNavUser, 'function');
+    await setupNavUser();
+
+    const unrelatedStatus = dom.window.document.createElement('div');
+    unrelatedStatus.id = 'usernameStatus';
+    unrelatedStatus.setAttribute('aria-live', 'polite');
+    unrelatedStatus.textContent = 'Keep this account status';
+    dom.window.document.body.prepend(unrelatedStatus);
+
+    const logoutButton = dom.window.document.getElementById('logoutBtn');
+    const logoutStatus = dom.window.document.getElementById('logoutStatus');
+    logoutButton.dispatchEvent(new dom.window.Event('click', { bubbles: true }));
+    const pendingState = {
+      disabled: logoutButton.disabled,
+      busy: logoutButton.getAttribute('aria-busy'),
+    };
+
+    resolveLogout();
+    await waitFor(() => location.href === '/login.html' || !logoutButton.disabled);
+
+    assert.deepEqual(pendingState, { disabled: true, busy: 'true' });
+    assert.equal(location.href, expectedLocation);
+    assert.equal(unrelatedStatus.textContent, 'Keep this account status');
+    assert.equal(logoutStatus.textContent, expectedError || '');
+    if (expectedError) {
+      assert.equal(logoutButton.disabled, false);
+      assert.equal(logoutButton.getAttribute('aria-busy'), 'false');
+      assert.match(logoutStatus.className, /status-error/);
+    }
+  } finally {
+    if (resolveLogout) resolveLogout();
+    authState.reset();
+    globalThis.document = originalDocument;
+    globalThis.window = originalWindow;
+    globalThis.location = originalLocation;
+    globalThis.fetch = originalFetch;
+    dom.window.close();
+  }
+}
+
+test('logout click redirects after success and exposes a busy button while pending', () =>
+  exerciseLogoutClick({
+    logoutResponse: new Response(JSON.stringify({ success: true }), {
+      headers: { 'content-type': 'application/json' },
+    }),
+    expectedLocation: '/login.html',
+  }));
+
+test('logout click reports failure only in logoutStatus and re-enables the button', () =>
+  exerciseLogoutClick({
+    logoutResponse: new Response(JSON.stringify({ error: 'Logout failed' }), {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+    }),
+    expectedLocation: '/index.html',
+    expectedError: 'Logout failed',
+  }));
+
+test('navigation auth failure removes logout controls and reports the error in logoutStatus', async () => {
+  const html = await readFile(resolve(publicDir, 'index.html'), 'utf8');
+  const dom = new JSDOM(html);
+  const originalDocument = globalThis.document;
+  const originalFetch = globalThis.fetch;
+  globalThis.document = dom.window.document;
+  globalThis.fetch = async () => { throw new TypeError('network unavailable'); };
+  authState.reset();
+
+  try {
+    await new Promise(resolvePromise => setTimeout(resolvePromise, 0));
+    const { setupNavUser } = await import('../../public/js/app.mjs');
+    assert.equal(typeof setupNavUser, 'function');
+    await setupNavUser();
+
+    assert.equal(dom.window.document.getElementById('logoutBtn'), null);
+    const logoutStatus = dom.window.document.getElementById('logoutStatus');
+    assert.equal(logoutStatus.textContent, 'Unable to load account');
+    assert.equal(logoutStatus.getAttribute('role'), 'status');
+    assert.equal(logoutStatus.getAttribute('aria-live'), 'polite');
+    assert.match(logoutStatus.className, /status-error/);
+  } finally {
+    authState.reset();
+    globalThis.document = originalDocument;
+    globalThis.fetch = originalFetch;
+    dom.window.close();
   }
 });

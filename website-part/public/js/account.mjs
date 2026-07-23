@@ -35,25 +35,16 @@ export async function initializeAccountPage() {
   const usernameStatus = document.getElementById('usernameStatus');
   const passwordForm = document.getElementById('passwordForm');
   const passwordStatus = document.getElementById('passwordStatus');
-  let auth;
+  let ready = false;
 
-  try {
-    auth = await authState.load();
-  } catch (error) {
-    handleAccountLoadError(error, usernameStatus);
-    return;
-  }
-
-  if (!auth?.loggedIn) {
-    window.location.href = '/login.html';
-    return;
-  }
-
-  const user = auth.user;
-  usernameInput.value = user.username;
+  setAccountStatus(usernameStatus, 'Loading account...');
+  setFormBusy(usernameForm, true);
+  setFormBusy(passwordForm, true);
 
   usernameForm.addEventListener('submit', async event => {
     event.preventDefault();
+    if (!ready) return;
+
     setAccountStatus(usernameStatus, '');
     setFormBusy(usernameForm, true);
 
@@ -76,6 +67,8 @@ export async function initializeAccountPage() {
 
   passwordForm.addEventListener('submit', async event => {
     event.preventDefault();
+    if (!ready) return;
+
     setAccountStatus(passwordStatus, '');
 
     const newPassword = document.getElementById('newPassword').value;
@@ -100,6 +93,25 @@ export async function initializeAccountPage() {
       setFormBusy(passwordForm, false);
     }
   });
+
+  let auth;
+  try {
+    auth = await authState.load();
+  } catch (error) {
+    handleAccountLoadError(error, usernameStatus);
+    return;
+  }
+
+  if (!auth?.loggedIn) {
+    window.location.href = '/login.html';
+    return;
+  }
+
+  usernameInput.value = auth.user.username;
+  ready = true;
+  setAccountStatus(usernameStatus, '');
+  setFormBusy(usernameForm, false);
+  setFormBusy(passwordForm, false);
 }
 
 if (typeof document !== 'undefined') {

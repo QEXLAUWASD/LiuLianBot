@@ -9,48 +9,46 @@ async function checkAuth() {
   return data.user;
 }
 
-function showLogoutError(logoutBtn, error) {
-  const liveStatus = document.querySelector('[aria-live]');
-  if (liveStatus) {
-    liveStatus.textContent = error.message;
-    liveStatus.className = 'status-msg status-error';
-    return;
-  }
-
-  if (typeof globalThis.showToast === 'function') {
-    globalThis.showToast(error.message, 'error');
-    return;
-  }
-
-  logoutBtn.textContent = 'Logout failed';
-  logoutBtn.title = error.message;
+function showLogoutError(error) {
+  const logoutStatus = document.getElementById('logoutStatus');
+  if (!logoutStatus) return;
+  logoutStatus.textContent = error.message;
+  logoutStatus.className = 'nav-auth-status status-error';
 }
 
-function setupLogout() {
+export function setupLogout() {
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
+      const logoutStatus = document.getElementById('logoutStatus');
+      if (logoutStatus) {
+        logoutStatus.textContent = '';
+        logoutStatus.className = 'nav-auth-status';
+      }
       logoutBtn.disabled = true;
+      logoutBtn.setAttribute('aria-busy', 'true');
       try {
         await logout();
       } catch (error) {
         logoutBtn.disabled = false;
-        showLogoutError(logoutBtn, error);
+        logoutBtn.setAttribute('aria-busy', 'false');
+        showLogoutError(error);
       }
     });
   }
 }
 
-async function setupNavUser() {
+export async function setupNavUser() {
   const navUserEl = document.getElementById('navUser');
   let user;
 
   try {
     user = await checkAuth();
   } catch (error) {
-    if (navUserEl && !navUserEl.textContent.trim()) {
-      navUserEl.textContent = 'Unable to load account';
-      navUserEl.title = error.message;
+    if (navUserEl) {
+      navUserEl.innerHTML = `
+        <span id="logoutStatus" class="nav-auth-status status-error" role="status" aria-live="polite" title="${escapeHTML(error.message)}">Unable to load account</span>
+      `;
     }
     return null;
   }
@@ -61,6 +59,7 @@ async function setupNavUser() {
     navUserEl.innerHTML = `
       <a href="/account.html" id="navUsername" class="nav-username" title="Account settings">👤 ${escapeHTML(user.username)}</a>
       <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
+      <span id="logoutStatus" class="nav-auth-status" role="status" aria-live="polite"></span>
     `;
     setupLogout();
 
@@ -75,6 +74,7 @@ async function setupNavUser() {
   } else {
     navUserEl.innerHTML = `
       <a href="/login.html" class="btn btn-sm btn-primary">Login</a>
+      <span id="logoutStatus" class="nav-auth-status" role="status" aria-live="polite"></span>
     `;
   }
 
@@ -151,7 +151,9 @@ async function setupWebsiteDropdown() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const user = await setupNavUser();
-  if (user) setupWebsiteDropdown();
-});
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', async () => {
+    const user = await setupNavUser();
+    if (user) setupWebsiteDropdown();
+  });
+}

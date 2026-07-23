@@ -15,7 +15,9 @@
       <a href="/account.html" class="nav-link active">Account</a>
       <a href="/admin.html" class="nav-link admin-only" style="display:none;">Admin</a>
     </div>
-    <div class="nav-user" id="navUser"></div>
+    <div class="nav-user" id="navUser">
+      <span id="logoutStatus" class="nav-auth-status" role="status" aria-live="polite">Loading account...</span>
+    </div>
   </nav>
 
   <main class="main-content">
@@ -36,7 +38,7 @@
               <input type="password" id="usernameCurrentPassword" required autocomplete="current-password">
             </div>
             <div class="status-msg" id="usernameStatus" aria-live="polite"></div>
-            <button type="submit" class="btn btn-primary">Save username</button>
+            <button type="submit" class="btn btn-primary" disabled aria-busy="true">Save username</button>
           </form>
         </section>
 
@@ -56,7 +58,7 @@
               <input type="password" id="confirmPassword" required minlength="6" maxlength="128" autocomplete="new-password">
             </div>
             <div class="status-msg" id="passwordStatus" aria-live="polite"></div>
-            <button type="submit" class="btn btn-primary">Save password</button>
+            <button type="submit" class="btn btn-primary" disabled aria-busy="true">Save password</button>
           </form>
         </section>
       </div>
