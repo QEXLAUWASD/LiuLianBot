@@ -3,6 +3,18 @@ from features.private_voice_chat.private_voice import get_manager
 from commands.language_manager import get_translation
 
 
+def resolve_voice_channel(message, raw_value):
+    if message.channel_mentions:
+        return message.channel_mentions[0]
+
+    try:
+        channel_id = int(raw_value.strip('<>#'))
+    except ValueError:
+        return None
+
+    return message.guild.get_channel(channel_id)
+
+
 async def setprivatevoice(message, bot):
     """Set a voice channel as the trigger for creating private channels
     
@@ -56,19 +68,7 @@ async def setprivatevoice(message, bot):
         embed.set_footer(text=get_translation('field_requested_by', gid).replace('{user}', str(message.author)), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
         return embed
     
-    # Try to get channel from mention or ID
-    channel = None
-    
-    # Check for channel mention
-    if message.channel_mentions:
-        return get_translation('pv_provide_voice_only', message.guild.id)
-    
-    # Try to parse as channel ID
-    try:
-        channel_id = int(parts[1].strip('<>#'))
-        channel = message.guild.get_channel(channel_id)
-    except ValueError:
-        return get_translation('pv_invalid_channel_id', message.guild.id)
+    channel = resolve_voice_channel(message, parts[1])
     
     # Validate channel
     if not channel:
