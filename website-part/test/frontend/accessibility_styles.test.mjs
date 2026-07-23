@@ -34,6 +34,7 @@ test('component CSS supports reduced motion without stale tab or select rules', 
   const css = await readFile(resolve(publicDir, 'css/style.css'), 'utf8');
 
   assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/);
+  assert.match(css, /\[hidden\]\s*{\s*display:\s*none\s*!important/);
   assert.match(css, /\.tab-list\s*{/);
   assert.match(css, /\.tab\s*{/);
   assert.match(css, /\.tab-panel/);

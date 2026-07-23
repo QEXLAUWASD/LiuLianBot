@@ -5,6 +5,8 @@
   box-sizing: border-box;
 }
 
+[hidden] { display: none !important; }
+
 :root {
   --bg: #0f0f1a;
   --bg-card: #1a1a2e;
