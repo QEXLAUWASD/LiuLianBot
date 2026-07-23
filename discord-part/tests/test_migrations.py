@@ -161,9 +161,30 @@ def test_create_roller_channel_table_adds_missing_dm_result():
     assert "ALTER TABLE guild_roller_channels ADD COLUMN dm_result" in sql
 
 
+def test_create_legacy_private_voice_table_preserves_existing_schema():
+    from utils.migrations import create_legacy_private_voice_table
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+
+    create_legacy_private_voice_table(connection)
+
+    sql = " ".join(call.args[0] for call in cursor.execute.call_args_list)
+    assert "CREATE TABLE IF NOT EXISTS private_voice_channels" in sql
+    assert "id INT AUTO_INCREMENT PRIMARY KEY" in sql
+    assert "guild_id BIGINT NOT NULL" in sql
+    assert "channel_id BIGINT NOT NULL" in sql
+    assert "owner_id BIGINT NOT NULL" in sql
+    assert "config_json JSON" in sql
+    assert "created_at DATETIME DEFAULT CURRENT_TIMESTAMP" in sql
+    assert "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" in sql
+    assert "UNIQUE" not in sql.upper()
+
+
 def test_default_migrations_register_tables_in_version_order():
     from utils.migrations import (
         DEFAULT_MIGRATIONS,
+        create_legacy_private_voice_table,
         create_log_channel_table,
         create_roller_channel_table,
     )
@@ -171,4 +192,5 @@ def test_default_migrations_register_tables_in_version_order():
     assert [(migration.version, migration.apply) for migration in DEFAULT_MIGRATIONS] == [
         ("001", create_log_channel_table),
         ("002", create_roller_channel_table),
+        ("003", create_legacy_private_voice_table),
     ]

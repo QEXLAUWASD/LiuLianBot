@@ -51,9 +51,31 @@ def create_roller_channel_table(conn) -> None:
             )
 
 
+def create_legacy_private_voice_table(conn) -> None:
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS private_voice_channels (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                guild_id BIGINT NOT NULL,
+                channel_id BIGINT NOT NULL,
+                owner_id BIGINT NOT NULL,
+                config_json JSON,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+
 DEFAULT_MIGRATIONS = (
     Migration("001", "create guild_log_channels table", create_log_channel_table),
     Migration("002", "create guild_roller_channels table", create_roller_channel_table),
+    Migration(
+        "003",
+        "create legacy private_voice_channels table",
+        create_legacy_private_voice_table,
+    ),
 )
 
 
