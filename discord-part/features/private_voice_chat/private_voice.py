@@ -20,25 +20,17 @@ class PrivateVoiceManager:
         self.load_trigger_channels_from_db()
         self.load_private_channels_from_db()
 
-    def start_cleanup_task(self, retention_days: int = 30):
+    def start_cleanup_task(self):
         if self.cleanup_task is None:
-            self.cleanup_task = self.bot.loop.create_task(
-                self._cleanup_loop(retention_days)
-            )
+            self.cleanup_task = self.bot.loop.create_task(self._cleanup_loop())
 
-    async def _cleanup_loop(self, retention_days: int):
+    async def _cleanup_loop(self):
         while True:
             try:
                 await self.cleanup_empty_channels()
-                removed = self._cleanup_once(retention_days)
-                if removed:
-                    print(f"[INFO] Removed {removed} stale private voice configs older than {retention_days} days")
             except Exception as e:
                 print(f"[ERROR] Failed to cleanup private voice configs: {e}")
             await asyncio.sleep(self.cleanup_interval_seconds)
-
-    def _cleanup_once(self, retention_days: int) -> int:
-        return self.repository.cleanup_old(retention_days)
 
     def load_trigger_channels_from_db(self):
         self.trigger_channels = self.repository.load_triggers()
@@ -144,12 +136,24 @@ class PrivateVoiceManager:
             # Move the user to the new channel
             await member.move_to(private_channel)
             
-            self.save_channel_config(
-                member.guild.id,
-                private_channel.id,
-                member.id,
-                {"type": "private", "name": private_channel.name},
-            )
+            try:
+                self.save_channel_config(
+                    member.guild.id,
+                    private_channel.id,
+                    member.id,
+                    {"type": "private", "name": private_channel.name},
+                )
+            except Exception:
+                try:
+                    await private_channel.delete(
+                        reason="Private voice channel persistence failed"
+                    )
+                except Exception:
+                    self.bot.logger.error(
+                        "Private voice channel compensation failed after persistence error",
+                        exc_info=True,
+                    )
+                raise
             self.private_channels[private_channel.id] = member.id
             self.user_channels[member.id] = private_channel.id
             

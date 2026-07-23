@@ -150,7 +150,12 @@ class PrivateVoiceRepository:
                     "WHERE channel_id=%s",
                     (owner_id, channel_id),
                 )
+                if cursor.rowcount != 1:
+                    raise LookupError(f"Private voice channel {channel_id} not found")
             conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             conn.close()
 
@@ -181,20 +186,5 @@ class PrivateVoiceRepository:
                     (int(channel_id), int(owner_id))
                     for channel_id, owner_id in cursor.fetchall()
                 ]
-        finally:
-            conn.close()
-
-    def cleanup_old(self, retention_days: int) -> int:
-        conn = self._connection_factory()
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "DELETE FROM private_voice_channels WHERE config_type='private' "
-                    "AND updated_at < DATE_SUB(NOW(), INTERVAL %s DAY)",
-                    (retention_days,),
-                )
-                deleted = cursor.rowcount
-            conn.commit()
-            return deleted
         finally:
             conn.close()

@@ -147,6 +147,7 @@ def test_delete_commits_and_closes():
 
 def test_update_owner_commits_and_closes():
     repository, connection, cursor = make_repo()
+    cursor.rowcount = 1
 
     repository.update_owner(20, 99)
 
@@ -155,6 +156,19 @@ def test_update_owner_commits_and_closes():
         (99, 20),
     )
     connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_update_owner_rolls_back_when_channel_row_is_missing():
+    repository, connection, cursor = make_repo()
+    cursor.rowcount = 0
+
+    with pytest.raises(LookupError, match="Private voice channel 20 not found"):
+        repository.update_owner(20, 99)
+
+    connection.rollback.assert_called_once_with()
+    connection.commit.assert_not_called()
     connection.close.assert_called_once_with()
 
 
@@ -185,22 +199,6 @@ def test_load_private_channels_preserves_newest_first_order_and_closes():
     connection.close.assert_called_once_with()
 
 
-def test_cleanup_old_only_deletes_private_rows_and_returns_rowcount():
-    repository, connection, cursor = make_repo()
-    cursor.rowcount = 3
-
-    result = repository.cleanup_old(30)
-
-    cursor.execute.assert_called_once_with(
-        "DELETE FROM private_voice_channels WHERE config_type='private' "
-        "AND updated_at < DATE_SUB(NOW(), INTERVAL %s DAY)",
-        (30,),
-    )
-    assert result == 3
-    connection.commit.assert_called_once_with()
-    connection.close.assert_called_once_with()
-
-
 def test_manager_uses_injected_repository_for_persistence():
     from features.private_voice_chat.private_voice import PrivateVoiceManager
 
@@ -218,7 +216,6 @@ def test_manager_uses_injected_repository_for_persistence():
     manager.private_channels[21] = 30
     manager.user_channels[30] = 21
     manager.transfer_channel_owner(21, 31)
-    manager._cleanup_once(14)
 
     assert repository.mock_calls == [
         call.load_triggers(),
@@ -228,7 +225,6 @@ def test_manager_uses_injected_repository_for_persistence():
         call.update_config(21, {"limit": 5}),
         call.delete(21),
         call.update_owner(21, 31),
-        call.cleanup_old(14),
     ]
 
 
@@ -371,20 +367,15 @@ async def test_cleanup_missing_channel_deletes_db_before_cache():
     assert manager.user_channels == {}
 
 
-async def test_cleanup_loop_checks_tracked_channels_before_age_cleanup(monkeypatch):
+async def test_cleanup_loop_never_age_deletes_existing_channel_with_members(monkeypatch):
     from features.private_voice_chat import private_voice
 
-    events = []
     repository = MagicMock()
     repository.load_triggers.return_value = {}
-    repository.load_private_channels.return_value = []
-    manager = private_voice.PrivateVoiceManager(MagicMock(), repository=repository)
-
-    async def cleanup_channels():
-        events.append("channels")
-
-    manager.cleanup_empty_channels = cleanup_channels
-    manager._cleanup_once = MagicMock(side_effect=lambda days: events.append("age") or 0)
+    repository.load_private_channels.return_value = [(20, 30)]
+    bot = MagicMock()
+    bot.get_channel.return_value = SimpleNamespace(id=20, members=[object()])
+    manager = private_voice.PrivateVoiceManager(bot, repository=repository)
     monkeypatch.setattr(
         private_voice.asyncio,
         "sleep",
@@ -392,9 +383,14 @@ async def test_cleanup_loop_checks_tracked_channels_before_age_cleanup(monkeypat
     )
 
     with pytest.raises(private_voice.asyncio.CancelledError):
-        await manager._cleanup_loop(30)
+        await manager._cleanup_loop()
 
-    assert events == ["channels", "age"]
+    assert repository.method_calls == [
+        call.load_triggers(),
+        call.load_private_channels(),
+    ]
+    assert manager.private_channels == {20: 30}
+    assert manager.user_channels == {30: 20}
 
 
 async def test_create_private_channel_db_failure_does_not_write_cache():
@@ -403,12 +399,15 @@ async def test_create_private_channel_db_failure_does_not_write_cache():
     repository = MagicMock()
     repository.load_triggers.return_value = {}
     repository.load_private_channels.return_value = []
-    repository.save.side_effect = RuntimeError("save failed")
-    manager = PrivateVoiceManager(MagicMock(), repository=repository)
+    error = RuntimeError("save failed")
+    repository.save.side_effect = error
+    bot = MagicMock()
+    manager = PrivateVoiceManager(bot, repository=repository)
     private_channel = SimpleNamespace(
         id=20,
         name="Private",
         set_permissions=AsyncMock(),
+        delete=AsyncMock(),
     )
     guild = MagicMock()
     guild.default_role = object()
@@ -420,9 +419,51 @@ async def test_create_private_channel_db_failure_does_not_write_cache():
     member.move_to = AsyncMock()
     trigger_channel = SimpleNamespace(category=None)
 
-    with pytest.raises(RuntimeError, match="save failed"):
+    with pytest.raises(RuntimeError, match="save failed") as raised:
         await manager.create_private_channel(member, trigger_channel)
 
+    assert raised.value is error
+    private_channel.delete.assert_awaited_once_with(
+        reason="Private voice channel persistence failed"
+    )
+    bot.logger.error.assert_not_called()
+    assert manager.private_channels == {}
+    assert manager.user_channels == {}
+
+
+async def test_create_private_channel_compensation_failure_logs_and_reraises_db_error():
+    from features.private_voice_chat.private_voice import PrivateVoiceManager
+
+    db_error = RuntimeError("save failed")
+    repository = MagicMock()
+    repository.load_triggers.return_value = {}
+    repository.load_private_channels.return_value = []
+    repository.save.side_effect = db_error
+    bot = MagicMock()
+    manager = PrivateVoiceManager(bot, repository=repository)
+    private_channel = SimpleNamespace(
+        id=20,
+        name="Private",
+        set_permissions=AsyncMock(),
+        delete=AsyncMock(side_effect=RuntimeError("delete failed")),
+    )
+    guild = MagicMock()
+    guild.default_role = object()
+    guild.create_voice_channel = AsyncMock(return_value=private_channel)
+    member = MagicMock()
+    member.id = 30
+    member.display_name = "Owner"
+    member.guild = guild
+    member.move_to = AsyncMock()
+
+    with pytest.raises(RuntimeError) as raised:
+        await manager.create_private_channel(member, SimpleNamespace(category=None))
+
+    assert raised.value is db_error
+    bot.logger.error.assert_called_once_with(
+        "Private voice channel compensation failed after persistence error",
+        exc_info=True,
+    )
     assert manager.private_channels == {}
     assert manager.user_channels == {}
 

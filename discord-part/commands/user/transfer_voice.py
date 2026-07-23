@@ -4,16 +4,18 @@ from commands.language_manager import get_translation
 from utils.error_reporting import report_exception
 
 
-async def _compensate_permissions(channel, previous_owner, new_owner, logger):
+async def _compensate_permissions(
+    channel,
+    previous_owner,
+    previous_overwrite,
+    new_owner,
+    new_owner_overwrite,
+    logger,
+):
     try:
         await channel.set_permissions(
             previous_owner,
-            connect=True,
-            speak=True,
-            manage_channels=True,
-            move_members=True,
-            mute_members=True,
-            deafen_members=True,
+            overwrite=previous_overwrite,
         )
     except Exception:
         logger.error(
@@ -24,12 +26,7 @@ async def _compensate_permissions(channel, previous_owner, new_owner, logger):
     try:
         await channel.set_permissions(
             new_owner,
-            connect=True,
-            speak=True,
-            manage_channels=False,
-            move_members=False,
-            mute_members=False,
-            deafen_members=False,
+            overwrite=new_owner_overwrite,
         )
     except Exception:
         logger.error(
@@ -86,6 +83,9 @@ async def transfervoice(message, bot):
             .replace('{channel}', channel.name)
 
     try:
+        overwrites = channel.overwrites
+        previous_overwrite = overwrites.get(message.author)
+        new_owner_overwrite = overwrites.get(target)
         # Revoke management perms from old owner, grant to new owner
         await channel.set_permissions(
             message.author,
@@ -111,7 +111,9 @@ async def transfervoice(message, bot):
             await _compensate_permissions(
                 channel,
                 message.author,
+                previous_overwrite,
                 target,
+                new_owner_overwrite,
                 bot.logger,
             )
             raise

@@ -327,6 +327,7 @@ async def test_transfer_voice_error_redacts_exception_and_uses_bot_logger(monkey
     target = SimpleNamespace(id=42, display_name="target-user")
     channel = SimpleNamespace(
         members=[target],
+        overwrites={},
         set_permissions=AsyncMock(side_effect=RuntimeError(secret)),
     )
     manager = SimpleNamespace(
@@ -369,15 +370,27 @@ async def test_transfer_voice_error_redacts_exception_and_uses_bot_logger(monkey
     )
 
 
-def make_transfer_voice_context(*, permission_side_effect=None, transfer_error=None):
+def make_transfer_voice_context(
+    *,
+    permission_side_effect=None,
+    transfer_error=None,
+    previous_overwrite=None,
+    target_overwrite=None,
+):
     logger = Mock()
-    author = SimpleNamespace(id=10)
-    target = SimpleNamespace(id=42, display_name="target-user")
+    author = Mock(id=10)
+    target = Mock(id=42, display_name="target-user")
+    overwrites = {}
+    if previous_overwrite is not None:
+        overwrites[author] = previous_overwrite
+    if target_overwrite is not None:
+        overwrites[target] = target_overwrite
     channel = SimpleNamespace(
         id=123,
         name="private-channel",
         mention="<#123>",
         members=[target],
+        overwrites=overwrites,
         set_permissions=AsyncMock(side_effect=permission_side_effect),
     )
     manager = SimpleNamespace(
@@ -416,8 +429,12 @@ async def test_transfer_voice_db_failure_compensates_permissions_and_returns_ref
     monkeypatch,
 ):
     secret = "owner-update-secret"
+    previous_overwrite = object()
+    target_overwrite = object()
     message, bot, manager, channel, author, target = make_transfer_voice_context(
-        transfer_error=RuntimeError(secret)
+        transfer_error=RuntimeError(secret),
+        previous_overwrite=previous_overwrite,
+        target_overwrite=target_overwrite,
     )
     patch_transfer_voice_error_context(monkeypatch, manager, "666666666666")
 
@@ -431,10 +448,14 @@ async def test_transfer_voice_db_failure_compensates_permissions_and_returns_ref
         author,
         target,
     ]
-    assert [
-        entry.kwargs["manage_channels"]
-        for entry in channel.set_permissions.await_args_list
-    ] == [False, True, True, False]
+    assert channel.set_permissions.await_args_list[2] == call(
+        author,
+        overwrite=previous_overwrite,
+    )
+    assert channel.set_permissions.await_args_list[3] == call(
+        target,
+        overwrite=target_overwrite,
+    )
     bot.logger.error.assert_called_once_with(
         "%s failed [reference=%s]",
         "transfervoice",
@@ -463,6 +484,8 @@ async def test_transfer_voice_second_permission_failure_restores_previous_owner(
         author,
         target,
     ]
+    assert channel.set_permissions.await_args_list[2] == call(author, overwrite=None)
+    assert channel.set_permissions.await_args_list[3] == call(target, overwrite=None)
     manager.transfer_channel_owner.assert_not_called()
 
 
