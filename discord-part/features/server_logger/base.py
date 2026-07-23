@@ -266,4 +266,4 @@ def _set_footer_id(embed: discord.Embed, member: discord.Member | discord.User) 
 
 
 def _now() -> datetime:
-    return datetime.now()
+    return discord.utils.utcnow()

@@ -3,7 +3,6 @@ Member-related log events (join, leave, update, ban, unban).
 """
 
 import discord
-from datetime import datetime
 from typing import Optional
 
 from .base import (
