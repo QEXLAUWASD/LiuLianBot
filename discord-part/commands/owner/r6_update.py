@@ -11,9 +11,13 @@ import os
 import sys
 import asyncio
 import importlib
+import json
+import tempfile
 import discord
 from datetime import datetime
 
+from features.r6_roll.randommap import MAP_CACHE
+from features.r6_roll.randomops import OPERATOR_CACHE
 from utils.error_reporting import report_exception
 
 
@@ -21,6 +25,25 @@ from utils.error_reporting import report_exception
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
+
+
+def _write_json_atomically(output_path, data):
+    directory = os.path.dirname(output_path)
+    fd, temp_path = tempfile.mkstemp(
+        prefix=f"{os.path.basename(output_path)}-",
+        suffix=".tmp",
+        dir=directory,
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(data, stream, indent=4, ensure_ascii=False)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temp_path, output_path)
+    except Exception:
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+        raise
 
 
 async def r6update(message, bot):
@@ -51,10 +74,9 @@ async def r6update(message, bot):
 
         # 使用 asyncio.to_thread 避免同步 HTTP 請求阻塞 Discord 事件循環
         maps_data = await asyncio.to_thread(map_scraper.scrape_maps)
-        import json
         maps_out = os.path.join(_PROJECT_ROOT, 'shared', 'r6', 'maplist.json')
-        with open(maps_out, 'w', encoding='utf-8') as f:
-            json.dump(maps_data, f, ensure_ascii=False, indent=4)
+        await asyncio.to_thread(_write_json_atomically, maps_out, maps_data)
+        MAP_CACHE.reload()
         results['maps'] = {
             'success': True,
             'count': len(maps_data),
@@ -77,10 +99,9 @@ async def r6update(message, bot):
 
         # 使用 asyncio.to_thread 避免同步 HTTP 請求阻塞 Discord 事件循環
         ops_data = await asyncio.to_thread(operator_scraper.scrape)
-        import json
         ops_out = os.path.join(_PROJECT_ROOT, 'shared', 'r6', 'operatorlist.json')
-        with open(ops_out, 'w', encoding='utf-8') as f:
-            json.dump(ops_data, f, indent=4, ensure_ascii=False)
+        await asyncio.to_thread(_write_json_atomically, ops_out, ops_data)
+        OPERATOR_CACHE.reload()
         total_ops = sum(len(v) for v in ops_data.values())
         results['operators'] = {
             'success': True,

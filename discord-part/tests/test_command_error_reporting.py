@@ -4,7 +4,7 @@ import inspect
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, call, mock_open
+from unittest.mock import AsyncMock, Mock, call
 
 import pytest
 
@@ -621,7 +621,8 @@ async def test_r6_partial_success_keeps_count_and_redacts_failed_operation(
         raising=False,
     )
     monkeypatch.setattr(r6_update.importlib, "reload", lambda module: module)
-    monkeypatch.setattr(r6_update, "open", mock_open(), raising=False)
+    monkeypatch.setattr(r6_update, "_write_json_atomically", Mock())
+    monkeypatch.setattr(r6_update.MAP_CACHE, "reload", Mock())
     monkeypatch.setattr(
         error_reporting,
         "generate_error_reference",

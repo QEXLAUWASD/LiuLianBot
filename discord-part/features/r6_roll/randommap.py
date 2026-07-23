@@ -1,7 +1,8 @@
-import json
 import os
 import random
 from typing import Any, Dict
+
+from features.r6_roll.data_cache import JsonDataCache
 
 # Resolve shared/ folder at project root (3 levels up from this file)
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -12,11 +13,11 @@ def _map_file_path() -> str:
 	return os.path.join(_SHARED_R6, "maplist.json")
 
 
+MAP_CACHE = JsonDataCache(_map_file_path())
+
+
 def load_maps() -> Dict[str, Dict[str, Any]]:
-	path = _map_file_path()
-	with open(path, "r", encoding="utf-8") as f:
-		data = json.load(f)
-	return data
+	return MAP_CACHE.get()
 
 
 def _normalize_entry(name_key: str, info: Dict[str, Any]) -> Dict[str, Any]:
