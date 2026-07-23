@@ -281,7 +281,7 @@ def perform_update(
     branch: str = "master",
     auto_restart: bool = False,
 ) -> Tuple[bool, str]:
-    """同步相容入口：執行 Git 更新後重新載入模組。"""
+    """同步相容入口：更新檔案，完成後需重啟 bot 才能套用變更。"""
     lease = begin_update()
     if lease is None:
         return False, UPDATE_BUSY_MESSAGE
