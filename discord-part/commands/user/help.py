@@ -1,6 +1,5 @@
 import discord
-import inspect
-from commands.language_manager import get_translation
+from commands.language_manager import get_translation, resolve_command_description
 import commands.handler
 
 async def help(message, bot):
@@ -21,11 +20,14 @@ async def help(message, bot):
         cmd_name = args[1]
         cmd_func = cmd_handler.get_command(cmd_name)
         if cmd_func:
-            # Try to get command description from function docstring or locale
-            desc = inspect.getdoc(cmd_func) or get_translation(f'cmd_desc_{cmd_name}', guild_id)
+            desc = resolve_command_description(
+                cmd_name,
+                guild_id=guild_id,
+                command_func=cmd_func,
+            )
             embed = discord.Embed(
                 title=get_translation('help_command_title', guild_id).replace('{command}', cmd_name),
-                description=desc or get_translation('help_command_desc', guild_id).replace('{command}', cmd_name),
+                description=desc,
                 color=discord.Color.blue()
             )
             embed.add_field(
@@ -63,16 +65,12 @@ async def help(message, bot):
                 lines = []
                 for c in sorted(cmds):
                     func = cmd_handler.get_command(c)
-                    short = None
-                    if func:
-                        doc = inspect.getdoc(func)
-                        if doc:
-                            short = doc.splitlines()[0]
-                    if not short:
-                        short = get_translation(f'cmd_desc_{c}', guild_id)
-                        if short == f'cmd_desc_{c}':
-                            short = ''
-                    lines.append(f"`{c}` {('- ' + short) if short else ''}")
+                    short = resolve_command_description(
+                        c,
+                        guild_id=guild_id,
+                        command_func=func,
+                    )
+                    lines.append(f"`{c}` - {short}")
 
                 embed.add_field(
                     name=get_translation(f'help_type_{ctype}', guild_id),

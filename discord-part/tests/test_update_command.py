@@ -12,6 +12,7 @@ import pytest
 
 from commands.owner import update as update_module
 from commands import language_manager
+from commands.user import help as help_module
 from core import bot_client
 from updater import updater
 
@@ -81,6 +82,144 @@ def test_update_help_locales_require_restart_to_apply(monkeypatch):
     assert "restart" in en_description
     assert "apply" in en_description
     assert "reload" not in en_description
+
+
+@pytest.mark.parametrize("locale_code", ["zh_TW", "en"])
+@pytest.mark.asyncio
+async def test_help_update_detail_and_list_use_localized_description(
+    monkeypatch,
+    locale_code,
+):
+    locales_dir = Path(__file__).resolve().parents[1] / "locales"
+    locales = {
+        code: json.loads((locales_dir / f"{code}.json").read_text(encoding="utf-8"))
+        for code in ("zh_TW", "en")
+    }
+    expected = locales[locale_code]["cmd_desc_update"]
+    monkeypatch.setattr(language_manager, "supported_locales", lambda: locales)
+    monkeypatch.setattr(
+        language_manager,
+        "get_guild_language",
+        lambda guild_id: locale_code,
+    )
+
+    async def stale_update_doc(message, bot):
+        """Legacy updater doc that claims hot reload."""
+
+    handler = SimpleNamespace(
+        get_command=lambda name: stale_update_doc if name == "update" else None,
+        list_commands=lambda: ["update"],
+        command_types={"update": "owner"},
+    )
+    monkeypatch.setattr(help_module.commands.handler, "handler", handler)
+
+    detail_channel = SimpleNamespace(send=AsyncMock())
+    detail_message = SimpleNamespace(
+        content=">help update",
+        guild=SimpleNamespace(id=1),
+        channel=detail_channel,
+    )
+    await help_module.help(detail_message, SimpleNamespace())
+    assert detail_channel.send.await_args.kwargs["embed"].description == expected
+
+    list_channel = SimpleNamespace(send=AsyncMock())
+    list_message = SimpleNamespace(
+        content=">help",
+        guild=SimpleNamespace(id=1),
+        channel=list_channel,
+    )
+    await help_module.help(list_message, SimpleNamespace())
+    owner_field = next(
+        field
+        for field in list_channel.send.await_args.kwargs["embed"].fields
+        if expected in field.value
+    )
+    assert "`update`" in owner_field.value
+    assert "Legacy updater doc" not in owner_field.value
+
+
+def test_description_resolver_falls_back_to_docstring_when_locale_is_missing(monkeypatch):
+    assert hasattr(language_manager, "resolve_command_description")
+
+    async def undocumented_locale_command(message, bot):
+        """Fallback summary.
+
+        Additional details should not appear in short descriptions.
+        """
+
+    monkeypatch.setattr(language_manager, "supported_locales", lambda: {"en": {}})
+    monkeypatch.setattr(language_manager, "get_guild_language", lambda guild_id: "en")
+
+    assert language_manager.resolve_command_description(
+        "missing_locale",
+        guild_id=None,
+        command_func=undocumented_locale_command,
+    ) == "Fallback summary."
+
+
+@pytest.mark.asyncio
+async def test_setup_hook_uses_default_locale_for_update_slash_description(monkeypatch):
+    locales_dir = Path(__file__).resolve().parents[1] / "locales"
+    en_locale = json.loads((locales_dir / "en.json").read_text(encoding="utf-8"))
+    expected = en_locale["cmd_desc_update"]
+    monkeypatch.setattr(language_manager, "supported_locales", lambda: {"en": en_locale})
+    monkeypatch.setattr(language_manager, "get_guild_language", lambda guild_id: "en")
+
+    async def stale_update_doc(message, bot):
+        """Legacy slash updater doc that claims hot reload."""
+
+    command_handler = SimpleNamespace(
+        list_commands_info=lambda: {
+            "update": {
+                "doc": inspect.getdoc(stale_update_doc),
+                "callable": stale_update_doc,
+            },
+            "fallback": {
+                "doc": "Handler fallback summary.\nAdditional details.",
+                "callable": None,
+            },
+        }
+    )
+    registered = []
+    tree = SimpleNamespace(
+        add_command=lambda command: registered.append(command),
+        sync=AsyncMock(),
+    )
+    client = SimpleNamespace(
+        _cmd_handler=command_handler,
+        _root_folder="unused",
+        command_prefix=">",
+        _process_command=AsyncMock(),
+        logger=Mock(),
+        tree=tree,
+    )
+
+    async def slash_callback(interaction):
+        return None
+
+    monkeypatch.setattr(bot_client, "register_handlers", lambda client: None)
+    monkeypatch.setattr(bot_client, "load_interaction_arg_specs", lambda root: {})
+    monkeypatch.setattr(
+        bot_client,
+        "build_simple_slash_callback",
+        lambda **kwargs: slash_callback,
+    )
+    monkeypatch.setattr(
+        bot_client.app_commands,
+        "Command",
+        lambda **kwargs: SimpleNamespace(**kwargs),
+    )
+
+    await bot_client.MyClient.setup_hook(client)
+
+    assert len(registered) == 2
+    update_command = next(command for command in registered if command.name == "update")
+    fallback_command = next(command for command in registered if command.name == "fallback")
+    assert update_command.description == expected
+    assert "restart" in update_command.description
+    assert "Legacy slash updater doc" not in update_command.description
+    assert fallback_command.description == "Handler fallback summary."
+    tree.sync.assert_awaited_once()
 
 
 @pytest.mark.asyncio

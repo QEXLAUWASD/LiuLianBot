@@ -158,7 +158,7 @@ async def _run_update(
 
 
 async def update(message, bot):
-    """從 GitHub 儲存庫拉取最新程式碼並更新 bot。
+    """Download updated files from GitHub; restart the bot to apply them.
 
     此指令僅限 bot owner 使用。
 

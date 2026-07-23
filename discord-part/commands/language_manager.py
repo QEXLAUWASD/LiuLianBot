@@ -1,6 +1,7 @@
+import inspect
 import json
 import os
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCALES_DIR = os.path.join(BASE_DIR, "locales")
@@ -56,6 +57,32 @@ def get_translation(key: str, guild_id: Optional[int] = None, default: str = "en
     lang = get_guild_language(guild_id)
     data = locales.get(lang, {})
     return data.get(key, key)
+
+
+def resolve_command_description(
+    command_name: str,
+    guild_id: Optional[int] = None,
+    command_func: Optional[Callable] = None,
+    fallback_doc: Optional[str] = None,
+) -> str:
+    """Resolve locale first, then a one-line docstring, then a safe default."""
+    key = f"cmd_desc_{command_name}"
+    localized = get_translation(key, guild_id)
+    if localized != key and localized.strip():
+        return localized.strip()
+
+    doc = fallback_doc
+    if not doc and command_func is not None:
+        try:
+            doc = inspect.getdoc(command_func)
+        except Exception:
+            doc = None
+    if doc:
+        summary = doc.strip().splitlines()[0].strip()
+        if summary:
+            return summary
+
+    return f"Run {command_name}"
 
 
 def set_guild_language(guild_id: int, lang_code: str) -> bool:

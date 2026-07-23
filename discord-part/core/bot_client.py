@@ -12,7 +12,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from commands.language_manager import get_translation
+from commands.language_manager import get_translation, resolve_command_description
 from features.private_voice_chat.private_voice import get_manager
 from features.server_logger import register_handlers
 from core.slash_adapter import (
@@ -57,7 +57,12 @@ class MyClient(commands.Bot):
 
         # 為每個已載入的指令註冊 slash command
         for cmd_name, info in self._cmd_handler.list_commands_info().items():
-            desc = (info.get("doc") or f"Run {cmd_name}")[:99]
+            desc = resolve_command_description(
+                cmd_name,
+                guild_id=None,
+                command_func=info.get("callable"),
+                fallback_doc=info.get("doc"),
+            )[:100]
             option_specs = arg_specs.get(cmd_name) or []
 
             if option_specs:
@@ -77,7 +82,7 @@ class MyClient(commands.Bot):
 
             command = app_commands.Command(
                 name=cmd_name,
-                description=desc or "Run command",
+                description=desc,
                 callback=wrapper,
             )
             try:
