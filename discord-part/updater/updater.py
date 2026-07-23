@@ -255,19 +255,17 @@ def reload_modules() -> Tuple[int, list[str]]:
     return len(reloaded), reloaded
 
 
-def _perform_update_unlocked(
+def _perform_git_update_unlocked(
     github_repo: str,
     github_token: str = "",
     branch: str = "master",
-    auto_restart: bool = False,
 ) -> Tuple[bool, str]:
-    """執行完整的更新流程：安全更新 → 重新載入模組 → 可選重啟。
+    """執行 credential-safe Git 更新，不重新載入 Python 模組。
 
     Args:
         github_repo: GitHub 儲存庫全名
         github_token: GitHub Personal Access Token（公開 repo 可留空）
         branch: 分支名稱
-        auto_restart: 是否在更新後自動重啟 bot 程序
 
     Returns:
         (success: bool, message: str)
@@ -277,14 +275,27 @@ def _perform_update_unlocked(
     if not success:
         return False, f"❌ 更新失敗:\n{msg}"
 
-    # 步驟 2: 重新載入模組
-    count, modules = reload_modules()
-    msg += f"\n\n🔄 已重新載入 {count} 個模組"
-
-    if auto_restart:
-        msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
-
     return True, msg
+
+
+def perform_git_update(
+    github_repo: str,
+    github_token: str = "",
+    branch: str = "master",
+) -> Tuple[bool, str]:
+    """在 single-flight 邊界執行 Git 更新；已有更新時立即拒絕。"""
+    update_lock = _update_lock
+    if not update_lock.acquire(blocking=False):
+        return False, "❌ 更新正在進行中，請稍後再試。"
+
+    try:
+        return _perform_git_update_unlocked(
+            github_repo=github_repo,
+            github_token=github_token,
+            branch=branch,
+        )
+    finally:
+        update_lock.release()
 
 
 def perform_update(
@@ -293,20 +304,21 @@ def perform_update(
     branch: str = "master",
     auto_restart: bool = False,
 ) -> Tuple[bool, str]:
-    """執行 single-flight 更新；已有更新時立即拒絕新請求。"""
-    update_lock = _update_lock
-    if not update_lock.acquire(blocking=False):
-        return False, "❌ 更新正在進行中，請稍後再試。"
+    """同步相容入口：執行 Git 更新後重新載入模組。"""
+    success, msg = perform_git_update(
+        github_repo=github_repo,
+        github_token=github_token,
+        branch=branch,
+    )
+    if not success:
+        return False, msg
 
-    try:
-        return _perform_update_unlocked(
-            github_repo=github_repo,
-            github_token=github_token,
-            branch=branch,
-            auto_restart=auto_restart,
-        )
-    finally:
-        update_lock.release()
+    count, _ = reload_modules()
+    msg += f"\n\n🔄 已重新載入 {count} 個模組"
+    if auto_restart:
+        msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
+
+    return True, msg
 
 
 def restart_bot() -> None:

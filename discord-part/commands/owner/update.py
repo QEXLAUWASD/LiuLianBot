@@ -13,7 +13,13 @@ import discord
 from datetime import datetime
 
 from core.config import get_config, reload_config
-from updater.updater import perform_update, get_current_branch, get_latest_commit, restart_bot
+from updater.updater import (
+    get_current_branch,
+    get_latest_commit,
+    perform_git_update,
+    reload_modules,
+    restart_bot,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -149,12 +155,17 @@ async def update(message, bot):
 
     # 執行更新
     success, result_msg = await asyncio.to_thread(
-        perform_update,
+        perform_git_update,
         github_repo=github_repo,
         github_token=github_token,
         branch=branch,
-        auto_restart=auto_restart,
     )
+
+    if success:
+        count, _ = reload_modules()
+        result_msg += f"\n\n🔄 已重新載入 {count} 個模組"
+        if auto_restart:
+            result_msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
 
     # 更新後的 commit
     new_commit = get_latest_commit()

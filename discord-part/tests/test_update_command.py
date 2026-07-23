@@ -14,7 +14,7 @@ from core import bot_client
 from updater import updater
 
 
-def test_update_awaits_perform_update_in_thread():
+def test_update_only_awaits_git_update_in_thread():
     tree = ast.parse(inspect.getsource(update_module.update))
 
     awaited_calls = [
@@ -34,13 +34,22 @@ def test_update_awaits_perform_update_in_thread():
     assert len(to_thread_calls) == 1
     call = to_thread_calls[0]
     assert isinstance(call.args[0], ast.Name)
-    assert call.args[0].id == "perform_update"
+    assert call.args[0].id == "perform_git_update"
     assert {keyword.arg for keyword in call.keywords} == {
         "github_repo",
         "github_token",
         "branch",
-        "auto_restart",
     }
+    assert not any(
+        isinstance(node, ast.Name) and node.id == "reload_modules"
+        for node in ast.walk(call)
+    )
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "reload_modules"
+        for node in ast.walk(tree)
+    )
 
 
 @pytest.mark.asyncio
@@ -56,8 +65,12 @@ async def test_update_passes_configuration_to_thread_and_uses_result(monkeypatch
     monkeypatch.setattr(update_module, "get_latest_commit", lambda: "abc1234")
     monkeypatch.setattr(update_module, "reload_config", Mock())
 
-    perform_update = Mock(name="perform_update")
-    monkeypatch.setattr(update_module, "perform_update", perform_update)
+    git_update = Mock(name="perform_git_update")
+    old_perform_update = Mock(return_value=(False, "old update path"))
+    reload_modules = Mock()
+    monkeypatch.setattr(update_module, "perform_git_update", git_update, raising=False)
+    monkeypatch.setattr(update_module, "perform_update", old_perform_update, raising=False)
+    monkeypatch.setattr(update_module, "reload_modules", reload_modules, raising=False)
     thread_calls = []
 
     async def fake_to_thread(func, *args, **kwargs):
@@ -76,21 +89,71 @@ async def test_update_passes_configuration_to_thread_and_uses_result(monkeypatch
 
     assert thread_calls == [
         (
-            perform_update,
+            git_update,
             (),
             {
                 "github_repo": "owner/private-repo",
                 "github_token": "token-value",
                 "branch": "release",
-                "auto_restart": False,
             },
         )
     ]
-    assert perform_update.call_count == 0
+    assert git_update.call_count == 0
+    assert old_perform_update.call_count == 0
+    reload_modules.assert_not_called()
     assert channel.send.await_count == 2
     result_embed = channel.send.await_args_list[1].kwargs["embed"]
     assert result_embed.title == "❌ 更新失敗"
     assert result_embed.description == "```\nupdate failed safely\n```"
+
+
+@pytest.mark.asyncio
+async def test_git_runs_in_worker_and_module_reload_runs_on_event_loop(monkeypatch):
+    assert hasattr(update_module, "perform_git_update")
+    assert hasattr(update_module, "reload_modules")
+    event_loop_thread = threading.get_ident()
+    git_threads = []
+    reload_threads = []
+
+    monkeypatch.setattr(
+        update_module,
+        "get_config",
+        lambda: {
+            "updater": {
+                "github_repo": "owner/repo",
+                "github_token": "",
+                "branch": "main",
+                "auto_restart": False,
+            }
+        },
+    )
+    monkeypatch.setattr(update_module, "get_current_branch", lambda: "main")
+    monkeypatch.setattr(update_module, "get_latest_commit", lambda: "abc1234")
+    monkeypatch.setattr(update_module, "reload_config", Mock())
+
+    def fake_git_update(**kwargs):
+        git_threads.append(threading.get_ident())
+        return True, "updated"
+
+    def fake_reload_modules():
+        reload_threads.append(threading.get_ident())
+        return 3, ["commands.one", "features.two", "updater.updater"]
+
+    monkeypatch.setattr(update_module, "perform_git_update", fake_git_update)
+    monkeypatch.setattr(update_module, "reload_modules", fake_reload_modules)
+    channel = SimpleNamespace(send=AsyncMock())
+    message = SimpleNamespace(
+        author=SimpleNamespace(id=42),
+        channel=channel,
+    )
+
+    await update_module.update(message, SimpleNamespace())
+
+    assert git_threads and git_threads[0] != event_loop_thread
+    assert reload_threads == [event_loop_thread]
+    result_embed = channel.send.await_args_list[1].kwargs["embed"]
+    assert result_embed.title == "✅ 更新完成"
+    assert "已重新載入 3 個模組" in result_embed.description
 
 
 @pytest.mark.asyncio
@@ -143,7 +206,8 @@ async def test_command_error_uses_reference_without_exposing_exception(monkeypat
     )
 
 
-def test_perform_update_rejects_concurrent_work_without_waiting(monkeypatch):
+def test_git_update_rejects_concurrent_work_without_waiting(monkeypatch):
+    assert hasattr(updater, "perform_git_update")
     entered = threading.Event()
     release = threading.Event()
     calls_lock = threading.Lock()
@@ -164,7 +228,7 @@ def test_perform_update_rejects_concurrent_work_without_waiting(monkeypatch):
     monkeypatch.setattr(updater, "reload_modules", lambda: (0, []))
     first_result = []
     first = threading.Thread(
-        target=lambda: first_result.append(updater.perform_update("owner/repo")),
+        target=lambda: first_result.append(updater.perform_git_update("owner/repo")),
         daemon=True,
     )
 
@@ -172,7 +236,7 @@ def test_perform_update_rejects_concurrent_work_without_waiting(monkeypatch):
     try:
         assert entered.wait(timeout=1)
         started = time.monotonic()
-        competing_result = updater.perform_update("owner/repo")
+        competing_result = updater.perform_git_update("owner/repo")
         elapsed = time.monotonic() - started
     finally:
         release.set()
@@ -183,7 +247,7 @@ def test_perform_update_rejects_concurrent_work_without_waiting(monkeypatch):
     assert "更新正在進行中" in competing_result[1]
     assert elapsed < 0.5
     assert call_count == 1
-    assert first_result == [(True, "updated\n\n🔄 已重新載入 0 個模組")]
+    assert first_result == [(True, "updated")]
 
 
 def test_update_lock_identity_survives_module_reload():
@@ -197,6 +261,7 @@ def test_update_lock_identity_survives_module_reload():
 
 @pytest.mark.asyncio
 async def test_cancelled_waiter_does_not_release_worker_lock(monkeypatch):
+    assert hasattr(updater, "perform_git_update")
     entered = threading.Event()
     release = threading.Event()
     worker_returned = threading.Event()
@@ -216,7 +281,7 @@ async def test_cancelled_waiter_does_not_release_worker_lock(monkeypatch):
 
     def run_update():
         try:
-            return updater.perform_update("owner/repo")
+            return updater.perform_git_update("owner/repo")
         finally:
             worker_returned.set()
 
@@ -231,7 +296,7 @@ async def test_cancelled_waiter_does_not_release_worker_lock(monkeypatch):
             await task
 
         competing_result = await asyncio.wait_for(
-            asyncio.to_thread(updater.perform_update, "owner/repo"),
+            asyncio.to_thread(updater.perform_git_update, "owner/repo"),
             timeout=1,
         )
         assert competing_result[0] is False
@@ -242,15 +307,16 @@ async def test_cancelled_waiter_does_not_release_worker_lock(monkeypatch):
         assert await asyncio.to_thread(worker_returned.wait, 2)
 
     final_result = await asyncio.wait_for(
-        asyncio.to_thread(updater.perform_update, "owner/repo"),
+        asyncio.to_thread(updater.perform_git_update, "owner/repo"),
         timeout=1,
     )
     assert final_result[0] is True
     assert call_count == 2
 
 
-def test_perform_update_releases_lock_after_worker_error(monkeypatch):
+def test_git_update_releases_lock_after_worker_error(monkeypatch):
     assert hasattr(updater, "_update_lock")
+    assert hasattr(updater, "perform_git_update")
     call_count = 0
 
     def failing_once(*args):
@@ -264,8 +330,8 @@ def test_perform_update_releases_lock_after_worker_error(monkeypatch):
     monkeypatch.setattr(updater, "reload_modules", lambda: (0, []))
 
     with pytest.raises(RuntimeError, match="worker failed"):
-        updater.perform_update("owner/repo")
+        updater.perform_git_update("owner/repo")
 
     assert not updater._update_lock.locked()
-    assert updater.perform_update("owner/repo")[0] is True
+    assert updater.perform_git_update("owner/repo")[0] is True
     assert call_count == 2
