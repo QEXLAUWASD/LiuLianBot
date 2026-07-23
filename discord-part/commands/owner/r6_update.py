@@ -11,8 +11,14 @@ import os
 import sys
 import asyncio
 import importlib
+import logging
 import discord
 from datetime import datetime
+
+from utils.error_reporting import report_exception
+
+
+logger = logging.getLogger(__name__)
 
 
 # Ensure the project root is on sys.path so we can import shared/r6 modules
@@ -58,10 +64,14 @@ async def r6update(message, bot):
             'count': len(maps_data),
             'path': maps_out,
         }
-    except Exception as e:
+    except Exception:
         results['maps'] = {
             'success': False,
-            'error': str(e),
+            'error': report_exception(
+                logger,
+                "r6update maps",
+                "未知錯誤",
+            ),
         }
 
     # --- 更新幹員資料 ---
@@ -81,10 +91,14 @@ async def r6update(message, bot):
             'count': total_ops,
             'path': ops_out,
         }
-    except Exception as e:
+    except Exception:
         results['operators'] = {
             'success': False,
-            'error': str(e),
+            'error': report_exception(
+                logger,
+                "r6update operators",
+                "未知錯誤",
+            ),
         }
 
     # --- 建立結果 Embed ---

@@ -1,8 +1,13 @@
 import discord
 import json
+import logging
 from pathlib import Path
 from commands.language_manager import get_translation
 from core.config import CONFIG_PATH
+from utils.error_reporting import report_exception
+
+
+logger = logging.getLogger(__name__)
 
 
 async def addadmin(message, bot):
@@ -64,5 +69,9 @@ async def addadmin(message, bot):
         
         return get_translation("addadmin_success", message.guild.id).replace("{user}", user_name)
     
-    except Exception as e:
-        return get_translation("error_adding_admin", message.guild.id).replace("{error}", str(e))
+    except Exception:
+        return report_exception(
+            logger,
+            "addadmin",
+            get_translation("error_adding_admin", message.guild.id),
+        )
