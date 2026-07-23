@@ -11,13 +11,9 @@ const {
   normalizeUsername,
   validatePasswordChange,
 } = require('../services/account_validation');
+const { requireApiAuth } = require('../middleware/auth');
 
 const router = express.Router();
-
-function requireAuth(req, res, next) {
-  if (req.session && req.session.user) return next();
-  return res.status(401).json({ error: 'Login required' });
-}
 
 async function verifyCurrentPassword(userId, currentPassword) {
   if (typeof currentPassword !== 'string' || currentPassword.length === 0) {
@@ -31,7 +27,7 @@ async function verifyCurrentPassword(userId, currentPassword) {
   return valid ? user : false;
 }
 
-router.put('/username', requireAuth, async (req, res) => {
+router.put('/username', requireApiAuth, async (req, res) => {
   try {
     const username = normalizeUsername(req.body.username);
     const user = await verifyCurrentPassword(
@@ -73,7 +69,7 @@ router.put('/username', requireAuth, async (req, res) => {
   }
 });
 
-router.put('/password', requireAuth, async (req, res) => {
+router.put('/password', requireApiAuth, async (req, res) => {
   try {
     const passwords = validatePasswordChange(
       req.body.currentPassword,

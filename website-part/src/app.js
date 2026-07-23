@@ -1,0 +1,50 @@
+const express = require('express');
+const session = require('express-session');
+const path = require('path');
+
+const { requirePageAuth } = require('./middleware/auth');
+const { requireAdmin } = require('./middleware/admin_auth');
+const { sqlInjectionGuard } = require('./middleware/security');
+
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+
+function createApp({ sessionOptions, routers }) {
+  const app = express();
+
+  if (sessionOptions.cookie.secure) app.set('trust proxy', 1);
+  app.use(session(sessionOptions));
+  app.use('/api', express.json({ limit: '16kb' }));
+  app.use('/api', express.urlencoded({ extended: false, limit: '16kb' }));
+  app.use('/api/admin/connections', routers.adminConnections);
+  app.use('/api', sqlInjectionGuard);
+  app.use('/api/auth', routers.auth);
+  app.use('/api/roller', routers.roller);
+  app.use('/api/admin', routers.admin);
+  app.use('/api/connections', routers.connections);
+
+  app.get('/roller.html', (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'roller.html'));
+  });
+  app.get('/index.html', requirePageAuth, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+  });
+  app.get('/account.html', requirePageAuth, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'account.html'));
+  });
+  app.get('/admin.html', requirePageAuth, requireAdmin, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
+  });
+
+  app.use('/connect/:slug', routers.connectionProxy);
+  app.use(express.static(PUBLIC_DIR, { index: false }));
+  app.get('/', (req, res) => {
+    res.redirect(req.session.user ? '/index.html' : '/login.html');
+  });
+  app.use((req, res) => {
+    res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
+  });
+
+  return app;
+}
+
+module.exports = { createApp };
