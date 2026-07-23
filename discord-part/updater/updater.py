@@ -25,8 +25,10 @@
 """
 
 import base64
+import ipaddress
 import logging
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -153,29 +155,110 @@ def _redact_git_output(output: str, token: str) -> str:
     return output.replace(token, "***").replace(credential, "***")
 
 
-def _origin_url_can_be_restored(origin_url: str) -> bool:
-    """只允許不含 HTTP credentials 或 URL password 的 origin 被寫回。"""
-    if not origin_url:
+def _origin_host_is_valid(hostname: str | None) -> bool:
+    if not hostname or len(hostname) > 253:
         return False
+
+    if ":" in hostname or re.fullmatch(r"[0-9.]+", hostname):
+        try:
+            ipaddress.ip_address(hostname)
+            return True
+        except ValueError:
+            return False
+
+    labels = hostname.rstrip(".").split(".")
+    return all(
+        re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
+        for label in labels
+    )
+
+
+def _origin_repo_path_is_valid(path: str) -> bool:
+    if not path.startswith("/"):
+        return False
+    segments = path[1:].split("/")
+    return bool(segments) and all(
+        segment not in {"", ".", ".."}
+        and re.fullmatch(r"(?:[A-Za-z0-9._~+-]|%[0-9A-Fa-f]{2})+", segment)
+        for segment in segments
+    )
+
+
+def _origin_local_path_is_valid(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    if normalized.startswith("//"):
+        return False
+
+    is_windows_absolute = bool(re.match(r"^[A-Za-z]:/", normalized))
+    is_posix_absolute = normalized.startswith("/")
+    if is_windows_absolute:
+        normalized = normalized[3:]
+    elif is_posix_absolute:
+        normalized = normalized[1:]
+    elif "@" in normalized or ":" in normalized:
+        return False
+
+    parts = normalized.split("/")
+    while parts and parts[0] in {".", ".."}:
+        parts.pop(0)
+    return bool(parts) and all(
+        part not in {"", ".", ".."}
+        and re.fullmatch(r"[A-Za-z0-9._ -]+", part)
+        for part in parts
+    )
+
+
+def _origin_url_can_be_restored(origin_url: str) -> bool:
+    """只允許結構完整且不含 credentials 的 origin 被寫回。"""
+    if (
+        not origin_url
+        or origin_url != origin_url.strip()
+        or any(ord(character) < 32 or ord(character) == 127 for character in origin_url)
+        or origin_url.startswith("//")
+    ):
+        return False
+
+    scp_match = re.fullmatch(r"git@([^:/@\s]+):([^:@\s]+)", origin_url)
+    if scp_match:
+        hostname, path = scp_match.groups()
+        return _origin_host_is_valid(hostname) and _origin_repo_path_is_valid(f"/{path}")
+
+    if re.match(r"^[A-Za-z]:[\\/]", origin_url):
+        return _origin_local_path_is_valid(origin_url)
 
     try:
         parsed = urlsplit(origin_url)
+        port = parsed.port
     except ValueError:
         return False
+
     scheme = parsed.scheme.lower()
-    if scheme in {"http", "https"}:
-        return parsed.username is None and parsed.password is None
-    if scheme == "ssh":
-        return parsed.password is None
-    if scheme in {"file", "git"}:
-        return parsed.username is None and parsed.password is None
-    if len(scheme) == 1 and origin_url[1:3] in {":\\", ":/"}:
-        return True
+    if scheme in {"git", "http", "https", "ssh"}:
+        return (
+            parsed.username is None
+            and parsed.password is None
+            and not parsed.netloc.endswith(":")
+            and _origin_host_is_valid(parsed.hostname)
+            and (port is None or port > 0)
+            and _origin_repo_path_is_valid(parsed.path)
+            and not parsed.query
+            and not parsed.fragment
+        )
+    if scheme == "file":
+        return (
+            parsed.username is None
+            and parsed.password is None
+            and not parsed.netloc.endswith(":")
+            and parsed.hostname in {None, "", "localhost"}
+            and port is None
+            and _origin_repo_path_is_valid(parsed.path)
+            and not parsed.query
+            and not parsed.fragment
+        )
     if scheme:
         return False
 
-    # SCP-like SSH URL 的使用者名稱是連線身分，不是內嵌密碼。
-    return True
+    return _origin_local_path_is_valid(origin_url)
 
 
 def _restore_origin(repo_root: Path, original_url: str) -> str:

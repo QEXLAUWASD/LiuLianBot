@@ -3,6 +3,8 @@ import os
 import subprocess
 from types import SimpleNamespace
 
+import pytest
+
 from updater import updater
 
 
@@ -230,11 +232,57 @@ def test_credentialized_origin_is_not_restored_or_exposed(monkeypatch, tmp_path)
     assert origin_secret not in message
 
 
-def test_origin_restore_safety_rejects_userinfo_and_unknown_schemes():
-    assert updater._origin_url_can_be_restored(ORIGINAL_SSH_URL) is True
-    assert updater._origin_url_can_be_restored(ORIGINAL_HTTPS_URL) is True
-    assert updater._origin_url_can_be_restored("https://token@github.com/owner/repo.git") is False
-    assert updater._origin_url_can_be_restored("credential:secret@host/repo") is False
+REVIEWER_UNSAFE_ORIGINS = [
+    "//user:review-secret@example.com/repo.git",
+    "https://github.com:badport/owner/review-secret.git",
+    "https:///owner/review-secret.git",
+    "ssh:///owner/review-secret.git",
+]
+
+
+def test_origin_restore_safety_is_fail_closed():
+    safe_origins = [
+        ORIGINAL_HTTPS_URL,
+        ORIGINAL_SSH_URL,
+        r"C:\repos\repo.git",
+        "/srv/git/repo.git",
+        "../repos/repo.git",
+    ]
+    unsafe_origins = [
+        *REVIEWER_UNSAFE_ORIGINS,
+        "https://token@github.com/owner/repo.git",
+        "credential:secret@host/repo",
+        "owner@host/repo.git",
+        "https://github.com/owner/repo secret.git",
+        "https://github.com:/owner/repo.git",
+        "repo.git\nnext",
+        "repo.git\x00secret",
+        "",
+    ]
+
+    assert all(updater._origin_url_can_be_restored(origin) for origin in safe_origins)
+    assert not any(updater._origin_url_can_be_restored(origin) for origin in unsafe_origins)
+
+
+@pytest.mark.parametrize("unsafe_origin", REVIEWER_UNSAFE_ORIGINS)
+def test_unsafe_origin_never_enters_restore_argv_or_message(
+    monkeypatch, tmp_path, unsafe_origin
+):
+    responses = {
+        ("status", "--porcelain"): (0, "", ""),
+        ("remote", "get-url", "origin"): (0, unsafe_origin, ""),
+        ("rev-parse", "--short", "HEAD"): (0, "abc1234", ""),
+        ("fetch", "origin", REFSPEC): (128, "", "network failure"),
+    }
+    calls, _ = _prepare_repo(monkeypatch, tmp_path, responses)
+
+    success, message = updater.fetch_and_pull("owner/repo", TOKEN, "main")
+
+    assert success is False
+    set_url_calls = [args for args in calls if args[:3] == ["remote", "set-url", "origin"]]
+    assert set_url_calls == [["remote", "set-url", "origin", PUBLIC_URL]]
+    assert "review-secret" not in " ".join(part for args in calls for part in args)
+    assert "review-secret" not in message
 
 
 def test_origin_get_url_failure_stops_before_fetch_without_exposing_error(monkeypatch, tmp_path):
