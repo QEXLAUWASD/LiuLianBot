@@ -49,29 +49,6 @@ document.getElementById('confirmOkBtn').addEventListener('click', () => {
   closeConfirm();
 });
 
-// ---------- Tab Switching ----------
-
-document.addEventListener('DOMContentLoaded', () => {
-  const tabBtns = document.querySelectorAll('.admin-tabs .tab-btn');
-  const adminTabs = document.querySelectorAll('.admin-tab');
-
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.dataset.tab;
-      tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-      adminTabs.forEach(t => t.classList.toggle('active', t.id === tab + 'Tab'));
-
-      if (tab === 'users') loadUsers();
-      else if (tab === 'groups') loadGroups();
-      else if (tab === 'guilds') loadGuilds();
-      else if (tab === 'connections') loadConnections();
-    });
-  });
-
-  // Load users on initial page load
-  loadUsers();
-});
-
 // ======================== Users ========================
 
 async function loadUsers() {

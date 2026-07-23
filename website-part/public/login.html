@@ -8,17 +8,19 @@
 </head>
 <body>
   <div class="auth-container">
-    <div class="auth-card">
+    <div class="auth-card" data-tabs>
       <h1>🎮 LiuLianBot</h1>
       <p class="subtitle">R6 Roller System</p>
 
-      <div class="auth-tabs">
-        <button class="tab-btn active" data-tab="login">Login</button>
-        <button class="tab-btn" data-tab="register">Register</button>
+      <div class="auth-tabs" role="tablist" aria-label="Account access">
+        <button id="login-tab" class="tab-btn active" type="button" role="tab" data-tab="login"
+          aria-controls="loginForm" aria-selected="true" tabindex="0">Login</button>
+        <button id="register-tab" class="tab-btn" type="button" role="tab" data-tab="register"
+          aria-controls="registerForm" aria-selected="false" tabindex="-1">Register</button>
       </div>
 
       <!-- Login Form -->
-      <form id="loginForm" class="auth-form active">
+      <form id="loginForm" class="auth-form active" role="tabpanel" aria-labelledby="login-tab">
         <div class="form-group">
           <label for="loginUsername">Username</label>
           <input type="text" id="loginUsername" placeholder="Enter username" required minlength="3" autocomplete="username">
@@ -36,7 +38,7 @@
       </form>
 
       <!-- Register Form -->
-      <form id="registerForm" class="auth-form">
+      <form id="registerForm" class="auth-form" role="tabpanel" aria-labelledby="register-tab" hidden>
         <div class="form-group">
           <label for="regUsername">Username</label>
           <input type="text" id="regUsername" placeholder="3-20 characters" required minlength="3" maxlength="20" autocomplete="username">
@@ -51,6 +53,6 @@
     </div>
   </div>
 
-  <script src="/js/auth.js?v=20260722-1"></script>
+  <script type="module" src="/js/auth.mjs?v=20260723-1"></script>
 </body>
 </html>

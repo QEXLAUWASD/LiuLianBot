@@ -1,25 +1,15 @@
+import { setupTabs } from './tabs.mjs';
+
 // R6 Roller page logic
 document.addEventListener('DOMContentLoaded', () => {
   const opHistory = [];
   const mapHistory = [];
 
-  // Tab switching
-  const tabBtns = document.querySelectorAll('.roller-tabs .tab-btn');
-  const rollerTabs = document.querySelectorAll('.roller-tab');
-
-  // Check URL for tab parameter
+  const root = document.querySelector('[data-tabs]');
+  const tabs = setupTabs(root);
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('tab') === 'map') {
-    switchTab('map');
-  }
-
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-  });
-
-  function switchTab(tabName) {
-    tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
-    rollerTabs.forEach(t => t.classList.toggle('active', t.id === tabName + 'Tab'));
+    tabs?.activate('map-tab', { focus: false });
   }
 
   // Operator Roll

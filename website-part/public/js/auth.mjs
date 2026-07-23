@@ -1,3 +1,5 @@
+import { setupTabs } from './tabs.mjs';
+
 // Login / Register page logic
 function postAuthDestination() {
   const next = new URLSearchParams(window.location.search).get('next');
@@ -5,22 +7,10 @@ function postAuthDestination() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Tab switching
-  const tabBtns = document.querySelectorAll('.auth-tabs .tab-btn');
-  const forms = document.querySelectorAll('.auth-form');
-
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.dataset.tab;
-      tabBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      forms.forEach(f => f.classList.remove('active'));
-      document.getElementById(tab === 'login' ? 'loginForm' : 'registerForm').classList.add('active');
-
-      // Clear errors
-      document.getElementById('loginError').textContent = '';
-      document.getElementById('regError').textContent = '';
-    });
+  document.querySelectorAll('[data-tabs]').forEach(root => setupTabs(root));
+  document.addEventListener('tabs:change', () => {
+    document.getElementById('loginError').textContent = '';
+    document.getElementById('regError').textContent = '';
   });
 
   // Login

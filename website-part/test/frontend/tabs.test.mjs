@@ -1,0 +1,207 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+import { JSDOM } from 'jsdom';
+
+import { setupTabs } from '../../public/js/tabs.mjs';
+
+const testDir = dirname(fileURLToPath(import.meta.url));
+const publicDir = resolve(testDir, '../../public');
+
+function createTabs(selected = 'second') {
+  const dom = new JSDOM(`
+    <div data-tabs>
+      <div role="tablist">
+        <button id="first-tab" role="tab" aria-controls="first-panel"
+          aria-selected="${selected === 'first'}">First</button>
+        <button id="second-tab" role="tab" aria-controls="second-panel"
+          aria-selected="${selected === 'second'}">Second</button>
+        <button id="third-tab" role="tab" aria-controls="third-panel" disabled
+          aria-selected="${selected === 'third'}">Third</button>
+      </div>
+      <section id="first-panel" role="tabpanel" aria-labelledby="first-tab"></section>
+      <section id="second-panel" role="tabpanel" aria-labelledby="second-tab"></section>
+      <section id="third-panel" role="tabpanel" aria-labelledby="third-tab"></section>
+    </div>
+  `);
+  return { dom, root: dom.window.document.querySelector('[data-tabs]') };
+}
+
+test('setupTabs normalizes selection, roving tabindex, panels, and visual classes', () => {
+  const { dom, root } = createTabs('second');
+  setupTabs(root);
+
+  const tabs = [...root.querySelectorAll('[role="tab"]')];
+  const panels = [...root.querySelectorAll('[role="tabpanel"]')];
+  assert.deepEqual(tabs.map(tab => tab.getAttribute('aria-selected')), ['false', 'true', 'false']);
+  assert.deepEqual(tabs.map(tab => tab.tabIndex), [-1, 0, -1]);
+  assert.deepEqual(panels.map(panel => panel.hidden), [true, false, true]);
+  assert.deepEqual(tabs.map(tab => tab.classList.contains('active')), [false, true, false]);
+  assert.deepEqual(panels.map(panel => panel.classList.contains('active')), [false, true, false]);
+  dom.window.close();
+});
+
+test('missing or ambiguous initial selection falls back to the first enabled tab', () => {
+  for (const selected of ['none', 'first']) {
+    const { dom, root } = createTabs(selected);
+    if (selected === 'first') {
+      root.querySelector('#second-tab').setAttribute('aria-selected', 'true');
+    }
+    setupTabs(root);
+    assert.equal(root.querySelector('#first-tab').getAttribute('aria-selected'), 'true');
+    assert.equal(root.querySelector('#first-panel').hidden, false);
+    dom.window.close();
+  }
+});
+
+test('click activates and focuses a tab and dispatches a useful change event', () => {
+  const { dom, root } = createTabs('first');
+  const changes = [];
+  root.addEventListener('tabs:change', event => changes.push(event.detail));
+  setupTabs(root);
+
+  const second = root.querySelector('#second-tab');
+  second.click();
+  assert.equal(dom.window.document.activeElement, second);
+  assert.equal(second.getAttribute('aria-selected'), 'true');
+  assert.equal(root.querySelector('#second-panel').hidden, false);
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0].tab, second);
+  assert.equal(changes[0].panel.id, 'second-panel');
+  dom.window.close();
+});
+
+test('arrow, Home, and End keys wrap through enabled tabs and prevent default', () => {
+  const { dom, root } = createTabs('first');
+  setupTabs(root);
+  const first = root.querySelector('#first-tab');
+  const second = root.querySelector('#second-tab');
+
+  const left = new dom.window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true });
+  first.dispatchEvent(left);
+  assert.equal(left.defaultPrevented, true);
+  assert.equal(dom.window.document.activeElement, second);
+
+  const right = new dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+  second.dispatchEvent(right);
+  assert.equal(right.defaultPrevented, true);
+  assert.equal(dom.window.document.activeElement, first);
+
+  second.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
+  assert.equal(dom.window.document.activeElement, first);
+  first.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
+  assert.equal(dom.window.document.activeElement, second);
+  dom.window.close();
+});
+
+test('Space and Enter rely on native button clicks without keydown activation', () => {
+  const { dom, root } = createTabs('first');
+  let changes = 0;
+  root.addEventListener('tabs:change', () => { changes += 1; });
+  setupTabs(root);
+
+  const second = root.querySelector('#second-tab');
+  for (const key of [' ', 'Enter']) {
+    const event = new dom.window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+    second.dispatchEvent(event);
+    assert.equal(event.defaultPrevented, false);
+  }
+  assert.equal(changes, 0);
+  second.click();
+  assert.equal(changes, 1);
+  dom.window.close();
+});
+
+test('empty roots are harmless and malformed tab relationships throw developer errors', () => {
+  assert.doesNotThrow(() => setupTabs(null));
+  const empty = new JSDOM('<div data-tabs></div>');
+  assert.doesNotThrow(() => setupTabs(empty.window.document.querySelector('[data-tabs]')));
+  empty.window.close();
+
+  for (const html of [
+    '<div data-tabs><button role="tab">Broken</button></div>',
+    '<div data-tabs><button role="tab" aria-controls="missing">Broken</button></div>',
+  ]) {
+    const dom = new JSDOM(html);
+    assert.throws(
+      () => setupTabs(dom.window.document.querySelector('[data-tabs]')),
+      /setupTabs: tab .*aria-controls|setupTabs: panel/,
+    );
+    dom.window.close();
+  }
+});
+
+test('login, roller, and admin expose complete tab and panel semantics', async () => {
+  for (const filename of ['login.html', 'roller.html', 'admin.html']) {
+    const html = await readFile(resolve(publicDir, filename), 'utf8');
+    const dom = new JSDOM(html);
+    const root = dom.window.document.querySelector('[data-tabs]');
+    assert.ok(root, `${filename} needs a data-tabs root`);
+    assert.ok(root.querySelector('[role="tablist"]'), `${filename} needs a tablist`);
+
+    const tabs = [...root.querySelectorAll('[role="tab"]')];
+    assert.ok(tabs.length >= 2);
+    assert.equal(tabs.filter(tab => tab.getAttribute('aria-selected') === 'true').length, 1);
+    for (const tab of tabs) {
+      assert.ok(tab.id);
+      const panel = root.querySelector(`#${tab.getAttribute('aria-controls')}`);
+      assert.ok(panel, `${filename}: ${tab.id} needs a controlled panel`);
+      assert.equal(panel.getAttribute('role'), 'tabpanel');
+      assert.equal(panel.getAttribute('aria-labelledby'), tab.id);
+      assert.equal(panel.hidden, tab.getAttribute('aria-selected') !== 'true');
+    }
+    dom.window.close();
+  }
+});
+
+test('page entries are modules, use setupTabs, and leave no legacy script references or duplicate tab click logic', async () => {
+  const pages = {
+    'login.html': 'auth.mjs',
+    'roller.html': 'roller.mjs',
+    'admin.html': 'admin_tabs.mjs',
+  };
+
+  for (const [page, entry] of Object.entries(pages)) {
+    const html = await readFile(resolve(publicDir, page), 'utf8');
+    assert.match(html, new RegExp(`<script[^>]+type="module"[^>]+src="/js/${entry.replace('.', '\\.')}`));
+    assert.doesNotMatch(html, /\/js\/(?:auth|roller)\.js/);
+
+    const source = await readFile(resolve(publicDir, 'js', entry), 'utf8');
+    assert.match(source, /import\s*\{\s*setupTabs\s*\}\s*from\s*['"]\.\/tabs\.mjs['"]/);
+    assert.doesNotMatch(source, /querySelectorAll\([^)]*tab-btn[^)]*\)[\s\S]{0,300}addEventListener\(['"]click/);
+  }
+
+  const adminSource = await readFile(resolve(publicDir, 'js/admin.js'), 'utf8');
+  assert.doesNotMatch(adminSource, /Tab Switching|\.admin-tabs[\s\S]{0,500}addEventListener\(['"]click/);
+  assert.match(await readFile(resolve(publicDir, 'js/admin_tabs.mjs'), 'utf8'), /loadUsers|tabs:change/);
+});
+
+test('admin tab bootstrap preserves initial and selected-tab data loading', async () => {
+  const html = await readFile(resolve(publicDir, 'admin.html'), 'utf8');
+  const dom = new JSDOM(html);
+  const originalDocument = globalThis.document;
+  const originalWindow = globalThis.window;
+  const calls = [];
+  dom.window.loadUsers = () => calls.push('users');
+  dom.window.loadGroups = () => calls.push('groups');
+  dom.window.loadGuilds = () => calls.push('guilds');
+  dom.window.loadConnections = () => calls.push('connections');
+  globalThis.document = dom.window.document;
+  globalThis.window = dom.window;
+
+  try {
+    await import(`../../public/js/admin_tabs.mjs?test=${Date.now()}`);
+    dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+    assert.deepEqual(calls, ['users']);
+
+    dom.window.document.getElementById('groups-tab').click();
+    assert.deepEqual(calls, ['users', 'groups']);
+  } finally {
+    globalThis.document = originalDocument;
+    globalThis.window = originalWindow;
+    dom.window.close();
+  }
+});
