@@ -64,3 +64,10 @@ test('authentication, account, and admin mutations share the busy-state guard', 
     assert.match(source, /withBusyControl\(/);
   }
 });
+
+test('roller requests use the shared API client', async () => {
+  const source = await readFile(resolve(publicJs, 'roller.mjs'), 'utf8');
+
+  assert.match(source, /import\s*\{\s*requestJSON\s*\}\s*from\s*['"]\.\/api_client\.mjs['"]/);
+  assert.doesNotMatch(source, /\bfetch\s*\(/);
+});

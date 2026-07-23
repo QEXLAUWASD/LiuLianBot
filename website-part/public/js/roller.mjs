@@ -1,3 +1,4 @@
+import { requestJSON } from './api_client.mjs';
 import { element, replaceChildren } from './dom.mjs';
 import { setupTabs } from './tabs.mjs';
 
@@ -53,16 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
     button.disabled = true;
 
     try {
-      const response = await fetch(`/api/roller/operator${side ? `?side=${side}` : ''}`);
-      const data = await response.json();
-      if (response.ok) {
-        displayOpResult(data);
-        addOpHistory(data);
-      } else {
-        showOpError(data.error || 'Roll failed');
-      }
-    } catch (_) {
-      showOpError('Network error. Please try again.');
+      const data = await requestJSON(`/api/roller/operator${side ? `?side=${side}` : ''}`);
+      displayOpResult(data);
+      addOpHistory(data);
+    } catch (error) {
+      showOpError(error.message || 'Roll failed');
     } finally {
       button.textContent = '🎯 Roll Operator';
       button.disabled = false;
@@ -111,16 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
     button.disabled = true;
 
     try {
-      const response = await fetch('/api/roller/map');
-      const data = await response.json();
-      if (response.ok) {
-        displayMapResult(data);
-        addMapHistory(data);
-      } else {
-        showMapError(data.error || 'Map roll failed');
-      }
-    } catch (_) {
-      showMapError('Network error. Please try again.');
+      const data = await requestJSON('/api/roller/map');
+      displayMapResult(data);
+      addMapHistory(data);
+    } catch (error) {
+      showMapError(error.message || 'Map roll failed');
     } finally {
       button.textContent = '🗺️ Roll Map';
       button.disabled = false;
