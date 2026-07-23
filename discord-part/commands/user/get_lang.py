@@ -1,7 +1,5 @@
-import json, os
-
 from commands.language_manager import get_translation, list_locale_codes
-from core.config import CONFIG_PATH
+from core.config import get_config
 
 async def getlang(message, bot):
     if message.guild is None:
@@ -13,15 +11,11 @@ async def getlang(message, bot):
     locales = supported_locales()
     # fetch guild setting
 
-    cfg_path = CONFIG_PATH
-    current = None
-    try:
-        if os.path.exists(cfg_path):
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-                guild_langs = cfg.get("guild_languages", {})
-                current = guild_langs.get(str(message.guild.id), cfg.get("default_language", "en"))
-    except Exception:
-        current = "en"
+    config = get_config()
+    guild_languages = config.get("guild_languages", {})
+    current = guild_languages.get(
+        str(message.guild.id),
+        config.get("default_language", "en"),
+    )
     codes = ", ".join(list(locales.keys()))
     return f"Current language: `{current}`\nAvailable: {codes}"

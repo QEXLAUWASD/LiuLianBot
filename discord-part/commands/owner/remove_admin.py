@@ -1,8 +1,5 @@
-import discord
-import json
-from pathlib import Path
 from commands.language_manager import get_translation
-from core.config import CONFIG_PATH
+from core.config import get_config, update_config
 
 async def removeadmin(message, bot):
     """Remove a user from the bot admins
@@ -10,9 +7,6 @@ async def removeadmin(message, bot):
     Usage: >removeadmin @user or >removeadmin user_id
     """
     try:
-        # Get config path
-        config_path = Path(CONFIG_PATH)
-        
         # Parse user from message
         parts = message.content.split()
         if len(parts) < 2:
@@ -35,13 +29,7 @@ async def removeadmin(message, bot):
             except ValueError:
                 return get_translation("invalid_user_id", message.guild.id)
         
-        # Load existing config
-        if config_path.exists():
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-        else:
-            config = {}
-        
+        config = get_config()
         # Check if bot_admin list exists
         if 'bot_admin' not in config or not isinstance(config['bot_admin'], list):
             return get_translation("no_admins_configured", message.guild.id)
@@ -51,11 +39,15 @@ async def removeadmin(message, bot):
             return get_translation("not_an_admin", message.guild.id).replace("{user}", user_name)
         
         # Remove user from admins
-        config['bot_admin'] = [uid for uid in config['bot_admin'] if uid != str(user_id)]
-        
-        # Save config
-        with open(config_path, 'w', encoding='utf-8') as f:
-            json.dump(config, f, indent=4)
+        user_id_str = str(user_id)
+        update_config(
+            lambda current: current.update(
+                bot_admin=[
+                    uid for uid in current.get('bot_admin', [])
+                    if uid != user_id_str
+                ]
+            )
+        )
         
         return get_translation("admin_removed", message.guild.id).replace("{user}", user_name)
     

@@ -1,9 +1,7 @@
 import discord
-import json
-from pathlib import Path
 import commands.handler as cmd_handler
 from commands.language_manager import get_translation
-from core.config import CONFIG_PATH
+from core.config import get_config, update_config
 from utils.error_reporting import report_exception
 
 
@@ -24,9 +22,6 @@ async def removeguildadmin(message, bot):
         return get_translation("no_permission_admin", message.guild.id)
     
     try:
-        # Get config path
-        config_path = Path(CONFIG_PATH)
-        
         # Parse user from message
         parts = message.content.split()
         if len(parts) < 2:
@@ -49,13 +44,7 @@ async def removeguildadmin(message, bot):
             except ValueError:
                 return get_translation("invalid_user_id", message.guild.id)
         
-        # Load existing config
-        if not config_path.exists():
-            return get_translation("no_guild_admins", message.guild.id)
-        
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-        
+        config = get_config()
         guild_id_str = str(message.guild.id)
         
         # Check if guild has any admins
@@ -63,24 +52,25 @@ async def removeguildadmin(message, bot):
             return get_translation("no_guild_admins", message.guild.id)
         
         # Check if user is a guild admin
-        if user_id not in config['guild_admins'][guild_id_str]:
+        user_id_str = str(user_id)
+        if user_id_str not in [str(admin_id) for admin_id in config['guild_admins'][guild_id_str]]:
             return get_translation("user_not_guild_admin", message.guild.id).replace("{user}", user_name)
-        
-        # Remove user from guild admins
-        config['guild_admins'][guild_id_str].remove(user_id)
-        
-        # Clean up empty lists
-        if not config['guild_admins'][guild_id_str]:
-            del config['guild_admins'][guild_id_str]
-        if not config['guild_admins']:
-            del config['guild_admins']
-        
-        # Save config
-        with open(config_path, 'w', encoding='utf-8') as f:
-            json.dump(config, f, indent=4)
+
+        def apply(current):
+            guild_admins = current['guild_admins']
+            guild_admins[guild_id_str] = [
+                admin_id for admin_id in guild_admins[guild_id_str]
+                if str(admin_id) != user_id_str
+            ]
+            if not guild_admins[guild_id_str]:
+                del guild_admins[guild_id_str]
+            if not guild_admins:
+                del current['guild_admins']
+
+        update_config(apply)
         
         # Also remove from runtime handler
-        cmd_handler.handler.remove_guild_admin(message.guild.id, str(user_id))
+        cmd_handler.handler.remove_guild_admin(message.guild.id, user_id_str)
         
         return get_translation("removeguildadmin_success", message.guild.id).replace("{user}", user_name)
     

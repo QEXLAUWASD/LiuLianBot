@@ -212,9 +212,11 @@ async def test_localized_command_error_redacts_exception_and_correlates_log(monk
     error_reporting = importlib.import_module("utils.error_reporting")
     secret = "C:\\private\\config.json token=do-not-expose"
     logger = Mock()
-    config_path = Mock()
-    config_path.exists.side_effect = RuntimeError(secret)
-    monkeypatch.setattr(add_admin, "Path", lambda value: config_path)
+    monkeypatch.setattr(
+        add_admin,
+        "get_config",
+        Mock(side_effect=RuntimeError(secret)),
+    )
     monkeypatch.setattr(
         add_admin,
         "get_translation",
@@ -278,9 +280,11 @@ async def test_guild_admin_errors_redact_exception_and_use_bot_logger(
     error_reporting = importlib.import_module("utils.error_reporting")
     secret = f"{operation}-secret-token"
     logger = Mock()
-    config_path = Mock()
-    config_path.exists.side_effect = RuntimeError(secret)
-    monkeypatch.setattr(command_module, "Path", lambda value: config_path)
+    monkeypatch.setattr(
+        command_module,
+        "get_config",
+        Mock(side_effect=RuntimeError(secret)),
+    )
     monkeypatch.setattr(
         command_module,
         "get_translation",
