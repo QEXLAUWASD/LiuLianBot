@@ -8,6 +8,7 @@
 const mysql = require('mysql2/promise');
 const path = require('path');
 const fs = require('fs');
+const { ConflictError } = require('./errors');
 
 const CONFIG_PATH = path.join(__dirname, '..', '..', 'shared', 'database', 'config.json');
 const DISCORD_CONFIG_PATH = path.join(__dirname, '..', '..', 'discord-part', 'config.json');
@@ -399,6 +400,14 @@ async function updateRole(id, name, description) {
   const safeName = validateString(name, 'role name');
   const safeDesc = typeof description === 'string' ? description.trim() : '';
   const p = await getPool();
+  const [roles] = await p.execute(
+    'SELECT name FROM website_roles WHERE id = ?',
+    [safeId]
+  );
+  if (roles.length === 0) throw new Error('Role not found');
+  if (roles[0].name === 'admin') {
+    throw new ConflictError('The admin group cannot be renamed or deleted');
+  }
   const [result] = await p.execute(
     'UPDATE website_roles SET name = ?, description = ? WHERE id = ?',
     [safeName, safeDesc, safeId]
@@ -410,6 +419,15 @@ async function updateRole(id, name, description) {
 async function deleteRole(id) {
   const safeId = validateInt(id, 'role id');
   const p = await getPool();
+
+  const [roles] = await p.execute(
+    'SELECT name FROM website_roles WHERE id = ?',
+    [safeId]
+  );
+  if (roles.length === 0) throw new Error('Role not found');
+  if (roles[0].name === 'admin') {
+    throw new ConflictError('The admin group cannot be renamed or deleted');
+  }
 
   const [users] = await p.execute(
     'SELECT COUNT(*) AS cnt FROM website_user_roles WHERE role_id = ?',

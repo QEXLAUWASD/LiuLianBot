@@ -16,6 +16,16 @@ const {
   UserGroupInputError,
   normalizeRoleIds,
 } = require('../services/user_group_validation');
+const { InputError, ConflictError } = require('../errors');
+const { normalizeGroupInput } = require('../services/group_validation');
+
+function groupErrorStatus(err) {
+  if (err instanceof InputError) return 400;
+  if (err instanceof ConflictError || err.code === 'ER_DUP_ENTRY') return 409;
+  if (err.message === 'Role not found') return 404;
+  if (err.message.includes('still assigned')) return 409;
+  return 500;
+}
 
 // All routes require admin
 router.use(requireAdmin);
@@ -93,39 +103,30 @@ router.get('/groups', async (req, res) => {
 // POST /api/admin/groups — create a new role
 router.post('/groups', async (req, res) => {
   try {
-    const { name, description } = req.body;
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return res.status(400).json({ error: 'Group name is required' });
-    }
-    if (name.trim().length > 50) {
-      return res.status(400).json({ error: 'Group name must be 50 characters or less' });
-    }
-
-    const role = await createRole(name.trim(), description || '');
+    const { name, description } = normalizeGroupInput(req.body);
+    const role = await createRole(name, description);
     res.json({ success: true, group: role });
   } catch (err) {
-    console.error('[Admin] POST /groups error:', err);
-    res.status(500).json({ error: err.message });
+    const status = groupErrorStatus(err);
+    if (status === 500) console.error('[Admin] POST /groups error:', err);
+    res.status(status).json({ error: err.message });
   }
 });
 
 // PUT /api/admin/groups/:id — update a role
 router.put('/groups/:id', async (req, res) => {
   try {
-    const { name, description } = req.body;
     const id = parseInt(req.params.id, 10);
     if (!Number.isInteger(id)) {
       return res.status(400).json({ error: 'Invalid group ID' });
     }
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return res.status(400).json({ error: 'Group name is required' });
-    }
 
-    const role = await updateRole(id, name.trim(), description || '');
+    const { name, description } = normalizeGroupInput(req.body);
+    const role = await updateRole(id, name, description);
     res.json({ success: true, group: role });
   } catch (err) {
-    console.error('[Admin] PUT /groups/:id error:', err);
-    const status = err.message === 'Role not found' ? 404 : 500;
+    const status = groupErrorStatus(err);
+    if (status === 500) console.error('[Admin] PUT /groups/:id error:', err);
     res.status(status).json({ error: err.message });
   }
 });
@@ -141,9 +142,8 @@ router.delete('/groups/:id', async (req, res) => {
     await deleteRole(id);
     res.json({ success: true });
   } catch (err) {
-    console.error('[Admin] DELETE /groups/:id error:', err);
-    const status = err.message === 'Role not found' ? 404
-      : err.message.includes('still assigned') ? 409 : 500;
+    const status = groupErrorStatus(err);
+    if (status === 500) console.error('[Admin] DELETE /groups/:id error:', err);
     res.status(status).json({ error: err.message });
   }
 });
