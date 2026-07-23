@@ -445,12 +445,13 @@ test('admin dialogs have native hidden state and complete dialog semantics', asy
 test('admin dialog integration wires existing helpers, close controls, and backdrop clicks', async () => {
   const [html, adminSource, css] = await Promise.all([
     readFile(resolve(publicDir, 'admin.html'), 'utf8'),
-    readFile(resolve(publicDir, 'js/admin.js'), 'utf8'),
+    readFile(resolve(publicDir, 'js/admin.mjs'), 'utf8'),
     readFile(resolve(publicDir, 'css/style.css'), 'utf8'),
   ]);
-  assert.match(html, /src="\/js\/admin_dialogs\.mjs/);
-  assert.match(adminSource, /adminDialogs\.open\(modalId,\s*opener\)/);
-  assert.match(adminSource, /adminDialogs\.close\(modalId,\s*reason\)/);
+  assert.match(html, /type="module" src="\/js\/admin\.mjs/);
+  assert.match(adminSource, /setupAdminDialogs\(document\)/);
+  assert.match(adminSource, /dialogs\.open\(modalId,\s*opener\)/);
+  assert.match(adminSource, /dialogs\.close\(modalId,\s*reason\)/);
   assert.match(adminSource, /openModal\('confirmDialog'/);
   assert.match(adminSource, /closeModal\('confirmDialog'/);
   assert.match(adminSource, /confirmDialog.*addEventListener\('dialog:close'/s);
@@ -475,39 +476,40 @@ test('admin dialog integration wires existing helpers, close controls, and backd
 });
 
 test('admin confirmation executes OK once and cancellation paths only clear the callback', async () => {
-  const [html, adminSource] = await Promise.all([
-    readFile(resolve(publicDir, 'admin.html'), 'utf8'),
-    readFile(resolve(publicDir, 'js/admin.js'), 'utf8'),
-  ]);
+  const html = await readFile(resolve(publicDir, 'admin.html'), 'utf8');
   const dom = new JSDOM(html, {
     url: 'https://example.test/admin.html',
-    runScripts: 'outside-only',
   });
   const { document } = dom.window;
-  setupAdminDialogs(document);
-  dom.window.eval(adminSource);
+  const originalDocument = globalThis.document;
+  const originalWindow = globalThis.window;
+  globalThis.document = document;
+  globalThis.window = dom.window;
+  const { showConfirm } = await import(`../../public/js/admin.mjs?dialog-test=${Date.now()}`);
   const confirmDialog = document.getElementById('confirmDialog');
   let calls = 0;
 
-  dom.window.showConfirm('Delete', 'First', () => calls += 1);
+  showConfirm('Delete', 'First', () => calls += 1);
   document.getElementById('confirmOkBtn').click();
   document.getElementById('confirmOkBtn').click();
   assert.equal(calls, 1);
   assert.equal(confirmDialog.hidden, true);
 
-  dom.window.showConfirm('Delete', 'Cancel', () => calls += 1);
+  showConfirm('Delete', 'Cancel', () => calls += 1);
   confirmDialog.querySelector('[data-dialog-close]').click();
   document.getElementById('confirmOkBtn').click();
   assert.equal(calls, 1);
 
-  dom.window.showConfirm('Delete', 'Escape', () => calls += 1);
+  showConfirm('Delete', 'Escape', () => calls += 1);
   keydown(dom, confirmDialog, 'Escape');
   document.getElementById('confirmOkBtn').click();
   assert.equal(calls, 1);
 
-  dom.window.showConfirm('Delete', 'Backdrop', () => calls += 1);
+  showConfirm('Delete', 'Backdrop', () => calls += 1);
   confirmDialog.click();
   document.getElementById('confirmOkBtn').click();
   assert.equal(calls, 1);
+  globalThis.document = originalDocument;
+  globalThis.window = originalWindow;
   dom.window.close();
 });

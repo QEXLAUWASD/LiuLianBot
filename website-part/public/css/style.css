@@ -444,6 +444,11 @@ a:hover { color: var(--accent-hover); }
   margin-bottom: 16px;
 }
 
+.map-icon {
+  font-size: 3rem;
+  margin-bottom: 8px;
+}
+
 .map-details {
   display: flex;
   gap: 16px;
@@ -494,6 +499,11 @@ a:hover { color: var(--accent-hover); }
 
 .history-item .hi-att { color: var(--attacker); }
 .history-item .hi-def { color: var(--defender); }
+
+.history-detail {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
 
 /* ===== Admin Panel ===== */
 .admin-container h2 { font-size: 1.8rem; margin-bottom: 20px; }

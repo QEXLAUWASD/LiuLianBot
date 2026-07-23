@@ -279,7 +279,7 @@ test('page entries are modules, use setupTabs, and leave no legacy script refere
   const pages = {
     'login.html': 'auth.mjs',
     'roller.html': 'roller.mjs',
-    'admin.html': 'admin_tabs.mjs',
+    'admin.html': 'admin.mjs',
   };
 
   for (const [page, entry] of Object.entries(pages)) {
@@ -292,33 +292,40 @@ test('page entries are modules, use setupTabs, and leave no legacy script refere
     assert.doesNotMatch(source, /querySelectorAll\([^)]*tab-btn[^)]*\)[\s\S]{0,300}addEventListener\(['"]click/);
   }
 
-  const adminSource = await readFile(resolve(publicDir, 'js/admin.js'), 'utf8');
+  const adminSource = await readFile(resolve(publicDir, 'js/admin.mjs'), 'utf8');
   assert.doesNotMatch(adminSource, /Tab Switching|\.admin-tabs[\s\S]{0,500}addEventListener\(['"]click/);
-  assert.match(await readFile(resolve(publicDir, 'js/admin_tabs.mjs'), 'utf8'), /loadUsers|tabs:change/);
+  assert.match(adminSource, /loadUsers|tabs:change/);
 });
 
 test('admin tab bootstrap preserves initial and selected-tab data loading', async () => {
   const html = await readFile(resolve(publicDir, 'admin.html'), 'utf8');
-  const dom = new JSDOM(html);
+  const dom = new JSDOM(html, { url: 'https://example.test/admin.html' });
   const originalDocument = globalThis.document;
   const originalWindow = globalThis.window;
+  const originalFetch = globalThis.fetch;
   const calls = [];
-  dom.window.loadUsers = () => calls.push('users');
-  dom.window.loadGroups = () => calls.push('groups');
-  dom.window.loadGuilds = () => calls.push('guilds');
-  dom.window.loadConnections = () => calls.push('connections');
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
+  globalThis.fetch = async url => {
+    calls.push(String(url));
+    const key = String(url).split('/').at(-1);
+    return new Response(JSON.stringify({ [key]: [] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
 
   try {
-    await import(`../../public/js/admin_tabs.mjs?test=${Date.now()}`);
+    await import(`../../public/js/admin.mjs?test=${Date.now()}`);
     dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
-    assert.deepEqual(calls, ['users']);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepEqual(calls, ['/api/admin/users']);
 
     dom.window.document.getElementById('groups-tab').click();
-    assert.deepEqual(calls, ['users', 'groups']);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepEqual(calls, ['/api/admin/users', '/api/admin/groups']);
     dom.window.document.getElementById('groups-tab').click();
-    assert.deepEqual(calls, ['users', 'groups']);
+    assert.deepEqual(calls, ['/api/admin/users', '/api/admin/groups']);
 
     const inner = dom.window.document.createElement('div');
     inner.setAttribute('data-tabs', '');
@@ -331,7 +338,7 @@ test('admin tab bootstrap preserves initial and selected-tab data loading', asyn
     dom.window.document.getElementById('usersTab').append(inner);
     setupTabs(inner);
     dom.window.document.getElementById('inner-groups-tab').click();
-    assert.deepEqual(calls, ['users', 'groups']);
+    assert.deepEqual(calls, ['/api/admin/users', '/api/admin/groups']);
 
     dom.window.document.querySelector('.admin-container').dispatchEvent(new dom.window.CustomEvent('tabs:change', {
       detail: {
@@ -339,10 +346,11 @@ test('admin tab bootstrap preserves initial and selected-tab data loading', asyn
         panel: dom.window.document.getElementById('inner-groups'),
       },
     }));
-    assert.deepEqual(calls, ['users', 'groups']);
+    assert.deepEqual(calls, ['/api/admin/users', '/api/admin/groups']);
   } finally {
     globalThis.document = originalDocument;
     globalThis.window = originalWindow;
+    globalThis.fetch = originalFetch;
     dom.window.close();
   }
 });

@@ -1,162 +1,166 @@
+import { element, replaceChildren } from './dom.mjs';
 import { setupTabs } from './tabs.mjs';
 
-// R6 Roller page logic
+const FALLBACK_ICON = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23333" width="100" height="100"/%3E%3Ctext fill="%23888" x="50" y="55" text-anchor="middle" font-size="14"%3ENo Icon%3C/text%3E%3C/svg%3E';
+
+function operatorImage(operator, className, { hideOnError = false, size } = {}) {
+  const image = element('img', {
+    className,
+    attributes: {
+      src: operator.icon || FALLBACK_ICON,
+      alt: operator.name || 'Operator',
+      ...(size ? { width: size, height: size } : {}),
+    },
+  });
+  image.addEventListener('error', () => {
+    if (hideOnError) {
+      image.hidden = true;
+    } else if (image.src !== FALLBACK_ICON) {
+      image.src = FALLBACK_ICON;
+    }
+  }, { once: true });
+  return image;
+}
+
+function loadoutItem(label, value) {
+  return element('div', { className: 'loadout-item' }, [
+    element('span', { className: 'label', text: label }),
+    element('span', { className: 'value', text: value }),
+  ]);
+}
+
+function resultError(message) {
+  return element('div', { className: 'result-card' }, [
+    element('p', { className: 'status-error', text: `❌ ${message}`, attributes: { role: 'alert' } }),
+  ]);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const opHistory = [];
   const mapHistory = [];
-
   const root = document.querySelector('[data-tabs]');
   const tabs = setupTabs(root);
   const urlParams = new URLSearchParams(window.location.search);
+
   if (urlParams.get('tab') === 'map') {
     tabs?.activate('map-tab', { focus: false });
   }
 
-  // Operator Roll
   document.getElementById('rollOpBtn').addEventListener('click', async () => {
-    const sideRadio = document.querySelector('input[name="opSide"]:checked');
-    const side = sideRadio ? sideRadio.value : '';
-
-    const btn = document.getElementById('rollOpBtn');
-    btn.textContent = '🎯 Rolling...';
-    btn.disabled = true;
+    const side = document.querySelector('input[name="opSide"]:checked')?.value || '';
+    const button = document.getElementById('rollOpBtn');
+    button.textContent = '🎯 Rolling...';
+    button.disabled = true;
 
     try {
-      const params = side ? `?side=${side}` : '';
-      const res = await fetch(`/api/roller/operator${params}`);
-
-      const data = await res.json();
-      if (res.ok) {
+      const response = await fetch(`/api/roller/operator${side ? `?side=${side}` : ''}`);
+      const data = await response.json();
+      if (response.ok) {
         displayOpResult(data);
         addOpHistory(data);
       } else {
         showOpError(data.error || 'Roll failed');
       }
-    } catch (err) {
+    } catch (_) {
       showOpError('Network error. Please try again.');
+    } finally {
+      button.textContent = '🎯 Roll Operator';
+      button.disabled = false;
     }
-
-    btn.textContent = '🎯 Roll Operator';
-    btn.disabled = false;
   });
 
-  function displayOpResult(op) {
-    const sideClass = op.side === 'Attacker' ? 'attacker' : 'defender';
-    const resultDiv = document.getElementById('opResult');
-    resultDiv.innerHTML = `
-      <div class="result-card">
-        <img class="op-icon ${sideClass}" src="${escapeHTML(op.icon)}" alt="${escapeHTML(op.name)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text fill=%22%23888%22 x=%2250%22 y=%2255%22 text-anchor=%22middle%22 font-size=%2214%22>No Icon</text></svg>'">
-        <div class="op-name">${escapeHTML(op.name)}</div>
-        <span class="op-side ${sideClass}">${escapeHTML(op.side)}</span>
-        <div class="loadout">
-          <div class="loadout-item">
-            <span class="label">Primary</span>
-            <span class="value">${escapeHTML(op.primary)}</span>
-          </div>
-          <div class="loadout-item">
-            <span class="label">Secondary</span>
-            <span class="value">${escapeHTML(op.secondary)}</span>
-          </div>
-          <div class="loadout-item">
-            <span class="label">Gadget</span>
-            <span class="value">${escapeHTML(op.gadget)}</span>
-          </div>
-        </div>
-      </div>
-    `;
+  function displayOpResult(operator) {
+    const sideClass = operator.side === 'Attacker' ? 'attacker' : 'defender';
+    const card = element('div', { className: 'result-card' }, [
+      operatorImage(operator, `op-icon ${sideClass}`),
+      element('div', { className: 'op-name', text: operator.name }),
+      element('span', { className: `op-side ${sideClass}`, text: operator.side }),
+      element('div', { className: 'loadout' }, [
+        loadoutItem('Primary', operator.primary),
+        loadoutItem('Secondary', operator.secondary),
+        loadoutItem('Gadget', operator.gadget),
+      ]),
+    ]);
+    replaceChildren(document.getElementById('opResult'), [card]);
   }
 
-  function showOpError(msg) {
-    document.getElementById('opResult').innerHTML = `
-      <div class="result-card">
-        <p style="color: var(--error);">❌ ${escapeHTML(msg)}</p>
-      </div>
-    `;
+  function showOpError(message) {
+    replaceChildren(document.getElementById('opResult'), [resultError(message)]);
   }
 
-  function addOpHistory(op) {
-    opHistory.unshift(op);
+  function addOpHistory(operator) {
+    opHistory.unshift(operator);
     if (opHistory.length > 20) opHistory.pop();
 
+    const items = opHistory.map(item => {
+      const sideClass = item.side === 'Attacker' ? 'hi-att' : 'hi-def';
+      return element('div', { className: 'history-item' }, [
+        operatorImage(item, '', { hideOnError: true, size: 32 }),
+        element('span', { className: sideClass, text: item.name }),
+        element('span', { className: 'history-detail', text: `/ ${item.primary}` }),
+      ]);
+    });
     const list = document.getElementById('opHistoryList');
     list.className = 'history-list';
-    list.innerHTML = opHistory.map(h => {
-      const sideClass = h.side === 'Attacker' ? 'hi-att' : 'hi-def';
-      return `
-        <div class="history-item">
-          <img src="${escapeHTML(h.icon)}" alt="${escapeHTML(h.name)}" onerror="this.style.display='none'" width="32" height="32">
-          <span class="${sideClass}">${escapeHTML(h.name)}</span>
-          <span style="font-size:0.8rem;color:var(--text-muted);">/ ${escapeHTML(h.primary)}</span>
-        </div>
-      `;
-    }).join('');
+    replaceChildren(list, items);
   }
 
-  // Map Roll
   document.getElementById('rollMapBtn').addEventListener('click', async () => {
-    const btn = document.getElementById('rollMapBtn');
-    btn.textContent = '🗺️ Rolling...';
-    btn.disabled = true;
+    const button = document.getElementById('rollMapBtn');
+    button.textContent = '🗺️ Rolling...';
+    button.disabled = true;
 
     try {
-      const res = await fetch('/api/roller/map');
-
-      const data = await res.json();
-      if (res.ok) {
+      const response = await fetch('/api/roller/map');
+      const data = await response.json();
+      if (response.ok) {
         displayMapResult(data);
         addMapHistory(data);
       } else {
         showMapError(data.error || 'Map roll failed');
       }
-    } catch (err) {
+    } catch (_) {
       showMapError('Network error. Please try again.');
+    } finally {
+      button.textContent = '🗺️ Roll Map';
+      button.disabled = false;
     }
-
-    btn.textContent = '🗺️ Roll Map';
-    btn.disabled = false;
   });
 
-  function displayMapResult(map) {
-    document.getElementById('mapResult').innerHTML = `
-      <div class="result-card">
-        <div style="font-size:3rem;margin-bottom:8px;">🗺️</div>
-        <div class="map-name">${escapeHTML(map.name)}</div>
-        <div class="map-location">📍 ${escapeHTML(map.location)}</div>
-        <div class="map-details">
-          <div class="map-detail"><span>Mode:</span> ${escapeHTML(map.gameMode)}</div>
-          <div class="map-detail"><span>Playlist:</span> ${escapeHTML(map.playlist)}</div>
-        </div>
-      </div>
-    `;
+  function mapDetail(label, value) {
+    return element('div', { className: 'map-detail' }, [
+      element('span', { text: `${label}:` }),
+      document.createTextNode(` ${value}`),
+    ]);
   }
 
-  function showMapError(msg) {
-    document.getElementById('mapResult').innerHTML = `
-      <div class="result-card">
-        <p style="color: var(--error);">❌ ${escapeHTML(msg)}</p>
-      </div>
-    `;
+  function displayMapResult(map) {
+    const card = element('div', { className: 'result-card' }, [
+      element('div', { className: 'map-icon', text: '🗺️', attributes: { 'aria-hidden': 'true' } }),
+      element('div', { className: 'map-name', text: map.name }),
+      element('div', { className: 'map-location', text: `📍 ${map.location}` }),
+      element('div', { className: 'map-details' }, [
+        mapDetail('Mode', map.gameMode),
+        mapDetail('Playlist', map.playlist),
+      ]),
+    ]);
+    replaceChildren(document.getElementById('mapResult'), [card]);
+  }
+
+  function showMapError(message) {
+    replaceChildren(document.getElementById('mapResult'), [resultError(message)]);
   }
 
   function addMapHistory(map) {
     mapHistory.unshift(map);
     if (mapHistory.length > 20) mapHistory.pop();
 
+    const items = mapHistory.map(item => element('div', { className: 'history-item' }, [
+      document.createTextNode(`🗺️ ${item.name} `),
+      element('span', { className: 'history-detail', text: `/ ${item.gameMode}` }),
+    ]));
     const list = document.getElementById('mapHistoryList');
     list.className = 'history-list';
-    list.innerHTML = mapHistory.map(h => `
-      <div class="history-item">
-        🗺️ ${escapeHTML(h.name)}
-        <span style="font-size:0.8rem;color:var(--text-muted);">/ ${escapeHTML(h.gameMode)}</span>
-      </div>
-    `).join('');
+    replaceChildren(list, items);
   }
 });
-
-// HTML escape utility
-function escapeHTML(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
