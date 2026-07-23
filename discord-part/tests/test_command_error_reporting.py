@@ -400,7 +400,7 @@ def make_transfer_voice_context(
     manager = SimpleNamespace(
         private_channels={channel.id: author.id},
         get_user_channel=Mock(return_value=channel.id),
-        transfer_channel_owner=Mock(side_effect=transfer_error),
+        transfer_channel_owner=AsyncMock(side_effect=transfer_error),
     )
     guild = SimpleNamespace(
         id=7,
@@ -460,7 +460,7 @@ async def test_transfer_voice_db_failure_compensates_permissions_and_returns_ref
         target,
         overwrite=target_overwrite,
     )
-    manager.transfer_channel_owner.assert_called_once_with(7, 123, 42)
+    manager.transfer_channel_owner.assert_awaited_once_with(7, 123, 42)
     bot.logger.error.assert_called_once_with(
         "%s failed [reference=%s]",
         "transfervoice",

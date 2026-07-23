@@ -1,5 +1,6 @@
 from commands.language_manager import get_translation
 from features.r6_roll.roller_channel import get_roller_channel, set_roller_dm_result
+from utils.async_io import run_blocking
 
 
 async def setrollermode(message, bot):
@@ -25,10 +26,10 @@ async def setrollermode(message, bot):
     else:
         return get_translation("setrollermode_invalid", message.guild.id).replace("{mode}", parts[1])
 
-    if not get_roller_channel(message.guild.id):
+    if not await run_blocking(get_roller_channel, message.guild.id):
         return get_translation("setrollermode_no_channel", message.guild.id)
 
-    ok = set_roller_dm_result(message.guild.id, dm_result)
+    ok = await run_blocking(set_roller_dm_result, message.guild.id, dm_result)
     if not ok:
         return get_translation("setrollermode_no_channel", message.guild.id)
 

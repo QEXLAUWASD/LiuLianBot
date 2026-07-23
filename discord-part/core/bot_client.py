@@ -103,6 +103,7 @@ class MyClient(commands.Bot):
         """Bot 就緒時初始化私人語音管理員與狀態。"""
         self.start_time = datetime.now()
         self.private_voice_manager = get_manager(self)
+        await self.private_voice_manager.initialize()
         self.private_voice_manager.start_cleanup_task()
         self.logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
         self.logger.info("------")

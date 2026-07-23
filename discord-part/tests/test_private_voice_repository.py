@@ -203,7 +203,7 @@ def test_load_private_channels_preserves_newest_first_order_and_closes():
     connection.close.assert_called_once_with()
 
 
-def test_manager_uses_injected_repository_for_persistence():
+async def test_manager_uses_injected_repository_for_persistence():
     from features.private_voice_chat.private_voice import PrivateVoiceManager
 
     bot = MagicMock()
@@ -211,16 +211,17 @@ def test_manager_uses_injected_repository_for_persistence():
     repository.load_triggers.return_value = {10: 20}
     repository.load_private_channels.return_value = []
     manager = PrivateVoiceManager(bot, repository=repository)
+    await manager.initialize()
 
     assert manager.trigger_channels == {10: 20}
-    manager.save_channel_config(10, 21, 30, {"type": "private"})
-    assert manager.get_channel_config(21) is repository.get_config.return_value
-    manager.update_channel_config(21, {"limit": 5})
-    manager.delete_channel_config(21)
+    await manager.save_channel_config(10, 21, 30, {"type": "private"})
+    assert await manager.get_channel_config(21) is repository.get_config.return_value
+    await manager.update_channel_config(21, {"limit": 5})
+    await manager.delete_channel_config(21)
     manager.private_channels[21] = 30
     manager.channel_guilds[21] = 10
     manager.user_channels[(10, 30)] = 21
-    manager.transfer_channel_owner(10, 21, 31)
+    await manager.transfer_channel_owner(10, 21, 31)
 
     assert repository.mock_calls == [
         call.load_triggers(),
@@ -233,7 +234,7 @@ def test_manager_uses_injected_repository_for_persistence():
     ]
 
 
-def test_manager_restores_all_private_channels_and_newest_channel_per_owner():
+async def test_manager_restores_all_private_channels_and_newest_channel_per_owner():
     from features.private_voice_chat.private_voice import PrivateVoiceManager
 
     repository = MagicMock()
@@ -247,6 +248,7 @@ def test_manager_restores_all_private_channels_and_newest_channel_per_owner():
     ]
 
     manager = PrivateVoiceManager(MagicMock(), repository=repository)
+    await manager.initialize()
 
     assert manager.trigger_channels == {1: 2}
     assert manager.private_channels == {
@@ -262,7 +264,7 @@ def test_manager_restores_all_private_channels_and_newest_channel_per_owner():
     assert manager.get_user_channel(2, 10) == 201
 
 
-def test_transfer_owner_in_one_guild_does_not_change_other_guild_mapping():
+async def test_transfer_owner_in_one_guild_does_not_change_other_guild_mapping():
     from features.private_voice_chat.private_voice import PrivateVoiceManager
 
     repository = MagicMock()
@@ -272,8 +274,9 @@ def test_transfer_owner_in_one_guild_does_not_change_other_guild_mapping():
         (2, 201, 10),
     ]
     manager = PrivateVoiceManager(MagicMock(), repository=repository)
+    await manager.initialize()
 
-    manager.transfer_channel_owner(1, 101, 11)
+    await manager.transfer_channel_owner(1, 101, 11)
 
     repository.update_owner.assert_called_once_with(101, 11)
     assert manager.private_channels == {101: 11, 201: 10}
@@ -288,6 +291,7 @@ async def test_create_private_channel_lookup_is_scoped_to_member_guild():
     repository.load_triggers.return_value = {}
     repository.load_private_channels.return_value = [(1, 20, 30)]
     manager = PrivateVoiceManager(MagicMock(), repository=repository)
+    await manager.initialize()
     private_channel = SimpleNamespace(
         id=40,
         name="Guild Two Private",
@@ -318,7 +322,7 @@ async def test_create_private_channel_lookup_is_scoped_to_member_guild():
     assert manager.channel_guilds == {20: 1, 40: 2}
 
 
-def test_transfer_owner_db_failure_does_not_change_cache():
+async def test_transfer_owner_db_failure_does_not_change_cache():
     from features.private_voice_chat.private_voice import PrivateVoiceManager
 
     repository = MagicMock()
@@ -326,9 +330,10 @@ def test_transfer_owner_db_failure_does_not_change_cache():
     repository.load_private_channels.return_value = [(10, 20, 30)]
     repository.update_owner.side_effect = RuntimeError("owner update failed")
     manager = PrivateVoiceManager(MagicMock(), repository=repository)
+    await manager.initialize()
 
     with pytest.raises(RuntimeError, match="owner update failed"):
-        manager.transfer_channel_owner(10, 20, 31)
+        await manager.transfer_channel_owner(10, 20, 31)
 
     assert manager.private_channels == {20: 30}
     assert manager.channel_guilds == {20: 10}
@@ -344,6 +349,7 @@ async def test_delete_empty_channel_runs_discord_then_db_then_cache(monkeypatch)
     repository.load_private_channels.return_value = [(1, 20, 30), (2, 40, 30)]
     repository.delete.side_effect = lambda channel_id: events.append("repository")
     manager = private_voice.PrivateVoiceManager(MagicMock(), repository=repository)
+    await manager.initialize()
 
     class RecordingCache(dict):
         def pop(self, key, default=None):
@@ -376,6 +382,7 @@ async def test_delete_empty_channel_keeps_cache_when_database_delete_fails(monke
     repository.load_private_channels.return_value = [(10, 20, 30)]
     repository.delete.side_effect = RuntimeError("delete failed")
     manager = private_voice.PrivateVoiceManager(MagicMock(), repository=repository)
+    await manager.initialize()
     channel = SimpleNamespace(
         id=20,
         name="Private",
@@ -398,6 +405,7 @@ async def test_delete_empty_channel_keeps_cache_when_discord_delete_fails(monkey
     repository.load_triggers.return_value = {}
     repository.load_private_channels.return_value = [(10, 20, 30)]
     manager = private_voice.PrivateVoiceManager(MagicMock(), repository=repository)
+    await manager.initialize()
     channel = SimpleNamespace(
         id=20,
         name="Private",
@@ -427,6 +435,7 @@ async def test_cleanup_missing_channel_deletes_db_before_cache():
         None if channel_id == 20 else SimpleNamespace(id=40, members=[object()])
     )
     manager = PrivateVoiceManager(bot, repository=repository)
+    await manager.initialize()
 
     class RecordingCache(dict):
         def pop(self, key, default=None):
@@ -453,6 +462,7 @@ async def test_cleanup_loop_never_age_deletes_existing_channel_with_members(monk
     bot = MagicMock()
     bot.get_channel.return_value = SimpleNamespace(id=20, members=[object()])
     manager = private_voice.PrivateVoiceManager(bot, repository=repository)
+    await manager.initialize()
     monkeypatch.setattr(
         private_voice.asyncio,
         "sleep",
@@ -545,21 +555,22 @@ async def test_create_private_channel_compensation_failure_logs_and_reraises_db_
     assert manager.user_channels == {}
 
 
-def test_manager_does_not_change_trigger_cache_when_persistence_fails():
+async def test_manager_does_not_change_trigger_cache_when_persistence_fails():
     from features.private_voice_chat.private_voice import PrivateVoiceManager
 
     repository = MagicMock()
     repository.load_triggers.return_value = {10: 20}
     repository.save.side_effect = RuntimeError("database unavailable")
     manager = PrivateVoiceManager(MagicMock(), repository=repository)
+    await manager.initialize()
 
     with pytest.raises(RuntimeError, match="database unavailable"):
-        manager.save_channel_config(10, 21, 30, {"type": "trigger"})
+        await manager.save_channel_config(10, 21, 30, {"type": "trigger"})
 
     assert manager.trigger_channels == {10: 20}
 
 
-def test_manager_updates_trigger_cache_after_persistence_succeeds():
+async def test_manager_updates_trigger_cache_after_persistence_succeeds():
     from features.private_voice_chat.private_voice import PrivateVoiceManager
 
     events = []
@@ -567,6 +578,7 @@ def test_manager_updates_trigger_cache_after_persistence_succeeds():
     repository.load_triggers.return_value = {10: 20}
     repository.save.side_effect = lambda *args: events.append("repository")
     manager = PrivateVoiceManager(MagicMock(), repository=repository)
+    await manager.initialize()
 
     class RecordingCache(dict):
         def __setitem__(self, key, value):
@@ -574,7 +586,7 @@ def test_manager_updates_trigger_cache_after_persistence_succeeds():
             return super().__setitem__(key, value)
 
     manager.trigger_channels = RecordingCache(manager.trigger_channels)
-    manager.save_channel_config(10, 21, 30, {"type": "trigger"})
+    await manager.save_channel_config(10, 21, 30, {"type": "trigger"})
 
     assert events == ["repository", "cache"]
     assert manager.trigger_channels == {10: 21}
@@ -590,6 +602,7 @@ async def test_set_private_voice_command_does_not_prewrite_trigger_cache(monkeyp
         category = None
 
     manager = MagicMock()
+    manager.save_channel_config = AsyncMock()
     message = MagicMock()
     message.content = ">setprivatevoice 20"
     message.channel_mentions = []
@@ -604,7 +617,7 @@ async def test_set_private_voice_command_does_not_prewrite_trigger_cache(monkeyp
     await set_private_voice.setprivatevoice(message, MagicMock())
 
     manager.set_trigger_channel.assert_not_called()
-    manager.save_channel_config.assert_called_once_with(
+    manager.save_channel_config.assert_awaited_once_with(
         10,
         20,
         30,
@@ -612,7 +625,7 @@ async def test_set_private_voice_command_does_not_prewrite_trigger_cache(monkeyp
     )
 
 
-def test_remove_trigger_persists_before_popping_memory_cache():
+async def test_remove_trigger_persists_before_popping_memory_cache():
     from features.private_voice_chat.private_voice import PrivateVoiceManager
 
     events = []
@@ -622,6 +635,7 @@ def test_remove_trigger_persists_before_popping_memory_cache():
         ("repository", guild_id)
     )
     manager = PrivateVoiceManager(MagicMock(), repository=repository)
+    await manager.initialize()
 
     class RecordingCache(dict):
         def pop(self, key, default=None):
@@ -629,7 +643,7 @@ def test_remove_trigger_persists_before_popping_memory_cache():
             return super().pop(key, default)
 
     manager.trigger_channels = RecordingCache(manager.trigger_channels)
-    manager.remove_trigger_channel(10)
+    await manager.remove_trigger_channel(10)
 
     assert events == [("repository", 10), ("cache", 10)]
     assert manager.trigger_channels == {}

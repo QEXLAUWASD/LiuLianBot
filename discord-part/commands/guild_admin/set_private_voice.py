@@ -88,7 +88,12 @@ async def setprivatevoice(message, bot):
         return get_translation('pv_not_voice_channel', message.guild.id)
     
     manager = get_manager(bot)
-    manager.save_channel_config(message.guild.id, channel.id, message.author.id, {"type": "trigger"})
+    await manager.save_channel_config(
+        message.guild.id,
+        channel.id,
+        message.author.id,
+        {"type": "trigger"},
+    )
     
     # Create success embed
     gid = message.guild.id

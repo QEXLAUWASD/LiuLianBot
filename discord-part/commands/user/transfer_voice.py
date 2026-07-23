@@ -106,7 +106,7 @@ async def transfervoice(message, bot):
                 mute_members=True,
                 deafen_members=True,
             )
-            manager.transfer_channel_owner(gid, channel_id, target.id)
+            await manager.transfer_channel_owner(gid, channel_id, target.id)
         except Exception:
             await _compensate_permissions(
                 channel,

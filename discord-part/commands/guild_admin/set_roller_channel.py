@@ -3,6 +3,7 @@ import discord
 from commands.language_manager import get_translation
 from commands.roller_service import send_roller_prompt
 from features.r6_roll.roller_channel import set_roller_channel
+from utils.async_io import run_blocking
 
 
 async def setrollerchannel(message, bot):
@@ -56,7 +57,12 @@ async def setrollerchannel(message, bot):
         else:
             return get_translation("setrollermode_invalid", message.guild.id).replace("{mode}", parts[2])
 
-    set_roller_channel(message.guild.id, channel_id, dm_result=dm_result)
+    await run_blocking(
+        set_roller_channel,
+        message.guild.id,
+        channel_id,
+        dm_result=dm_result,
+    )
     # Post the roller UI message in the configured channel immediately.
     try:
         await send_roller_prompt(channel, message.guild.id, dm_result=dm_result)

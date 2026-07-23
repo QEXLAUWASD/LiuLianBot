@@ -18,5 +18,5 @@ async def removeprivatevoice(message, bot):
     if not trigger_id:
         return get_translation('pv_no_trigger_info', message.guild.id)
 
-    manager.remove_trigger_channel(message.guild.id)
+    await manager.remove_trigger_channel(message.guild.id)
     return get_translation('pv_removed_success', message.guild.id)

@@ -3,6 +3,7 @@ from typing import Dict, Optional
 import asyncio
 
 from features.private_voice_chat.repository import PrivateVoiceRepository
+from utils.async_io import run_blocking
 
 
 
@@ -18,8 +19,14 @@ class PrivateVoiceManager:
         self.user_channels: Dict[tuple[int, int], int] = {}
         self.cleanup_task: Optional[asyncio.Task] = None
         self.cleanup_interval_seconds = 24 * 60 * 60
-        self.load_trigger_channels_from_db()
-        self.load_private_channels_from_db()
+
+    async def initialize(self) -> None:
+        triggers, private_channels = await asyncio.gather(
+            run_blocking(self.repository.load_triggers),
+            run_blocking(self.repository.load_private_channels),
+        )
+        self.trigger_channels = triggers
+        self._load_private_channel_rows(private_channels)
 
     def start_cleanup_task(self):
         if self.cleanup_task is None:
@@ -33,11 +40,7 @@ class PrivateVoiceManager:
                 print(f"[ERROR] Failed to cleanup private voice configs: {e}")
             await asyncio.sleep(self.cleanup_interval_seconds)
 
-    def load_trigger_channels_from_db(self):
-        self.trigger_channels = self.repository.load_triggers()
-
-    def load_private_channels_from_db(self):
-        rows = self.repository.load_private_channels()
+    def _load_private_channel_rows(self, rows):
         self.private_channels = {}
         self.channel_guilds = {}
         self.user_channels = {}
@@ -49,8 +52,8 @@ class PrivateVoiceManager:
             self.channel_guilds[channel_id] = guild_id
             self.user_channels.setdefault((guild_id, owner_id), channel_id)
 
-    def remove_trigger_channel(self, guild_id: int) -> None:
-        self.repository.remove_trigger(guild_id)
+    async def remove_trigger_channel(self, guild_id: int) -> None:
+        await run_blocking(self.repository.remove_trigger, guild_id)
         self.trigger_channels.pop(guild_id, None)
 
     def get_trigger_channel(self, guild_id: int) -> Optional[int]:
@@ -59,21 +62,27 @@ class PrivateVoiceManager:
     def get_user_channel(self, guild_id: int, user_id: int) -> Optional[int]:
         return self.user_channels.get((guild_id, user_id))
 
-    def save_channel_config(self, guild_id, channel_id, owner_id, config_dict):
-        self.repository.save(guild_id, channel_id, owner_id, config_dict)
+    async def save_channel_config(self, guild_id, channel_id, owner_id, config_dict):
+        await run_blocking(
+            self.repository.save,
+            guild_id,
+            channel_id,
+            owner_id,
+            config_dict,
+        )
         if config_dict.get("type") == "trigger":
             self.trigger_channels[guild_id] = channel_id
 
-    def get_channel_config(self, channel_id):
-        return self.repository.get_config(channel_id)
+    async def get_channel_config(self, channel_id):
+        return await run_blocking(self.repository.get_config, channel_id)
 
-    def update_channel_config(self, channel_id, config_dict):
-        self.repository.update_config(channel_id, config_dict)
+    async def update_channel_config(self, channel_id, config_dict):
+        await run_blocking(self.repository.update_config, channel_id, config_dict)
 
-    def delete_channel_config(self, channel_id):
-        self.repository.delete(channel_id)
+    async def delete_channel_config(self, channel_id):
+        await run_blocking(self.repository.delete, channel_id)
 
-    def transfer_channel_owner(
+    async def transfer_channel_owner(
         self,
         guild_id: int,
         channel_id: int,
@@ -81,7 +90,7 @@ class PrivateVoiceManager:
     ):
         """Update in-memory tracking and DB when channel ownership is transferred."""
         old_owner_id = self.private_channels.get(channel_id)
-        self.repository.update_owner(channel_id, new_owner_id)
+        await run_blocking(self.repository.update_owner, channel_id, new_owner_id)
         self.private_channels[channel_id] = new_owner_id
         if (
             old_owner_id is not None
@@ -158,7 +167,7 @@ class PrivateVoiceManager:
             await member.move_to(private_channel)
             
             try:
-                self.save_channel_config(
+                await self.save_channel_config(
                     member.guild.id,
                     private_channel.id,
                     member.id,
@@ -195,7 +204,7 @@ class PrivateVoiceManager:
                 try:
                     owner_id = self.private_channels[channel.id]
                     await channel.delete(reason="Private voice channel is empty")
-                    self.repository.delete(channel.id)
+                    await self.delete_channel_config(channel.id)
                     self._remove_private_channel_cache(channel.id, owner_id)
                 except discord.Forbidden:
                     print(f"Missing permissions to delete voice channel {channel.name}")
@@ -212,7 +221,7 @@ class PrivateVoiceManager:
                 if len(channel.members) == 0:
                     channels_to_delete.append(channel)
             else:
-                self.repository.delete(channel_id)
+                await self.delete_channel_config(channel_id)
                 self._remove_private_channel_cache(channel_id, owner_id)
         
         # Delete empty channels
