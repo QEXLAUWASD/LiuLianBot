@@ -1,11 +1,10 @@
 require('dotenv').config();
 
 const { createApp } = require('./app');
+const { buildSessionOptions } = require('./config/session');
 const { MySqlSessionStore } = require('./session_store');
 
 const PORT = process.env.PORT || 3000;
-const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
-const SESSION_SECRET = process.env.SESSION_SECRET || 'liulianbot-secret-key-change-in-production';
 
 function startServer() {
   const auth = require('./routes/auth');
@@ -15,18 +14,7 @@ function startServer() {
   const connections = require('./routes/connections');
   const connectionProxy = require('./routes/connection_proxy');
   const sessionStore = new MySqlSessionStore();
-  const sessionOptions = {
-    store: sessionStore,
-    name: SESSION_COOKIE_NAME,
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: false,
-    },
-  };
+  const sessionOptions = buildSessionOptions(process.env, sessionStore);
   const app = createApp({
     sessionOptions,
     routers: {
@@ -44,8 +32,8 @@ function startServer() {
 
   connectionProxy.attachWebSocketServer(server, {
     sessionStore,
-    sessionCookieName: SESSION_COOKIE_NAME,
-    sessionSecret: SESSION_SECRET,
+    sessionCookieName: sessionOptions.name,
+    sessionSecret: sessionOptions.secret,
   });
 
   return server;
