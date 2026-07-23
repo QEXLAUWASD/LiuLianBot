@@ -14,7 +14,8 @@ class PrivateVoiceManager:
         )
         self.trigger_channels: Dict[int, int] = {}  # {guild_id: trigger_channel_id}
         self.private_channels: Dict[int, int] = {}  # {channel_id: owner_id}
-        self.user_channels: Dict[int, int] = {}  # {user_id: channel_id}
+        self.channel_guilds: Dict[int, int] = {}  # {channel_id: guild_id}
+        self.user_channels: Dict[tuple[int, int], int] = {}
         self.cleanup_task: Optional[asyncio.Task] = None
         self.cleanup_interval_seconds = 24 * 60 * 60
         self.load_trigger_channels_from_db()
@@ -38,12 +39,15 @@ class PrivateVoiceManager:
     def load_private_channels_from_db(self):
         rows = self.repository.load_private_channels()
         self.private_channels = {}
+        self.channel_guilds = {}
         self.user_channels = {}
-        for channel_id, owner_id in rows:
+        for guild_id, channel_id, owner_id in rows:
+            guild_id = int(guild_id)
             channel_id = int(channel_id)
             owner_id = int(owner_id)
             self.private_channels[channel_id] = owner_id
-            self.user_channels.setdefault(owner_id, channel_id)
+            self.channel_guilds[channel_id] = guild_id
+            self.user_channels.setdefault((guild_id, owner_id), channel_id)
 
     def remove_trigger_channel(self, guild_id: int) -> None:
         self.repository.remove_trigger(guild_id)
@@ -51,6 +55,9 @@ class PrivateVoiceManager:
 
     def get_trigger_channel(self, guild_id: int) -> Optional[int]:
         return self.trigger_channels.get(guild_id)
+
+    def get_user_channel(self, guild_id: int, user_id: int) -> Optional[int]:
+        return self.user_channels.get((guild_id, user_id))
 
     def save_channel_config(self, guild_id, channel_id, owner_id, config_dict):
         self.repository.save(guild_id, channel_id, owner_id, config_dict)
@@ -66,19 +73,32 @@ class PrivateVoiceManager:
     def delete_channel_config(self, channel_id):
         self.repository.delete(channel_id)
 
-    def transfer_channel_owner(self, channel_id: int, new_owner_id: int):
+    def transfer_channel_owner(
+        self,
+        guild_id: int,
+        channel_id: int,
+        new_owner_id: int,
+    ):
         """Update in-memory tracking and DB when channel ownership is transferred."""
         old_owner_id = self.private_channels.get(channel_id)
         self.repository.update_owner(channel_id, new_owner_id)
         self.private_channels[channel_id] = new_owner_id
-        if old_owner_id is not None and self.user_channels.get(old_owner_id) == channel_id:
-            del self.user_channels[old_owner_id]
-        self.user_channels[new_owner_id] = channel_id
+        if (
+            old_owner_id is not None
+            and self.user_channels.get((guild_id, old_owner_id)) == channel_id
+        ):
+            del self.user_channels[(guild_id, old_owner_id)]
+        self.user_channels[(guild_id, new_owner_id)] = channel_id
 
     def _remove_private_channel_cache(self, channel_id: int, owner_id: int) -> None:
+        guild_id = self.channel_guilds.get(channel_id)
         self.private_channels.pop(channel_id, None)
-        if self.user_channels.get(owner_id) == channel_id:
-            self.user_channels.pop(owner_id, None)
+        self.channel_guilds.pop(channel_id, None)
+        if (
+            guild_id is not None
+            and self.user_channels.get((guild_id, owner_id)) == channel_id
+        ):
+            self.user_channels.pop((guild_id, owner_id), None)
 
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         """Handle voice state updates"""
@@ -93,8 +113,9 @@ class PrivateVoiceManager:
     async def create_private_channel(self, member: discord.Member, trigger_channel: discord.VoiceChannel):
         """Create a private voice channel for the user"""
         # Check if user already has a private channel
-        if member.id in self.user_channels:
-            existing_channel = member.guild.get_channel(self.user_channels[member.id])
+        existing_channel_id = self.get_user_channel(member.guild.id, member.id)
+        if existing_channel_id is not None:
+            existing_channel = member.guild.get_channel(existing_channel_id)
             if existing_channel:
                 try:
                     await member.move_to(existing_channel)
@@ -155,7 +176,8 @@ class PrivateVoiceManager:
                     )
                 raise
             self.private_channels[private_channel.id] = member.id
-            self.user_channels[member.id] = private_channel.id
+            self.channel_guilds[private_channel.id] = member.guild.id
+            self.user_channels[(member.guild.id, member.id)] = private_channel.id
             
         except discord.Forbidden:
             print(f"Missing permissions to create voice channel in {member.guild.name}")

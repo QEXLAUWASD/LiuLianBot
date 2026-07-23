@@ -331,8 +331,8 @@ async def test_transfer_voice_error_redacts_exception_and_uses_bot_logger(monkey
         set_permissions=AsyncMock(side_effect=RuntimeError(secret)),
     )
     manager = SimpleNamespace(
-        user_channels={author.id: 123},
         private_channels={123: author.id},
+        get_user_channel=Mock(return_value=123),
     )
     guild = SimpleNamespace(
         id=7,
@@ -394,8 +394,8 @@ def make_transfer_voice_context(
         set_permissions=AsyncMock(side_effect=permission_side_effect),
     )
     manager = SimpleNamespace(
-        user_channels={author.id: channel.id},
         private_channels={channel.id: author.id},
+        get_user_channel=Mock(return_value=channel.id),
         transfer_channel_owner=Mock(side_effect=transfer_error),
     )
     guild = SimpleNamespace(
@@ -456,6 +456,7 @@ async def test_transfer_voice_db_failure_compensates_permissions_and_returns_ref
         target,
         overwrite=target_overwrite,
     )
+    manager.transfer_channel_owner.assert_called_once_with(7, 123, 42)
     bot.logger.error.assert_called_once_with(
         "%s failed [reference=%s]",
         "transfervoice",

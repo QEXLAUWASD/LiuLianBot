@@ -174,17 +174,17 @@ class PrivateVoiceRepository:
         finally:
             conn.close()
 
-    def load_private_channels(self) -> list[tuple[int, int]]:
+    def load_private_channels(self) -> list[tuple[int, int, int]]:
         conn = self._connection_factory()
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT channel_id, owner_id FROM private_voice_channels "
+                    "SELECT guild_id, channel_id, owner_id FROM private_voice_channels "
                     "WHERE config_type='private' ORDER BY updated_at DESC, id DESC"
                 )
                 return [
-                    (int(channel_id), int(owner_id))
-                    for channel_id, owner_id in cursor.fetchall()
+                    (int(guild_id), int(channel_id), int(owner_id))
+                    for guild_id, channel_id, owner_id in cursor.fetchall()
                 ]
         finally:
             conn.close()
