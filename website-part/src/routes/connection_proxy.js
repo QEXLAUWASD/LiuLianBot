@@ -29,6 +29,17 @@ function setUpstreamRequestHeaders(proxyReq, req, websocket = false) {
   }
 }
 
+function applyUpstreamRootPath(req) {
+  const marker = '/__upstream_root__';
+  if (req.url !== marker && !req.url.startsWith(`${marker}/`)) return;
+  const target = new URL(req.connectionTarget.target_url);
+  req.connectionTarget = {
+    ...req.connectionTarget,
+    target_url: target.origin,
+  };
+  req.url = req.url.slice(marker.length) || '/';
+}
+
 const proxy = createProxyMiddleware({
   router: req => req.connectionTarget.target_url,
   changeOrigin: true,
@@ -71,6 +82,11 @@ const proxy = createProxyMiddleware({
       }
     },
   },
+});
+
+router.use((req, res, next) => {
+  applyUpstreamRootPath(req);
+  next();
 });
 
 router.use(proxy);
@@ -135,6 +151,7 @@ function attachWebSocketServer(server, options) {
       req.connectionTarget = access.connection;
       req.connectionUser = access.user;
       req.url = request.upstreamUrl;
+      applyUpstreamRootPath(req);
       proxy.upgrade(req, socket, head);
     } catch (err) {
       console.error('[ConnectionProxy] WebSocket authorization error:', err);
@@ -145,5 +162,6 @@ function attachWebSocketServer(server, options) {
 
 router.attachWebSocketServer = attachWebSocketServer;
 router.websocketRequest = websocketRequest;
+router.applyUpstreamRootPath = applyUpstreamRootPath;
 
 module.exports = router;
