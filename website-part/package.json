@@ -15,5 +15,8 @@
     "express-session": "^1.17.3",
     "http-proxy-middleware": "^3.0.7",
     "mysql2": "^3.9.0"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
   }
 }
