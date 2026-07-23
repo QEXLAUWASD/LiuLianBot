@@ -4,7 +4,7 @@
 支援：
 - 公開儲存庫（無需 token）
 - 私人儲存庫（使用 GitHub Personal Access Token 驗證）
-- git pull 更新
+- 安全的 fast-forward 更新
 - 更新後重新載入 Python 模組
 
 設定 (config.json):
@@ -24,13 +24,14 @@
     }
 """
 
-import subprocess
-import sys
-import os
+import base64
 import importlib
 import logging
-from typing import Optional, Tuple
+import os
+import subprocess
+import sys
 from pathlib import Path
+from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,36 @@ def _run_git(args: list[str], cwd: Path | None = None) -> Tuple[int, str, str]:
         return -1, "", str(e)
 
 
+def _fetch_args(remote_url: str, branch: str, token: str) -> list[str]:
+    """建立 fetch 參數，並以單次 Git 設定傳入私人儲存庫憑證。"""
+    if not token:
+        return ["fetch", remote_url, branch]
+
+    credential = base64.b64encode(f"x-access-token:{token}".encode()).decode("ascii")
+    return [
+        "-c",
+        f"http.extraHeader=Authorization: Basic {credential}",
+        "fetch",
+        remote_url,
+        branch,
+    ]
+
+
+def _worktree_is_clean() -> bool:
+    """確認工作目錄沒有未提交的變更。"""
+    rc, stdout, _ = _run_git(["status", "--porcelain"])
+    return rc == 0 and not stdout
+
+
+def _redact_git_output(output: str, token: str) -> str:
+    """避免 Git 錯誤輸出洩漏 token 或其 Basic auth credential。"""
+    if not token:
+        return output
+
+    credential = base64.b64encode(f"x-access-token:{token}".encode()).decode("ascii")
+    return output.replace(token, "***").replace(credential, "***")
+
+
 def get_current_branch() -> Optional[str]:
     """取得目前所在的 git 分支名稱。"""
     rc, stdout, stderr = _run_git(["rev-parse", "--abbrev-ref", "HEAD"])
@@ -121,13 +152,15 @@ def fetch_and_pull(
     if not (repo_root / ".git").exists():
         return False, "目前目錄不是 git 儲存庫"
 
-    # 建構 remote URL（有 token 用私人驗證，無 token 用公開 URL）
-    if github_token:
-        remote_url = f"https://{github_token}@github.com/{github_repo}.git"
-        display_url = f"https://***@github.com/{github_repo}.git"
-    else:
-        remote_url = f"https://github.com/{github_repo}.git"
-        display_url = remote_url
+    # 更新前先拒絕未提交內容，避免自動更新覆蓋本地工作。
+    rc, stdout, stderr = _run_git(["status", "--porcelain"], cwd=repo_root)
+    if rc != 0:
+        detail = _redact_git_output(stderr, github_token)
+        return False, f"檢查工作目錄狀態失敗: {detail}"
+    if stdout:
+        return False, "偵測到未提交的變更，已停止更新；請先提交或自行處理變更"
+
+    remote_url = f"https://github.com/{github_repo}.git"
 
     # 記錄更新前的 commit
     old_commit = get_latest_commit()
@@ -135,43 +168,37 @@ def fetch_and_pull(
     steps: list[str] = []
 
     # 1. 設定 remote URL
-    rc, stdout, stderr = _run_git(["remote", "set-url", "origin", remote_url])
+    rc, stdout, stderr = _run_git(
+        ["remote", "set-url", "origin", remote_url], cwd=repo_root
+    )
     if rc != 0:
-        return False, f"設定 remote URL 失敗: {stderr}"
-    steps.append(f"✓ 已設定 remote URL: {display_url}")
+        detail = _redact_git_output(stderr, github_token)
+        return False, f"設定 remote URL 失敗: {detail}"
+    steps.append(f"✓ 已設定 remote URL: {remote_url}")
 
     # 2. Fetch 最新變更
-    rc, stdout, stderr = _run_git(["fetch", "origin", branch])
+    rc, stdout, stderr = _run_git(
+        _fetch_args(remote_url, branch, github_token), cwd=repo_root
+    )
     if rc != 0:
-        return False, f"Fetch 失敗: {stderr}"
+        detail = _redact_git_output(stderr, github_token)
+        return False, f"Fetch 失敗: {detail}"
     steps.append(f"✓ Fetch {branch} 完成")
 
-    # 3. 檢查是否有更新
+    # 3. 只允許 fast-forward，避免自動建立 merge commit 或覆蓋本地歷史。
     rc, stdout, stderr = _run_git(
-        ["rev-list", "--count", f"HEAD..origin/{branch}"]
+        ["merge", "--ff-only", "FETCH_HEAD"], cwd=repo_root
     )
-    if rc == 0 and stdout == "0":
-        return True, f"已是最新版本 (commit: {old_commit})\n" + "\n".join(steps)
-
-    # 4. 儲存本地變更（stash）
-    rc, stdout, stderr = _run_git(["stash", "push", "--include-untracked", "-m", "auto-stash before update"])
-    stash_applied = (rc == 0 and "No local changes" not in stdout)
-    if stash_applied:
-        steps.append("✓ 已暫存本地變更 (stash)")
-
-    # 5. Pull / reset
-    rc, stdout, stderr = _run_git(["reset", "--hard", f"origin/{branch}"])
     if rc != 0:
-        # 嘗試 merge
-        rc2, stdout2, stderr2 = _run_git(["pull", "origin", branch])
-        if rc2 != 0:
-            return False, f"Pull 失敗: {stderr2}"
-        steps.append(f"✓ git pull 完成: {stdout2}")
-    else:
-        steps.append(f"✓ git reset --hard origin/{branch} 完成")
+        detail = _redact_git_output(stderr, github_token)
+        return False, f"無法以 fast-forward 合併，更新已停止且工作目錄未修改: {detail}"
+    steps.append("✓ git merge --ff-only FETCH_HEAD 完成")
 
-    # 6. 取得新 commit
+    # 4. 取得新 commit
     new_commit = get_latest_commit()
+
+    if old_commit == new_commit:
+        return True, f"已是最新版本 (commit: {old_commit})\n" + "\n".join(steps)
 
     steps.append(f"\n更新摘要: {old_commit or '???'} → {new_commit or '???'}")
 
@@ -221,7 +248,7 @@ def perform_update(
     branch: str = "master",
     auto_restart: bool = False,
 ) -> Tuple[bool, str]:
-    """執行完整的更新流程：git pull → 重新載入模組 → 可選重啟。
+    """執行完整的更新流程：安全更新 → 重新載入模組 → 可選重啟。
 
     Args:
         github_repo: GitHub 儲存庫全名
@@ -232,7 +259,7 @@ def perform_update(
     Returns:
         (success: bool, message: str)
     """
-    # 步驟 1: Git pull
+    # 步驟 1: Git 更新
     success, msg = fetch_and_pull(github_repo, github_token, branch)
     if not success:
         return False, f"❌ 更新失敗:\n{msg}"
