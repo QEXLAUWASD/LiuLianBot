@@ -2,11 +2,13 @@ require('dotenv').config();
 
 const { createApp } = require('./app');
 const { buildSessionOptions } = require('./config/session');
+const { getPool } = require('./db');
 const { MySqlSessionStore } = require('./session_store');
 
 const PORT = process.env.PORT || 3000;
 
-function startServer() {
+async function startServer() {
+  await getPool();
   const auth = require('./routes/auth');
   const roller = require('./routes/roller');
   const admin = require('./routes/admin');
@@ -39,6 +41,11 @@ function startServer() {
   return server;
 }
 
-if (require.main === module) startServer();
+if (require.main === module) {
+  startServer().catch(err => {
+    console.error('[Server] Startup failed:', err);
+    process.exitCode = 1;
+  });
+}
 
 module.exports = { startServer };
