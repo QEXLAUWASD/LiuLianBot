@@ -1,13 +1,14 @@
 from features.r6_roll.randommap import random_map
 from commands.language_manager import get_translation
+from utils.error_reporting import report_exception
 
 import random 
 
 async def r6maproll(message, bot):
 	try:
 		result = random_map()
-	except Exception as exc:  # pragma: no cover - defensive
-		return f"Map roll failed: {exc}"
+	except Exception:  # pragma: no cover - defensive
+		return report_exception(bot.logger, "r6maproll", "Map roll failed")
 
 	playlists = ", ".join(result.get("playlists", [])) or "N/A"
 	mode = result.get("playlist", "N/A")

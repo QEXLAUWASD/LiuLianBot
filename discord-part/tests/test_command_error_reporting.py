@@ -2,6 +2,7 @@ import ast
 import importlib
 import inspect
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, mock_open
 
@@ -10,8 +11,12 @@ import pytest
 from commands.guild_owner import add_guild_admin
 from commands.owner import add_admin, r6_update
 from commands.guild_owner import remove_guild_admin
+from commands.user import r6_map_roll, r6_ops_roll
 from commands.user import transfer_voice
 from core import bot_client
+
+
+COMMANDS_ROOT = Path(__file__).resolve().parents[1] / "commands"
 
 
 def test_error_reporter_logs_reference_and_formats_safe_public_message():
@@ -106,6 +111,99 @@ def test_command_error_paths_do_not_format_exception_objects(module):
         and isinstance(node.args[0], ast.Name)
         and node.args[0].id in {"e", "exc", "error"}
         for node in ast.walk(tree)
+    )
+
+
+@pytest.mark.parametrize(
+    "command_path",
+    sorted(COMMANDS_ROOT.rglob("*.py")),
+    ids=lambda path: str(path.relative_to(COMMANDS_ROOT)),
+)
+def test_command_public_returns_do_not_format_exception_objects(command_path):
+    tree = ast.parse(command_path.read_text(encoding="utf-8"))
+
+    for handler in (
+        node for node in ast.walk(tree) if isinstance(node, ast.ExceptHandler)
+    ):
+        if handler.name is None:
+            continue
+        for returned in (
+            node for node in ast.walk(handler) if isinstance(node, ast.Return)
+        ):
+            if returned.value is None:
+                continue
+            public_nodes = list(ast.walk(returned.value))
+            assert not any(
+                isinstance(node, ast.FormattedValue)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == handler.name
+                for node in public_nodes
+            ), f"{command_path} returns an exception through an f-string"
+            assert not any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in {"str", "repr"}
+                and len(node.args) == 1
+                and isinstance(node.args[0], ast.Name)
+                and node.args[0].id == handler.name
+                for node in public_nodes
+            ), f"{command_path} returns a stringified exception"
+
+
+@pytest.mark.parametrize(
+    ("command_module", "command", "operation", "base_message", "reference"),
+    [
+        (
+            r6_map_roll,
+            r6_map_roll.r6maproll,
+            "r6maproll",
+            "Map roll failed",
+            "777777777777",
+        ),
+        (
+            r6_ops_roll,
+            r6_ops_roll.r6opsroll,
+            "r6opsroll",
+            "Roll failed",
+            "888888888888",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_r6_roll_errors_redact_exception_and_use_bot_logger(
+    monkeypatch,
+    command_module,
+    command,
+    operation,
+    base_message,
+    reference,
+):
+    error_reporting = importlib.import_module("utils.error_reporting")
+    secret = f"{operation}-api-secret"
+    logger = Mock()
+    randomizer_name = "random_map" if command_module is r6_map_roll else "random_operator"
+    monkeypatch.setattr(
+        command_module,
+        randomizer_name,
+        Mock(side_effect=RuntimeError(secret)),
+    )
+    monkeypatch.setattr(
+        error_reporting,
+        "generate_error_reference",
+        lambda: reference,
+    )
+    message = SimpleNamespace(content=f">{operation}", guild=SimpleNamespace(id=7))
+    bot = SimpleNamespace(logger=logger)
+
+    public_message = await command(message, bot)
+
+    assert public_message == f"{base_message} (Reference: {reference})"
+    assert secret not in public_message
+    logger.error.assert_called_once_with(
+        "%s failed [reference=%s]",
+        operation,
+        reference,
+        exc_info=True,
     )
 
 
