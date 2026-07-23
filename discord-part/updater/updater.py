@@ -32,6 +32,7 @@ import sys
 import threading
 from pathlib import Path
 from typing import Optional, Tuple
+from urllib.parse import urlsplit
 
 logger = logging.getLogger(__name__)
 UPDATE_BUSY_MESSAGE = "❌ 更新正在進行中，請稍後再試。"
@@ -152,6 +153,41 @@ def _redact_git_output(output: str, token: str) -> str:
     return output.replace(token, "***").replace(credential, "***")
 
 
+def _origin_url_can_be_restored(origin_url: str) -> bool:
+    """只允許不含 HTTP credentials 或 URL password 的 origin 被寫回。"""
+    if not origin_url:
+        return False
+
+    parsed = urlsplit(origin_url)
+    scheme = parsed.scheme.lower()
+    if scheme in {"http", "https"}:
+        return parsed.username is None and parsed.password is None
+    if scheme == "ssh":
+        return parsed.password is None
+    if scheme in {"file", "git"}:
+        return parsed.username is None and parsed.password is None
+    if len(scheme) == 1 and origin_url[1:3] in {":\\", ":/"}:
+        return True
+    if scheme:
+        return False
+
+    # SCP-like SSH URL 的使用者名稱是連線身分，不是內嵌密碼。
+    return True
+
+
+def _restore_origin(repo_root: Path, original_url: str) -> str:
+    """在 URL 安全時 best-effort 還原 origin，並只回傳固定安全說明。"""
+    if not _origin_url_can_be_restored(original_url):
+        return ""
+
+    rc, _, _ = _run_git(
+        ["remote", "set-url", "origin", original_url], cwd=repo_root
+    )
+    if rc != 0:
+        return "\n原 origin 還原失敗，已保留公開 origin 設定"
+    return ""
+
+
 def get_current_branch() -> Optional[str]:
     """取得目前所在的 git 分支名稱。"""
     rc, stdout, stderr = _run_git(["rev-parse", "--abbrev-ref", "HEAD"])
@@ -199,6 +235,12 @@ def fetch_and_pull(
     if stdout:
         return False, "偵測到未提交的變更，已停止更新；請先提交或自行處理變更"
 
+    rc, original_url, _ = _run_git(
+        ["remote", "get-url", "origin"], cwd=repo_root
+    )
+    if rc != 0 or not original_url:
+        return False, "讀取 origin URL 失敗，已停止更新"
+
     remote_url = f"https://github.com/{github_repo}.git"
 
     # 記錄更新前的 commit
@@ -211,8 +253,7 @@ def fetch_and_pull(
         ["remote", "set-url", "origin", remote_url], cwd=repo_root
     )
     if rc != 0:
-        detail = _redact_git_output(stderr, github_token)
-        return False, f"設定 remote URL 失敗: {detail}"
+        return False, "設定公開 origin URL 失敗，已停止更新"
     steps.append(f"✓ 已設定 remote URL: {remote_url}")
 
     # 2. Fetch 最新變更
@@ -221,7 +262,8 @@ def fetch_and_pull(
     )
     if rc != 0:
         detail = _redact_git_output(stderr, github_token)
-        return False, f"Fetch 失敗: {detail}"
+        restore_note = _restore_origin(repo_root, original_url)
+        return False, f"Fetch 失敗: {detail}{restore_note}"
     steps.append(f"✓ Fetch {branch} 完成")
 
     # 3. 只允許 fast-forward，避免自動建立 merge commit 或覆蓋本地歷史。
@@ -230,7 +272,11 @@ def fetch_and_pull(
     )
     if rc != 0:
         detail = _redact_git_output(stderr, github_token)
-        return False, f"無法以 fast-forward 合併，更新已停止且工作目錄未修改: {detail}"
+        restore_note = _restore_origin(repo_root, original_url)
+        return False, (
+            f"無法以 fast-forward 合併，更新已停止且工作目錄未修改: "
+            f"{detail}{restore_note}"
+        )
     steps.append("✓ git merge --ff-only FETCH_HEAD 完成")
 
     # 4. 取得新 commit
