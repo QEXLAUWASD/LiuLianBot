@@ -5,7 +5,7 @@
 - 公開儲存庫（無需 token）
 - 私人儲存庫（使用 GitHub Personal Access Token 驗證）
 - 安全的 fast-forward 更新
-- 更新後重新載入 Python 模組
+- 更新後重新啟動 bot 套用變更
 
 設定 (config.json):
     # 公開 repo（僅需 github_repo）:
@@ -25,7 +25,6 @@
 """
 
 import base64
-import importlib
 import logging
 import os
 import subprocess
@@ -36,6 +35,8 @@ from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
 UPDATE_BUSY_MESSAGE = "❌ 更新正在進行中，請稍後再試。"
+RESTART_REQUIRED_MESSAGE = "✅ 檔案已更新；必須重啟 bot 才能套用變更。"
+AUTO_RESTART_MESSAGE = "♻️ auto_restart 已啟用，bot 程序將自動重啟..."
 
 if "_update_lock" not in globals():
     _update_lock = threading.Lock()
@@ -243,43 +244,6 @@ def fetch_and_pull(
     return True, "\n".join(steps)
 
 
-def reload_modules() -> Tuple[int, list[str]]:
-    """重新載入所有 discord-part 下的自訂模組。
-
-    走訪所有已載入的模組，將屬於此專案的模組重新載入。
-
-    Returns:
-        (reloaded_count, list_of_module_names)
-    """
-    project_prefixes = [
-        "commands.",
-        "features.",
-        "utils.",
-        "core.",
-        "updater.",
-    ]
-
-    reloaded = []
-
-    # 先收集要重載的模組（避免在迭代時修改 dict）
-    modules_to_reload = []
-    for name, module in sorted(sys.modules.items()):
-        if any(name.startswith(prefix) for prefix in project_prefixes):
-            modules_to_reload.append(name)
-        # 也包含直接匹配的頂層模組
-        elif name in ("commands", "features", "utils", "core", "updater"):
-            modules_to_reload.append(name)
-
-    for name in modules_to_reload:
-        try:
-            importlib.reload(sys.modules[name])
-            reloaded.append(name)
-        except Exception as e:
-            logger.warning(f"重載模組 {name} 失敗: {e}")
-
-    return len(reloaded), reloaded
-
-
 def _perform_git_update_unlocked(
     github_repo: str,
     github_token: str = "",
@@ -303,6 +267,14 @@ def _perform_git_update_unlocked(
     return True, msg
 
 
+def format_update_success(message: str, auto_restart: bool) -> str:
+    """Add restart guidance after files have been updated successfully."""
+    message += f"\n\n{RESTART_REQUIRED_MESSAGE}"
+    if auto_restart:
+        message += f"\n\n{AUTO_RESTART_MESSAGE}"
+    return message
+
+
 def perform_update(
     github_repo: str,
     github_token: str = "",
@@ -323,12 +295,7 @@ def perform_update(
         if not success:
             return False, msg
 
-        count, _ = reload_modules()
-        msg += f"\n\n🔄 已重新載入 {count} 個模組"
-        if auto_restart:
-            msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
-
-        return True, msg
+        return True, format_update_success(msg, auto_restart)
     finally:
         lease.release()
 

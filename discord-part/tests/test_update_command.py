@@ -1,6 +1,5 @@
 import asyncio
 import ast
-import importlib
 import inspect
 import threading
 import time
@@ -15,7 +14,6 @@ from updater import updater
 
 
 def test_update_coordinator_shields_only_git_work_in_thread():
-    assert hasattr(update_module, "_run_update")
     tree = ast.parse(inspect.getsource(update_module._run_update))
     to_thread_calls = [
         node
@@ -38,12 +36,6 @@ def test_update_coordinator_shields_only_git_work_in_thread():
     }
     assert not any(
         isinstance(node, ast.Name) and node.id == "reload_modules"
-        for node in ast.walk(call)
-    )
-    assert any(
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "reload_modules"
         for node in ast.walk(tree)
     )
     assert any(
@@ -54,6 +46,15 @@ def test_update_coordinator_shields_only_git_work_in_thread():
         and node.func.attr == "shield"
         for node in ast.walk(tree)
     )
+
+
+def test_updater_source_has_no_hot_reload_path():
+    updater_source = inspect.getsource(updater)
+    command_source = inspect.getsource(update_module)
+
+    assert "importlib.reload" not in updater_source
+    assert "def reload_modules" not in updater_source
+    assert "reload_modules" not in command_source
 
 
 @pytest.mark.asyncio
@@ -69,7 +70,7 @@ async def test_update_passes_configuration_to_coordinator_and_uses_result(monkey
     monkeypatch.setattr(update_module, "get_latest_commit", lambda: "abc1234")
     monkeypatch.setattr(update_module, "reload_config", Mock())
     coordinator = AsyncMock(return_value=(False, "update failed safely"))
-    monkeypatch.setattr(update_module, "_run_update", coordinator, raising=False)
+    monkeypatch.setattr(update_module, "_run_update", coordinator)
     channel = SimpleNamespace(send=AsyncMock())
     message = SimpleNamespace(author=SimpleNamespace(id=42), channel=channel)
 
@@ -81,34 +82,25 @@ async def test_update_passes_configuration_to_coordinator_and_uses_result(monkey
         branch="release",
         auto_restart=False,
     )
-    assert channel.send.await_count == 2
     result_embed = channel.send.await_args_list[1].kwargs["embed"]
     assert result_embed.title == "❌ 更新失敗"
     assert result_embed.description == "```\nupdate failed safely\n```"
 
 
 @pytest.mark.asyncio
-async def test_git_runs_in_worker_and_module_reload_runs_on_event_loop(monkeypatch):
-    assert hasattr(update_module, "_run_update")
+async def test_git_update_preserves_live_handler_and_requires_restart(monkeypatch):
     event_loop_thread = threading.get_ident()
     git_threads = []
-    reload_threads = []
+
+    live_handler = SimpleNamespace(commands={"update": update_module.update})
+    original_handler = live_handler
+    original_command = live_handler.commands["update"]
 
     def fake_git_update(**kwargs):
         git_threads.append(threading.get_ident())
         return True, "updated"
 
-    def fake_reload_modules():
-        reload_threads.append(threading.get_ident())
-        return 3, ["commands.one", "features.two", "updater.updater"]
-
-    monkeypatch.setattr(
-        update_module,
-        "_perform_git_update_unlocked",
-        fake_git_update,
-        raising=False,
-    )
-    monkeypatch.setattr(update_module, "reload_modules", fake_reload_modules)
+    monkeypatch.setattr(update_module, "_perform_git_update_unlocked", fake_git_update)
 
     success, message = await update_module._run_update(
         github_repo="owner/repo",
@@ -119,21 +111,21 @@ async def test_git_runs_in_worker_and_module_reload_runs_on_event_loop(monkeypat
 
     assert success is True
     assert git_threads and git_threads[0] != event_loop_thread
-    assert reload_threads == [event_loop_thread]
-    assert "已重新載入 3 個模組" in message
+    assert live_handler is original_handler
+    assert live_handler.commands["update"] is original_command
+    assert "重啟" in message
+    assert "套用變更" in message
+    assert "重新載入" not in message
+    assert "個模組" not in message
 
 
 @pytest.mark.asyncio
-async def test_failed_git_does_not_reload_modules(monkeypatch):
-    assert hasattr(update_module, "_run_update")
-    reload_modules = Mock()
+async def test_failed_git_does_not_add_restart_success_message(monkeypatch):
     monkeypatch.setattr(
         update_module,
         "_perform_git_update_unlocked",
         lambda **kwargs: (False, "update failed safely"),
-        raising=False,
     )
-    monkeypatch.setattr(update_module, "reload_modules", reload_modules)
 
     result = await update_module._run_update(
         github_repo="owner/repo",
@@ -143,7 +135,65 @@ async def test_failed_git_does_not_reload_modules(monkeypatch):
     )
 
     assert result == (False, "update failed safely")
-    reload_modules.assert_not_called()
+    assert "重啟" not in result[1]
+    assert "套用變更" not in result[1]
+
+
+@pytest.mark.asyncio
+async def test_auto_restart_success_message_is_preserved(monkeypatch):
+    monkeypatch.setattr(
+        update_module,
+        "_perform_git_update_unlocked",
+        lambda **kwargs: (True, "updated"),
+    )
+
+    success, message = await update_module._run_update(
+        github_repo="owner/repo",
+        github_token="",
+        branch="main",
+        auto_restart=True,
+    )
+
+    assert success is True
+    assert "auto_restart 已啟用" in message
+    assert "重啟" in message
+    assert "套用變更" in message
+    assert "重新載入" not in message
+
+
+@pytest.mark.asyncio
+async def test_update_success_keeps_restart_view_without_hot_reload_claim(monkeypatch):
+    monkeypatch.setattr(
+        update_module,
+        "get_config",
+        lambda: {
+            "updater": {
+                "github_repo": "owner/repo",
+                "branch": "main",
+                "auto_restart": False,
+            }
+        },
+    )
+    monkeypatch.setattr(update_module, "get_current_branch", lambda: "main")
+    monkeypatch.setattr(update_module, "get_latest_commit", lambda: "abc1234")
+    monkeypatch.setattr(update_module, "reload_config", Mock())
+    monkeypatch.setattr(
+        update_module,
+        "_run_update",
+        AsyncMock(return_value=(True, "updated\n\n請重啟 bot 以套用變更")),
+    )
+    channel = SimpleNamespace(send=AsyncMock())
+    message = SimpleNamespace(author=SimpleNamespace(id=42), channel=channel)
+
+    await update_module.update(message, SimpleNamespace())
+
+    result_call = channel.send.await_args_list[1]
+    result_embed = result_call.kwargs["embed"]
+    assert result_embed.title == "✅ 更新完成"
+    assert isinstance(result_call.kwargs["view"], update_module.RestartConfirmView)
+    restart_field = next(field for field in result_embed.fields if field.name == "🔘 重啟選擇")
+    assert "檔案已更新" in restart_field.value
+    assert "模組已重新載入" not in restart_field.value
 
 
 @pytest.mark.asyncio
@@ -159,11 +209,7 @@ async def test_command_error_uses_reference_without_exposing_exception(monkeypat
         check_permission=lambda name, author, context: (True, None),
     )
     logger = Mock()
-    client = SimpleNamespace(
-        command_prefix=">",
-        _cmd_handler=command_handler,
-        logger=logger,
-    )
+    client = SimpleNamespace(command_prefix=">", _cmd_handler=command_handler, logger=logger)
     message = SimpleNamespace(
         content=">update",
         author=SimpleNamespace(id=42),
@@ -194,33 +240,31 @@ async def test_command_error_uses_reference_without_exposing_exception(monkeypat
     )
 
 
-def test_sync_update_holds_lease_through_reload(monkeypatch):
-    assert hasattr(updater, "begin_update")
-    reload_entered = threading.Event()
-    release_reload = threading.Event()
-    count_lock = threading.Lock()
-    git_calls = 0
-    reload_calls = 0
+def test_sync_update_success_requires_restart_without_hot_reload(monkeypatch):
+    monkeypatch.setattr(updater, "fetch_and_pull", lambda *args: (True, "updated"))
 
-    def fake_fetch(*args):
+    success, message = updater.perform_update("owner/repo")
+
+    assert success is True
+    assert "重啟" in message
+    assert "套用變更" in message
+    assert "重新載入" not in message
+
+
+def test_sync_update_rejects_concurrent_git_without_waiting(monkeypatch):
+    worker_entered = threading.Event()
+    release_worker = threading.Event()
+    git_calls = 0
+
+    def blocking_fetch(*args):
         nonlocal git_calls
-        with count_lock:
-            git_calls += 1
+        git_calls += 1
+        worker_entered.set()
+        if not release_worker.wait(timeout=2):
+            raise TimeoutError("test did not release synchronous Git worker")
         return True, "updated"
 
-    def blocking_reload():
-        nonlocal reload_calls
-        with count_lock:
-            reload_calls += 1
-            current_call = reload_calls
-        if current_call == 1:
-            reload_entered.set()
-            if not release_reload.wait(timeout=2):
-                raise TimeoutError("test did not release synchronous reload")
-        return 1, ["updater.updater"]
-
-    monkeypatch.setattr(updater, "fetch_and_pull", fake_fetch)
-    monkeypatch.setattr(updater, "reload_modules", blocking_reload)
+    monkeypatch.setattr(updater, "fetch_and_pull", blocking_fetch)
     first_result = []
     first = threading.Thread(
         target=lambda: first_result.append(updater.perform_update("owner/repo")),
@@ -229,12 +273,12 @@ def test_sync_update_holds_lease_through_reload(monkeypatch):
 
     first.start()
     try:
-        assert reload_entered.wait(timeout=1)
+        assert worker_entered.wait(timeout=1)
         started = time.monotonic()
         competing_result = updater.perform_update("owner/repo")
         elapsed = time.monotonic() - started
     finally:
-        release_reload.set()
+        release_worker.set()
         first.join(timeout=2)
 
     assert not first.is_alive()
@@ -242,83 +286,14 @@ def test_sync_update_holds_lease_through_reload(monkeypatch):
     assert "更新正在進行中" in competing_result[1]
     assert elapsed < 0.5
     assert git_calls == 1
-    assert reload_calls == 1
-    assert first_result == [(True, "updated\n\n🔄 已重新載入 1 個模組")]
-
-
-def test_update_lock_and_active_lease_survive_module_reload():
-    assert hasattr(updater, "begin_update")
-    original_lock = updater._update_lock
-    lease = updater.begin_update()
-    assert lease is not None
-
-    try:
-        reloaded_module = importlib.reload(updater)
-        assert reloaded_module._update_lock is original_lock
-        assert reloaded_module.begin_update() is None
-    finally:
-        lease.release()
-
-    next_lease = updater.begin_update()
-    assert next_lease is not None
-    next_lease.release()
-
-
-@pytest.mark.asyncio
-async def test_async_reload_keeps_lease_busy_for_other_threads(monkeypatch):
-    assert hasattr(update_module, "_run_update")
-    assert hasattr(updater, "begin_update")
-    reload_entered = threading.Event()
-    release_reload = threading.Event()
-    probe_results = []
-
-    monkeypatch.setattr(
-        update_module,
-        "_perform_git_update_unlocked",
-        lambda **kwargs: (True, "updated"),
-        raising=False,
-    )
-
-    def blocking_reload():
-        reload_entered.set()
-        if not release_reload.wait(timeout=2):
-            raise TimeoutError("test probe did not release async reload")
-        return 1, ["updater.updater"]
-
-    def probe_lease():
-        if not reload_entered.wait(timeout=1):
-            probe_results.append("reload timeout")
-        else:
-            lease = updater.begin_update()
-            probe_results.append(lease)
-            if lease is not None:
-                lease.release()
-        release_reload.set()
-
-    monkeypatch.setattr(update_module, "reload_modules", blocking_reload)
-    probe = threading.Thread(target=probe_lease, daemon=True)
-    probe.start()
-    result = await update_module._run_update(
-        github_repo="owner/repo",
-        github_token="",
-        branch="main",
-        auto_restart=False,
-    )
-    probe.join(timeout=2)
-
-    assert not probe.is_alive()
-    assert probe_results == [None]
-    assert result == (True, "updated\n\n🔄 已重新載入 1 個模組")
+    assert first_result[0][0] is True
 
 
 @pytest.mark.asyncio
 async def test_cancelled_update_releases_lease_only_after_worker_finishes(monkeypatch):
-    assert hasattr(update_module, "_run_update")
-    assert hasattr(updater, "begin_update")
     worker_entered = threading.Event()
     release_worker = threading.Event()
     worker_finished = threading.Event()
-    reload_modules = Mock()
 
     def blocking_git(**kwargs):
         worker_entered.set()
@@ -329,13 +304,7 @@ async def test_cancelled_update_releases_lease_only_after_worker_finishes(monkey
         finally:
             worker_finished.set()
 
-    monkeypatch.setattr(
-        update_module,
-        "_perform_git_update_unlocked",
-        blocking_git,
-        raising=False,
-    )
-    monkeypatch.setattr(update_module, "reload_modules", reload_modules)
+    monkeypatch.setattr(update_module, "_perform_git_update_unlocked", blocking_git)
     task = asyncio.create_task(
         update_module._run_update(
             github_repo="owner/repo",
@@ -364,11 +333,9 @@ async def test_cancelled_update_releases_lease_only_after_worker_finishes(monkey
 
     assert next_lease is not None
     next_lease.release()
-    reload_modules.assert_not_called()
 
 
 def test_update_lease_release_is_idempotent():
-    assert hasattr(updater, "begin_update")
     first_lease = updater.begin_update()
     assert first_lease is not None
     first_lease.release()
@@ -384,52 +351,12 @@ def test_update_lease_release_is_idempotent():
 
 @pytest.mark.asyncio
 async def test_worker_error_releases_update_lease(monkeypatch):
-    assert hasattr(update_module, "_run_update")
-    assert hasattr(updater, "begin_update")
-    reload_modules = Mock()
-
     def failing_git(**kwargs):
         raise RuntimeError("worker failed")
 
-    monkeypatch.setattr(
-        update_module,
-        "_perform_git_update_unlocked",
-        failing_git,
-        raising=False,
-    )
-    monkeypatch.setattr(update_module, "reload_modules", reload_modules)
+    monkeypatch.setattr(update_module, "_perform_git_update_unlocked", failing_git)
 
     with pytest.raises(RuntimeError, match="worker failed"):
-        await update_module._run_update(
-            github_repo="owner/repo",
-            github_token="",
-            branch="main",
-            auto_restart=False,
-        )
-
-    next_lease = updater.begin_update()
-    assert next_lease is not None
-    next_lease.release()
-    reload_modules.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_reload_error_releases_update_lease(monkeypatch):
-    assert hasattr(update_module, "_run_update")
-    assert hasattr(updater, "begin_update")
-    monkeypatch.setattr(
-        update_module,
-        "_perform_git_update_unlocked",
-        lambda **kwargs: (True, "updated"),
-        raising=False,
-    )
-    monkeypatch.setattr(
-        update_module,
-        "reload_modules",
-        Mock(side_effect=RuntimeError("reload failed")),
-    )
-
-    with pytest.raises(RuntimeError, match="reload failed"):
         await update_module._run_update(
             github_repo="owner/repo",
             github_token="",

@@ -1,7 +1,7 @@
 """
 動態更新指令 (Owner only)
 
-從 GitHub 儲存庫拉取最新程式碼並重新載入模組。
+從 GitHub 儲存庫拉取最新程式碼，並透過重啟套用變更。
 支援公開及私人儲存庫。
 更新完成後提供重啟按鈕（僅 owner 可點擊）。
 
@@ -17,9 +17,9 @@ from updater.updater import (
     UPDATE_BUSY_MESSAGE,
     _perform_git_update_unlocked,
     begin_update,
+    format_update_success,
     get_current_branch,
     get_latest_commit,
-    reload_modules,
     restart_bot,
 )
 
@@ -124,7 +124,7 @@ async def _run_update(
     branch: str,
     auto_restart: bool,
 ):
-    """Coordinate Git work and module reload under one update lease."""
+    """Run Git work under one update lease and report restart guidance."""
     lease = begin_update()
     if lease is None:
         return False, UPDATE_BUSY_MESSAGE
@@ -151,12 +151,7 @@ async def _run_update(
         if not success:
             return False, result_msg
 
-        count, _ = reload_modules()
-        result_msg += f"\n\n🔄 已重新載入 {count} 個模組"
-        if auto_restart:
-            result_msg += "\n\n♻️ auto_restart 已啟用，bot 程序將自動重啟..."
-
-        return True, result_msg
+        return True, format_update_success(result_msg, auto_restart)
     finally:
         if not release_after_worker:
             lease.release()
@@ -254,7 +249,7 @@ async def update(message, bot):
             # 手動模式：顯示重啟按鈕（僅 owner 可操作）
             result_embed.add_field(
                 name="🔘 重啟選擇",
-                value="模組已重新載入。點擊下方按鈕決定是否重啟 bot：",
+                value="檔案已更新。點擊下方按鈕決定是否重啟 bot 以套用變更：",
                 inline=False,
             )
     else:
