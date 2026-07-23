@@ -39,10 +39,6 @@ def init_log_channel_table() -> None:
     finally:
         conn.close()
 
-
-# Initialise on module load
-init_log_channel_table()
-
 # ---------------------------------------------------------------------------
 # Logger
 # ---------------------------------------------------------------------------

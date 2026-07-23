@@ -26,11 +26,6 @@ def init_private_voice_table():
     finally:
         conn.close()
 
-
-
-# 啟動時自動初始化資料表
-init_private_voice_table()
-
 def save_private_channel_config(guild_id, channel_id, owner_id, config_dict):
     print(f"[DEBUG] Saving to MySQL: guild_id={guild_id}, channel_id={channel_id}, owner_id={owner_id}, config={config_dict}")
     conn = get_db_conn()

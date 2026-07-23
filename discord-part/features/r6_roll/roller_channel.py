@@ -32,11 +32,6 @@ def init_roller_channel_table() -> None:
     finally:
         conn.close()
 
-
-# Initialize table on module load
-init_roller_channel_table()
-
-
 def set_roller_channel(guild_id: int, channel_id: int, dm_result: bool = True) -> None:
     conn = _get_db_conn()
     try:
