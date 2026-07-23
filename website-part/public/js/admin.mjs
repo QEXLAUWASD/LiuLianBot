@@ -1,5 +1,6 @@
 import { ApiError, requestJSON } from './api_client.mjs';
 import { element, replaceChildren } from './dom.mjs';
+import { withBusyControl } from './form_state.mjs';
 import { setupTabs } from './tabs.mjs';
 import { setupAdminDialogs } from './admin_dialogs.mjs';
 
@@ -44,10 +45,13 @@ document.getElementById('confirmDialog').addEventListener('dialog:close', () => 
   confirmCallback = null;
 });
 
-document.getElementById('confirmOkBtn').addEventListener('click', () => {
+document.getElementById('confirmOkBtn').addEventListener('click', async event => {
   const callback = confirmCallback;
-  closeConfirm();
-  callback?.();
+  if (!callback) return;
+  await withBusyControl(event.currentTarget, async () => {
+    closeConfirm();
+    await callback();
+  });
 });
 
 function tableMessage(colspan, message, { error = false } = {}) {
@@ -180,7 +184,7 @@ async function openUserEdit(userId) {
   }
 }
 
-document.getElementById('saveUserGroupsBtn').addEventListener('click', async () => {
+document.getElementById('saveUserGroupsBtn').addEventListener('click', async event => {
   const roleIds = Array.from(
     document.querySelectorAll('input[name="userGroup"]:checked'),
     input => Number(input.value),
@@ -193,18 +197,20 @@ document.getElementById('saveUserGroupsBtn').addEventListener('click', async () 
     return;
   }
 
-  try {
-    await requestJSON(`/api/admin/users/${currentEditUserId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role_ids: roleIds }),
-    });
-    showToast('User groups updated', 'success');
-    closeModal('userEditModal');
-    await loadUsers();
-  } catch (error) {
-    errorElement.textContent = error.message || 'Failed to update';
-  }
+  await withBusyControl(event.currentTarget, async () => {
+    try {
+      await requestJSON(`/api/admin/users/${currentEditUserId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role_ids: roleIds }),
+      });
+      showToast('User groups updated', 'success');
+      closeModal('userEditModal');
+      await loadUsers();
+    } catch (error) {
+      errorElement.textContent = error.message || 'Failed to update';
+    }
+  });
 });
 
 function confirmDeleteUser(userId) {
@@ -280,7 +286,7 @@ function openGroupEdit(id) {
   openModal('groupEditModal');
 }
 
-document.getElementById('saveGroupBtn').addEventListener('click', async () => {
+document.getElementById('saveGroupBtn').addEventListener('click', async event => {
   const id = document.getElementById('editGroupId').value;
   const name = document.getElementById('editGroupName').value.trim();
   const description = document.getElementById('editGroupDesc').value.trim();
@@ -292,18 +298,20 @@ document.getElementById('saveGroupBtn').addEventListener('click', async () => {
     return;
   }
 
-  try {
-    await requestJSON(id ? `/api/admin/groups/${id}` : '/api/admin/groups', {
-      method: id ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description }),
-    });
-    showToast(id ? 'Group updated' : 'Group created', 'success');
-    closeModal('groupEditModal');
-    await loadGroups();
-  } catch (error) {
-    errorElement.textContent = error.message || 'Operation failed';
-  }
+  await withBusyControl(event.currentTarget, async () => {
+    try {
+      await requestJSON(id ? `/api/admin/groups/${id}` : '/api/admin/groups', {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description }),
+      });
+      showToast(id ? 'Group updated' : 'Group created', 'success');
+      closeModal('groupEditModal');
+      await loadGroups();
+    } catch (error) {
+      errorElement.textContent = error.message || 'Operation failed';
+    }
+  });
 });
 
 function confirmDeleteGroup(id) {
@@ -558,7 +566,7 @@ async function openConnectionEdit(id) {
   openModal('connectionEditModal');
 }
 
-document.getElementById('saveConnectionBtn').addEventListener('click', async () => {
+document.getElementById('saveConnectionBtn').addEventListener('click', async event => {
   const id = document.getElementById('editConnectionId').value;
   const errorElement = document.getElementById('connectionEditError');
   const payload = {
@@ -579,18 +587,20 @@ document.getElementById('saveConnectionBtn').addEventListener('click', async () 
   };
 
   errorElement.textContent = '';
-  try {
-    await requestJSON(id ? `/api/admin/connections/${id}` : '/api/admin/connections', {
-      method: id ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    showToast(id ? 'Website updated' : 'Website added', 'success');
-    closeModal('connectionEditModal');
-    await loadConnections();
-  } catch (error) {
-    errorElement.textContent = error.message || 'Operation failed';
-  }
+  await withBusyControl(event.currentTarget, async () => {
+    try {
+      await requestJSON(id ? `/api/admin/connections/${id}` : '/api/admin/connections', {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      showToast(id ? 'Website updated' : 'Website added', 'success');
+      closeModal('connectionEditModal');
+      await loadConnections();
+    } catch (error) {
+      errorElement.textContent = error.message || 'Operation failed';
+    }
+  });
 });
 
 function confirmDeleteConnection(id) {

@@ -471,7 +471,7 @@ test('account authentication failures leave forms disabled and report the load e
         for (const formId of ['usernameForm', 'passwordForm']) {
           const button = dom.window.document.querySelector(`#${formId} button[type="submit"]`);
           assert.equal(button.disabled, true);
-          assert.equal(button.getAttribute('aria-busy'), 'true');
+          assert.equal(button.getAttribute('aria-busy'), 'false');
         }
       } finally {
         authState.reset();

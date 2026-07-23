@@ -1,5 +1,6 @@
 import { authState } from './auth_state.mjs';
 import { ApiError, requestJSON } from './api_client.mjs';
+import { withBusyControl } from './form_state.mjs';
 
 function setAccountStatus(element, message, type = '') {
   element.textContent = message;
@@ -15,9 +16,9 @@ export function handleAccountLoadError(error, statusElement, location = globalTh
   setAccountStatus(statusElement, error?.message || 'Unable to load account.', 'error');
 }
 
-function setFormBusy(form, busy) {
+function setFormState(form, { disabled, busy }) {
   const button = form.querySelector('button[type="submit"]');
-  button.disabled = busy;
+  button.disabled = disabled;
   button.setAttribute('aria-busy', String(busy));
 }
 
@@ -38,31 +39,30 @@ export async function initializeAccountPage() {
   let ready = false;
 
   setAccountStatus(usernameStatus, 'Loading account...');
-  setFormBusy(usernameForm, true);
-  setFormBusy(passwordForm, true);
+  setFormState(usernameForm, { disabled: true, busy: true });
+  setFormState(passwordForm, { disabled: true, busy: true });
 
   usernameForm.addEventListener('submit', async event => {
     event.preventDefault();
     if (!ready) return;
 
     setAccountStatus(usernameStatus, '');
-    setFormBusy(usernameForm, true);
-
-    try {
-      const data = await sendAccountUpdate('/api/auth/username', {
-        username: usernameInput.value.trim(),
-        currentPassword: document.getElementById('usernameCurrentPassword').value,
-      });
-      document.getElementById('usernameCurrentPassword').value = '';
-      usernameInput.value = data.user.username;
-      const navUsername = document.getElementById('navUsername');
-      if (navUsername) navUsername.textContent = `👤 ${data.user.username}`;
-      setAccountStatus(usernameStatus, 'Username updated.', 'success');
-    } catch (error) {
-      setAccountStatus(usernameStatus, error.message, 'error');
-    } finally {
-      setFormBusy(usernameForm, false);
-    }
+    const submitButton = usernameForm.querySelector('button[type="submit"]');
+    await withBusyControl(submitButton, async () => {
+      try {
+        const data = await sendAccountUpdate('/api/auth/username', {
+          username: usernameInput.value.trim(),
+          currentPassword: document.getElementById('usernameCurrentPassword').value,
+        });
+        document.getElementById('usernameCurrentPassword').value = '';
+        usernameInput.value = data.user.username;
+        const navUsername = document.getElementById('navUsername');
+        if (navUsername) navUsername.textContent = `👤 ${data.user.username}`;
+        setAccountStatus(usernameStatus, 'Username updated.', 'success');
+      } catch (error) {
+        setAccountStatus(usernameStatus, error.message, 'error');
+      }
+    });
   });
 
   passwordForm.addEventListener('submit', async event => {
@@ -78,20 +78,20 @@ export async function initializeAccountPage() {
       return;
     }
 
-    setFormBusy(passwordForm, true);
-    try {
-      await sendAccountUpdate('/api/auth/password', {
-        currentPassword: document.getElementById('passwordCurrentPassword').value,
-        newPassword,
-        confirmPassword,
-      });
-      passwordForm.reset();
-      setAccountStatus(passwordStatus, 'Password updated.', 'success');
-    } catch (error) {
-      setAccountStatus(passwordStatus, error.message, 'error');
-    } finally {
-      setFormBusy(passwordForm, false);
-    }
+    const submitButton = passwordForm.querySelector('button[type="submit"]');
+    await withBusyControl(submitButton, async () => {
+      try {
+        await sendAccountUpdate('/api/auth/password', {
+          currentPassword: document.getElementById('passwordCurrentPassword').value,
+          newPassword,
+          confirmPassword,
+        });
+        passwordForm.reset();
+        setAccountStatus(passwordStatus, 'Password updated.', 'success');
+      } catch (error) {
+        setAccountStatus(passwordStatus, error.message, 'error');
+      }
+    });
   });
 
   let auth;
@@ -99,6 +99,8 @@ export async function initializeAccountPage() {
     auth = await authState.load();
   } catch (error) {
     handleAccountLoadError(error, usernameStatus);
+    setFormState(usernameForm, { disabled: true, busy: false });
+    setFormState(passwordForm, { disabled: true, busy: false });
     return;
   }
 
@@ -110,8 +112,8 @@ export async function initializeAccountPage() {
   usernameInput.value = auth.user.username;
   ready = true;
   setAccountStatus(usernameStatus, '');
-  setFormBusy(usernameForm, false);
-  setFormBusy(passwordForm, false);
+  setFormState(usernameForm, { disabled: false, busy: false });
+  setFormState(passwordForm, { disabled: false, busy: false });
 }
 
 if (typeof document !== 'undefined') {

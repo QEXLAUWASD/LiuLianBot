@@ -1,3 +1,5 @@
+import { requestJSON } from './api_client.mjs';
+import { withBusyControl } from './form_state.mjs';
 import { setupTabs } from './tabs.mjs';
 
 // Login / Register page logic
@@ -14,8 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Login
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+  document.getElementById('loginForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submitButton = form.querySelector('button[type="submit"]');
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
     const errorEl = document.getElementById('loginError');
@@ -23,27 +27,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     errorEl.textContent = '';
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, remember }),
-      });
-      const data = await res.json();
+    await withBusyControl(submitButton, async () => {
+      try {
+        const data = await requestJSON('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, remember }),
+        });
 
-      if (res.ok && data.success) {
-        window.location.href = postAuthDestination();
-      } else {
-        errorEl.textContent = data.error || 'Login failed';
+        if (data?.success) {
+          window.location.href = postAuthDestination();
+        } else {
+          errorEl.textContent = 'Login failed';
+        }
+      } catch (error) {
+        errorEl.textContent = error.message || 'Login failed';
       }
-    } catch (err) {
-      errorEl.textContent = 'Network error. Please try again.';
-    }
+    });
   });
 
   // Register
-  document.getElementById('registerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+  document.getElementById('registerForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submitButton = form.querySelector('button[type="submit"]');
     const username = document.getElementById('regUsername').value.trim();
     const password = document.getElementById('regPassword').value;
     const errorEl = document.getElementById('regError');
@@ -59,21 +66,22 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await res.json();
+    await withBusyControl(submitButton, async () => {
+      try {
+        const data = await requestJSON('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
 
-      if (res.ok && data.success) {
-        window.location.href = postAuthDestination();
-      } else {
-        errorEl.textContent = data.error || 'Registration failed';
+        if (data?.success) {
+          window.location.href = postAuthDestination();
+        } else {
+          errorEl.textContent = 'Registration failed';
+        }
+      } catch (error) {
+        errorEl.textContent = error.message || 'Registration failed';
       }
-    } catch (err) {
-      errorEl.textContent = 'Network error. Please try again.';
-    }
+    });
   });
 });
