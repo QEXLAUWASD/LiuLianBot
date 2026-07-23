@@ -172,6 +172,142 @@ test('background state is restored exactly and shared dialogs do not release it 
   dom.window.close();
 });
 
+test('stacked dialogs suspend non-top dialogs and restore LIFO focus and attributes exactly', () => {
+  const dom = new JSDOM(`
+    <main id="background"><button id="outside">Open A</button></main>
+    <div id="a" role="dialog" aria-labelledby="a-title" aria-modal="legacy" aria-hidden="seed" inert hidden>
+      <h2 id="a-title">A</h2><button id="a-action">Open B</button>
+    </div>
+    <div id="b" role="dialog" aria-labelledby="b-title" hidden>
+      <h2 id="b-title">B</h2><button id="b-action">Close B</button>
+    </div>
+  `);
+  const document = dom.window.document;
+  const background = document.getElementById('background');
+  const aElement = document.getElementById('a');
+  const bElement = document.getElementById('b');
+  aElement.inert = true;
+  const a = createDialog(aElement, { background });
+  const b = createDialog(bElement, { background });
+
+  a.open(document.getElementById('outside'));
+  assert.equal(aElement.getAttribute('aria-modal'), 'true');
+  assert.equal(aElement.hasAttribute('aria-hidden'), false);
+  assert.equal(aElement.inert, false);
+  assert.equal(aElement.hasAttribute('inert'), false);
+
+  document.getElementById('a-action').focus();
+  b.open(document.getElementById('a-action'));
+  assert.equal(aElement.getAttribute('aria-modal'), 'false');
+  assert.equal(aElement.getAttribute('aria-hidden'), 'true');
+  assert.equal(aElement.inert, true);
+  assert.equal(bElement.getAttribute('aria-modal'), 'true');
+  assert.equal(bElement.hasAttribute('aria-hidden'), false);
+  assert.equal(bElement.inert, false);
+
+  b.close();
+  assert.equal(aElement.getAttribute('aria-modal'), 'true');
+  assert.equal(aElement.hasAttribute('aria-hidden'), false);
+  assert.equal(aElement.inert, false);
+  assert.equal(document.activeElement.id, 'a-action');
+
+  a.close();
+  assert.equal(aElement.getAttribute('aria-modal'), 'legacy');
+  assert.equal(aElement.getAttribute('aria-hidden'), 'seed');
+  assert.equal(aElement.inert, true);
+  assert.equal(aElement.hasAttribute('inert'), true);
+  assert.equal(document.activeElement.id, 'outside');
+  dom.window.close();
+});
+
+test('closing a middle dialog keeps the top active and later resumes the surviving dialog', () => {
+  const dom = new JSDOM(`
+    <main id="background"><button id="outside">Open A</button></main>
+    <div id="a" role="dialog" aria-labelledby="a-title" hidden><h2 id="a-title">A</h2><button id="a-action">A action</button></div>
+    <div id="b" role="dialog" aria-labelledby="b-title" hidden><h2 id="b-title">B</h2><button id="b-action">B action</button></div>
+    <div id="c" role="dialog" aria-labelledby="c-title" hidden><h2 id="c-title">C</h2><button id="c-action">C action</button></div>
+  `);
+  const document = dom.window.document;
+  const background = document.getElementById('background');
+  const elements = ['a', 'b', 'c'].map(id => document.getElementById(id));
+  const [a, b, c] = elements.map(element => createDialog(element, { background }));
+
+  a.open(document.getElementById('outside'));
+  b.open(document.getElementById('a-action'));
+  c.open(document.getElementById('b-action'));
+  b.close();
+  assert.equal(document.activeElement.id, 'c-action');
+  assert.deepEqual(elements.map(element => element.getAttribute('aria-modal')), ['false', null, 'true']);
+  assert.deepEqual(elements.map(element => Boolean(element.inert)), [true, false, false]);
+
+  c.close();
+  assert.equal(elements[0].getAttribute('aria-modal'), 'true');
+  assert.equal(elements[0].hasAttribute('aria-hidden'), false);
+  assert.equal(elements[0].inert, false);
+  assert.equal(document.activeElement.id, 'a-action');
+
+  a.close();
+  assert.equal(document.activeElement.id, 'outside');
+  assert.equal(background.hasAttribute('inert'), false);
+  dom.window.close();
+});
+
+test('closing the root dialog early still restores the stack session external opener last', () => {
+  const dom = new JSDOM(`
+    <main id="background"><button id="fallback">Fallback</button><button id="outside">Open A</button></main>
+    <div id="a" role="dialog" aria-labelledby="a-title" hidden><h2 id="a-title">A</h2><button id="a-action">A action</button></div>
+    <div id="b" role="dialog" aria-labelledby="b-title" hidden><h2 id="b-title">B</h2><button id="b-action">B action</button></div>
+    <div id="c" role="dialog" aria-labelledby="c-title" hidden><h2 id="c-title">C</h2><button id="c-action">C action</button></div>
+  `);
+  const document = dom.window.document;
+  const background = document.getElementById('background');
+  const [a, b, c] = ['a', 'b', 'c']
+    .map(id => createDialog(document.getElementById(id), { background }));
+
+  a.open(document.getElementById('outside'));
+  b.open(document.getElementById('a-action'));
+  c.open(document.getElementById('b-action'));
+  a.close();
+  c.close();
+  assert.equal(document.activeElement.id, 'b-action');
+  b.close();
+  assert.equal(document.activeElement.id, 'outside');
+  dom.window.close();
+});
+
+test('programmatic focus escaping to the background or a non-top dialog returns to the top', () => {
+  const dom = new JSDOM(`
+    <main><button id="outside">Outside</button></main>
+    <div id="a" role="dialog" aria-labelledby="a-title" hidden><h2 id="a-title">A</h2><button id="a-action">A action</button></div>
+    <div id="b" role="dialog" aria-labelledby="b-title" hidden><h2 id="b-title">B</h2><button id="b-action">B action</button></div>
+  `);
+  const document = dom.window.document;
+  const background = document.querySelector('main');
+  const a = createDialog(document.getElementById('a'), { background });
+  const b = createDialog(document.getElementById('b'), { background });
+  a.open(document.getElementById('outside'));
+  b.open(document.getElementById('a-action'));
+
+  document.getElementById('outside').focus();
+  assert.equal(document.activeElement.id, 'b-action');
+  document.getElementById('a-action').focus();
+  assert.equal(document.activeElement.id, 'b-action');
+  dom.window.close();
+});
+
+test('nested dialog structures are rejected before an ancestor can make a child inert', () => {
+  const dom = new JSDOM(`
+    <div id="outer" role="dialog" aria-labelledby="outer-title" hidden>
+      <h2 id="outer-title">Outer</h2><button id="outer-action">Outer action</button>
+      <div id="inner" role="dialog" aria-labelledby="inner-title" hidden><h2 id="inner-title">Inner</h2><button>Inner action</button></div>
+    </div>
+  `);
+  const document = dom.window.document;
+  assert.throws(() => createDialog(document.getElementById('outer')), /nested/i);
+  assert.throws(() => createDialog(document.getElementById('inner')), /nested/i);
+  dom.window.close();
+});
+
 test('open and close are idempotent and do not duplicate lifecycle events', () => {
   const { dom, document, dialog } = createFixture();
   const controller = createDialog(dialog);
@@ -245,5 +381,43 @@ test('admin dialog integration wires existing helpers, close controls, and backd
   assert.equal(dialog.hidden, false, 'content click must not close the dialog');
   dialog.click();
   assert.equal(dialog.hidden, true, 'backdrop click closes the dialog');
+  dom.window.close();
+});
+
+test('admin confirmation executes OK once and cancellation paths only clear the callback', async () => {
+  const [html, adminSource] = await Promise.all([
+    readFile(resolve(publicDir, 'admin.html'), 'utf8'),
+    readFile(resolve(publicDir, 'js/admin.js'), 'utf8'),
+  ]);
+  const dom = new JSDOM(html, {
+    url: 'https://example.test/admin.html',
+    runScripts: 'outside-only',
+  });
+  const { document } = dom.window;
+  setupAdminDialogs(document);
+  dom.window.eval(adminSource);
+  const confirmDialog = document.getElementById('confirmDialog');
+  let calls = 0;
+
+  dom.window.showConfirm('Delete', 'First', () => calls += 1);
+  document.getElementById('confirmOkBtn').click();
+  document.getElementById('confirmOkBtn').click();
+  assert.equal(calls, 1);
+  assert.equal(confirmDialog.hidden, true);
+
+  dom.window.showConfirm('Delete', 'Cancel', () => calls += 1);
+  confirmDialog.querySelector('[data-dialog-close]').click();
+  document.getElementById('confirmOkBtn').click();
+  assert.equal(calls, 1);
+
+  dom.window.showConfirm('Delete', 'Escape', () => calls += 1);
+  keydown(dom, confirmDialog, 'Escape');
+  document.getElementById('confirmOkBtn').click();
+  assert.equal(calls, 1);
+
+  dom.window.showConfirm('Delete', 'Backdrop', () => calls += 1);
+  confirmDialog.click();
+  document.getElementById('confirmOkBtn').click();
+  assert.equal(calls, 1);
   dom.window.close();
 });

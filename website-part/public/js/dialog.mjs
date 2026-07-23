@@ -1,5 +1,5 @@
 const backgroundLocks = new WeakMap();
-const openStacks = new WeakMap();
+const documentStates = new WeakMap();
 
 const focusableSelector = [
   'a[href]',
@@ -32,9 +32,13 @@ function focusableElements(root) {
 
 function normalizeBackground(background) {
   if (!background) return [];
-  if (background.nodeType === 1) return [background];
-  if (typeof background[Symbol.iterator] === 'function') return [...background];
-  throw new TypeError('createDialog: background must be an element or iterable of elements');
+  const elements = background.nodeType === 1
+    ? [background]
+    : typeof background[Symbol.iterator] === 'function' ? [...background] : null;
+  if (!elements?.every(element => element?.nodeType === 1)) {
+    throw new TypeError('createDialog: background must be an element or iterable of elements');
+  }
+  return [...new Set(elements)];
 }
 
 function lockBackground(element) {
@@ -56,17 +60,88 @@ function lockBackground(element) {
 }
 
 function unlockBackground(element) {
-  const state = backgroundLocks.get(element);
-  if (!state) return;
-  state.count -= 1;
-  if (state.count > 0) return;
+  const saved = backgroundLocks.get(element);
+  if (!saved) return;
+  saved.count -= 1;
+  if (saved.count > 0) return;
 
-  element.inert = state.inert;
-  if (state.inertAttribute) element.setAttribute('inert', '');
+  element.inert = saved.inert;
+  if (saved.inertAttribute) element.setAttribute('inert', '');
   else element.removeAttribute('inert');
-  if (state.ariaHidden === null) element.removeAttribute('aria-hidden');
-  else element.setAttribute('aria-hidden', state.ariaHidden);
+  if (saved.ariaHidden === null) element.removeAttribute('aria-hidden');
+  else element.setAttribute('aria-hidden', saved.ariaHidden);
   backgroundLocks.delete(element);
+}
+
+function captureAccessibility(element) {
+  return {
+    inert: Boolean(element.inert),
+    inertAttribute: element.hasAttribute('inert'),
+    ariaHidden: element.getAttribute('aria-hidden'),
+    ariaModal: element.getAttribute('aria-modal'),
+  };
+}
+
+function restoreAccessibility(element, saved) {
+  element.inert = saved.inert;
+  if (saved.inertAttribute) element.setAttribute('inert', '');
+  else element.removeAttribute('inert');
+  if (saved.ariaHidden === null) element.removeAttribute('aria-hidden');
+  else element.setAttribute('aria-hidden', saved.ariaHidden);
+  if (saved.ariaModal === null) element.removeAttribute('aria-modal');
+  else element.setAttribute('aria-modal', saved.ariaModal);
+}
+
+function makeTopAccessible(element) {
+  element.inert = false;
+  element.removeAttribute('inert');
+  element.removeAttribute('aria-hidden');
+  element.setAttribute('aria-modal', 'true');
+}
+
+function suspendEntry(entry) {
+  if (entry.suspension) return;
+  entry.suspension = captureAccessibility(entry.element);
+  entry.element.inert = true;
+  entry.element.setAttribute('inert', '');
+  entry.element.setAttribute('aria-hidden', 'true');
+  entry.element.setAttribute('aria-modal', 'false');
+}
+
+function resumeEntry(entry) {
+  if (!entry.suspension) return;
+  restoreAccessibility(entry.element, entry.suspension);
+  entry.suspension = null;
+}
+
+function ensureDocumentState(document) {
+  const existing = documentStates.get(document);
+  if (existing) return existing;
+
+  const state = { stack: [], externalOpener: null, redirectingFocus: false };
+  document.addEventListener('focusin', event => {
+    const top = state.stack.at(-1);
+    if (!top || top.element.contains(event.target) || state.redirectingFocus) return;
+    state.redirectingFocus = true;
+    try {
+      top.focusInitial();
+    } finally {
+      state.redirectingFocus = false;
+    }
+  }, true);
+  document.addEventListener('keydown', event => {
+    const top = state.stack.at(-1);
+    if (!top) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      top.close('escape');
+      return;
+    }
+    if (event.key === 'Tab') top.trapTab(event);
+  });
+  documentStates.set(document, state);
+  return state;
 }
 
 function validateDialog(element) {
@@ -75,6 +150,9 @@ function validateDialog(element) {
   }
   if (element.getAttribute('role') !== 'dialog') {
     throw new Error('createDialog: element must have role="dialog"');
+  }
+  if (element.parentElement?.closest('[role="dialog"]') || element.querySelector('[role="dialog"]')) {
+    throw new Error('createDialog: nested dialog structures are not supported');
   }
 
   const labelIds = element.getAttribute('aria-labelledby')?.trim().split(/\s+/).filter(Boolean) || [];
@@ -93,20 +171,16 @@ function validateDialog(element) {
 export function createDialog(element, { background } = {}) {
   validateDialog(element);
   const document = element.ownerDocument;
+  const state = ensureDocumentState(document);
   const backgrounds = normalizeBackground(background);
-  if (backgrounds.some(item => item === element || item.contains?.(element))) {
-    throw new Error('createDialog: background cannot contain the dialog');
+  if (backgrounds.some(item => item === element || item.contains(element) || element.contains(item))) {
+    throw new Error('createDialog: background and dialog must not contain each other');
   }
 
   let open = false;
   let opener = null;
+  let activation = null;
   let temporaryTabindex = false;
-  const controller = { open: openDialog, close: closeDialog, get isOpen() { return open; } };
-
-  function stack() {
-    if (!openStacks.has(document)) openStacks.set(document, []);
-    return openStacks.get(document);
-  }
 
   function focusInitial() {
     const first = focusableElements(element)[0];
@@ -121,68 +195,7 @@ export function createDialog(element, { background } = {}) {
     element.focus();
   }
 
-  function openDialog(candidateOpener = document.activeElement) {
-    if (open) return false;
-    opener = isFocusable(candidateOpener) ? candidateOpener : null;
-    for (const item of backgrounds) lockBackground(item);
-    element.hidden = false;
-    open = true;
-    stack().push(controller);
-    focusInitial();
-    element.dispatchEvent(new document.defaultView.CustomEvent('dialog:open', {
-      bubbles: true,
-      detail: { opener },
-    }));
-    return true;
-  }
-
-  function restoreFocus() {
-    if (isFocusable(opener)) {
-      opener.focus();
-      return;
-    }
-    for (const item of backgrounds) {
-      const fallback = focusableElements(item)[0];
-      if (fallback) {
-        fallback.focus();
-        return;
-      }
-    }
-  }
-
-  function closeDialog(reason = 'programmatic') {
-    if (!open) return false;
-    open = false;
-    element.hidden = true;
-    const activeStack = stack();
-    const index = activeStack.lastIndexOf(controller);
-    if (index !== -1) activeStack.splice(index, 1);
-    for (const item of backgrounds) unlockBackground(item);
-    if (temporaryTabindex) {
-      element.removeAttribute('tabindex');
-      temporaryTabindex = false;
-    }
-    restoreFocus();
-    element.dispatchEvent(new document.defaultView.CustomEvent('dialog:close', {
-      bubbles: true,
-      detail: { reason },
-    }));
-    opener = null;
-    return true;
-  }
-
-  document.addEventListener('keydown', event => {
-    const activeStack = stack();
-    if (!open || activeStack.at(-1) !== controller) return;
-
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      closeDialog('escape');
-      return;
-    }
-    if (event.key !== 'Tab') return;
-
+  function trapTab(event) {
     const controls = focusableElements(element);
     if (controls.length === 0) {
       event.preventDefault();
@@ -200,7 +213,85 @@ export function createDialog(element, { background } = {}) {
       event.stopImmediatePropagation();
       (event.shiftKey ? last : first).focus();
     }
-  });
+  }
+
+  const entry = {
+    element,
+    suspension: null,
+    close: closeDialog,
+    focusInitial,
+    trapTab,
+  };
+  const controller = { open: openDialog, close: closeDialog, get isOpen() { return open; } };
+
+  function openDialog(candidateOpener = document.activeElement) {
+    if (open) return false;
+    opener = isFocusable(candidateOpener) ? candidateOpener : null;
+    if (state.stack.length === 0) state.externalOpener = opener;
+    activation = captureAccessibility(element);
+    const previousTop = state.stack.at(-1);
+    if (previousTop) suspendEntry(previousTop);
+    for (const item of backgrounds) lockBackground(item);
+    element.hidden = false;
+    makeTopAccessible(element);
+    open = true;
+    state.stack.push(entry);
+    focusInitial();
+    element.dispatchEvent(new document.defaultView.CustomEvent('dialog:open', {
+      bubbles: true,
+      detail: { opener },
+    }));
+    return true;
+  }
+
+  function focusExternalFallback(preferred) {
+    if (isFocusable(preferred)) {
+      preferred.focus();
+      return;
+    }
+    for (const item of backgrounds) {
+      const fallback = focusableElements(item)[0];
+      if (fallback) {
+        fallback.focus();
+        return;
+      }
+    }
+  }
+
+  function closeDialog(reason = 'programmatic') {
+    if (!open) return false;
+    const index = state.stack.indexOf(entry);
+    const wasTop = index === state.stack.length - 1;
+    state.stack.splice(index, 1);
+    open = false;
+    element.hidden = true;
+    resumeEntry(entry);
+    restoreAccessibility(element, activation);
+    activation = null;
+    for (const item of backgrounds) unlockBackground(item);
+    if (temporaryTabindex) {
+      element.removeAttribute('tabindex');
+      temporaryTabindex = false;
+    }
+
+    const newTop = state.stack.at(-1);
+    if (wasTop && newTop) {
+      resumeEntry(newTop);
+      if (isFocusable(opener) && newTop.element.contains(opener)) opener.focus();
+      else newTop.focusInitial();
+    } else if (wasTop) {
+      const externalOpener = state.externalOpener;
+      state.externalOpener = null;
+      focusExternalFallback(externalOpener);
+    }
+
+    element.dispatchEvent(new document.defaultView.CustomEvent('dialog:close', {
+      bubbles: true,
+      detail: { reason },
+    }));
+    opener = null;
+    return true;
+  }
 
   return controller;
 }
