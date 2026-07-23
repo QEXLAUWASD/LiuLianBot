@@ -187,10 +187,127 @@ def test_default_migrations_register_tables_in_version_order():
         create_legacy_private_voice_table,
         create_log_channel_table,
         create_roller_channel_table,
+        migrate_private_voice_table,
     )
 
     assert [(migration.version, migration.apply) for migration in DEFAULT_MIGRATIONS] == [
         ("001", create_log_channel_table),
         ("002", create_roller_channel_table),
         ("003", create_legacy_private_voice_table),
+        ("004", migrate_private_voice_table),
     ]
+
+
+class FakeMySqlError(Exception):
+    pass
+
+
+def test_migrate_private_voice_table_normalizes_schema_in_order():
+    from utils.migrations import migrate_private_voice_table
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchall.return_value = []
+
+    migrate_private_voice_table(connection)
+
+    statements = [item.args[0] for item in cursor.execute.call_args_list]
+    assert "CREATE TABLE IF NOT EXISTS private_voice_channels" in statements[0]
+    assert "config_type VARCHAR(16) NOT NULL DEFAULT 'private'" in statements[0]
+    assert "trigger_guild_id BIGINT NULL" in statements[0]
+    assert statements[1].startswith("ALTER TABLE private_voice_channels ADD COLUMN config_type")
+    assert statements[2].startswith("ALTER TABLE private_voice_channels ADD COLUMN trigger_guild_id")
+    assert statements[3].startswith("UPDATE private_voice_channels SET")
+    assert "trigger_guild_id=CASE" in statements[3]
+    assert statements[4] == (
+        "SELECT id, guild_id, channel_id, config_type FROM private_voice_channels "
+        "ORDER BY updated_at DESC, id DESC"
+    )
+    assert "uq_private_voice_channel" in statements[5]
+    assert "uq_private_voice_trigger_guild" in statements[6]
+
+
+def test_migrate_private_voice_table_ignores_existing_columns_error_1060():
+    from utils.migrations import migrate_private_voice_table
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchall.return_value = []
+
+    def execute(sql, params=None):
+        if "ADD COLUMN" in sql:
+            raise FakeMySqlError(1060, "Duplicate column")
+
+    cursor.execute.side_effect = execute
+
+    migrate_private_voice_table(connection)
+
+    executed_sql = [item.args[0] for item in cursor.execute.call_args_list]
+    assert "UPDATE private_voice_channels SET" in executed_sql[3]
+    assert "uq_private_voice_channel" in executed_sql[-2]
+    assert "uq_private_voice_trigger_guild" in executed_sql[-1]
+
+
+def test_migrate_private_voice_table_ignores_existing_unique_keys_error_1061():
+    from utils.migrations import migrate_private_voice_table
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchall.return_value = []
+
+    def execute(sql, params=None):
+        if "ADD UNIQUE KEY" in sql:
+            raise FakeMySqlError(1061, "Duplicate key name")
+
+    cursor.execute.side_effect = execute
+
+    migrate_private_voice_table(connection)
+
+    unique_attempts = [
+        item.args[0]
+        for item in cursor.execute.call_args_list
+        if "ADD UNIQUE KEY" in item.args[0]
+    ]
+    assert len(unique_attempts) == 2
+
+
+@pytest.mark.parametrize("target", ["ADD COLUMN config_type", "ADD UNIQUE KEY"])
+def test_migrate_private_voice_table_reraises_other_database_errors(target):
+    from utils.migrations import migrate_private_voice_table
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchall.return_value = []
+    error = FakeMySqlError(1205, "Lock wait timeout")
+
+    def execute(sql, params=None):
+        if target in sql:
+            raise error
+
+    cursor.execute.side_effect = execute
+
+    with pytest.raises(FakeMySqlError) as raised:
+        migrate_private_voice_table(connection)
+
+    assert raised.value is error
+
+
+def test_migrate_private_voice_table_deletes_duplicate_rows_with_parameters():
+    from utils.migrations import migrate_private_voice_table
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchall.return_value = [
+        (5, 1, 10, "trigger"),
+        (4, 1, 11, "trigger"),
+        (3, 2, 10, "private"),
+        (2, 2, 12, "private"),
+        (1, 3, 13, "trigger"),
+    ]
+
+    migrate_private_voice_table(connection)
+
+    cursor.execute.assert_any_call(
+        "DELETE FROM private_voice_channels WHERE id IN (%s,%s)",
+        [4, 3],
+    )

@@ -2,117 +2,16 @@ import discord
 from typing import Dict, Optional
 import asyncio
 
-import json
-import os
-
-from utils.database import get_db_conn
-
-def init_private_voice_table():
-    conn = get_db_conn()
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS private_voice_channels (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    guild_id BIGINT NOT NULL,
-                    channel_id BIGINT NOT NULL,
-                    owner_id BIGINT NOT NULL,
-                    config_json JSON,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                )
-            ''')
-        conn.commit()
-    finally:
-        conn.close()
-
-def save_private_channel_config(guild_id, channel_id, owner_id, config_dict):
-    print(f"[DEBUG] Saving to MySQL: guild_id={guild_id}, channel_id={channel_id}, owner_id={owner_id}, config={config_dict}")
-    conn = get_db_conn()
-    try:
-        with conn.cursor() as cursor:
-            sql = """
-            INSERT INTO private_voice_channels (guild_id, channel_id, owner_id, config_json)
-            VALUES (%s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE config_json=VALUES(config_json), updated_at=NOW()
-            """
-            import json
-            cursor.execute(sql, (guild_id, channel_id, owner_id, json.dumps(config_dict, ensure_ascii=False)))
-        conn.commit()
-    except Exception as e:
-        print(f"[ERROR] MySQL save failed: {e}")
-        raise
-    finally:
-        conn.close()
-
-def get_private_channel_config(channel_id):
-    conn = get_db_conn()
-    try:
-        with conn.cursor() as cursor:
-            sql = "SELECT config_json FROM private_voice_channels WHERE channel_id=%s"
-            cursor.execute(sql, (channel_id,))
-            result = cursor.fetchone()
-            if result:
-                import json
-                return json.loads(result[0])
-            return None
-    finally:
-        conn.close()
-
-def update_private_channel_config(channel_id, config_dict):
-    conn = get_db_conn()
-    try:
-        with conn.cursor() as cursor:
-            sql = "UPDATE private_voice_channels SET config_json=%s, updated_at=NOW() WHERE channel_id=%s"
-            import json
-            cursor.execute(sql, (json.dumps(config_dict, ensure_ascii=False), channel_id))
-        conn.commit()
-    finally:
-        conn.close()
-
-def delete_private_channel_config(channel_id):
-    conn = get_db_conn()
-    try:
-        with conn.cursor() as cursor:
-            sql = "DELETE FROM private_voice_channels WHERE channel_id=%s"
-            cursor.execute(sql, (channel_id,))
-        conn.commit()
-    finally:
-        conn.close()
-
-def update_channel_owner(channel_id, new_owner_id):
-    conn = get_db_conn()
-    try:
-        with conn.cursor() as cursor:
-            sql = "UPDATE private_voice_channels SET owner_id=%s, updated_at=NOW() WHERE channel_id=%s"
-            cursor.execute(sql, (new_owner_id, channel_id))
-        conn.commit()
-    finally:
-        conn.close()
-
-
-def cleanup_old_private_configs(retention_days: int = 30) -> int:
-    """Remove private channel configs older than the retention window."""
-    conn = get_db_conn()
-    try:
-        with conn.cursor() as cursor:
-            sql = """
-                DELETE FROM private_voice_channels
-                WHERE JSON_EXTRACT(config_json, '$.type') = 'private'
-                  AND updated_at < DATE_SUB(NOW(), INTERVAL %s DAY)
-            """
-            cursor.execute(sql, (retention_days,))
-            deleted = cursor.rowcount
-        conn.commit()
-        return deleted
-    finally:
-        conn.close()
+from features.private_voice_chat.repository import PrivateVoiceRepository
 
 
 
 class PrivateVoiceManager:
-    def __init__(self, bot):
+    def __init__(self, bot, repository=None):
         self.bot = bot
+        self.repository = (
+            repository if repository is not None else PrivateVoiceRepository()
+        )
         self.trigger_channels: Dict[int, int] = {}  # {guild_id: trigger_channel_id}
         self.private_channels: Dict[int, int] = {}  # {channel_id: owner_id}
         self.user_channels: Dict[int, int] = {}  # {user_id: channel_id}
@@ -129,62 +28,40 @@ class PrivateVoiceManager:
     async def _cleanup_loop(self, retention_days: int):
         while True:
             try:
-                removed = cleanup_old_private_configs(retention_days)
+                removed = self._cleanup_once(retention_days)
                 if removed:
                     print(f"[INFO] Removed {removed} stale private voice configs older than {retention_days} days")
             except Exception as e:
                 print(f"[ERROR] Failed to cleanup private voice configs: {e}")
             await asyncio.sleep(self.cleanup_interval_seconds)
 
+    def _cleanup_once(self, retention_days: int) -> int:
+        return self.repository.cleanup_old(retention_days)
+
     def load_trigger_channels_from_db(self):
-        conn = get_db_conn()
-        try:
-            with conn.cursor() as cursor:
-                sql = "SELECT id, guild_id, channel_id, config_json FROM private_voice_channels WHERE JSON_EXTRACT(config_json, '$.type') = 'trigger' ORDER BY updated_at DESC"
-                cursor.execute(sql)
-                rows = cursor.fetchall()
-                seen_guilds = set()
-                duplicate_ids = []
-                for row in rows:
-                    id_, guild_id, channel_id, config_json = row
-                    guild_id = int(guild_id)
-                    channel_id = int(channel_id)
-                    if guild_id not in seen_guilds:
-                        self.trigger_channels[guild_id] = channel_id
-                        seen_guilds.add(guild_id)
-                    else:
-                        duplicate_ids.append(id_)
-                # 刪除重複的 trigger config
-                if duplicate_ids:
-                    format_ids = ','.join(str(i) for i in duplicate_ids)
-                    del_sql = f"DELETE FROM private_voice_channels WHERE id IN ({format_ids})"
-                    cursor.execute(del_sql)
-                    conn.commit()
-                    print(f"[INFO] Removed duplicate trigger configs: {duplicate_ids}")
-        finally:
-            conn.close()
+        self.trigger_channels = self.repository.load_triggers()
 
     def set_trigger_channel(self, guild_id: int, channel_id: int):
         self.trigger_channels[guild_id] = channel_id
 
-    def remove_trigger_channel(self, guild_id: int):
-        if guild_id in self.trigger_channels:
-            del self.trigger_channels[guild_id]
+    def remove_trigger_channel(self, guild_id: int) -> None:
+        self.repository.remove_trigger(guild_id)
+        self.trigger_channels.pop(guild_id, None)
 
     def get_trigger_channel(self, guild_id: int) -> Optional[int]:
         return self.trigger_channels.get(guild_id)
 
     def save_channel_config(self, guild_id, channel_id, owner_id, config_dict):
-        save_private_channel_config(guild_id, channel_id, owner_id, config_dict)
+        self.repository.save(guild_id, channel_id, owner_id, config_dict)
 
     def get_channel_config(self, channel_id):
-        return get_private_channel_config(channel_id)
+        return self.repository.get_config(channel_id)
 
     def update_channel_config(self, channel_id, config_dict):
-        update_private_channel_config(channel_id, config_dict)
+        self.repository.update_config(channel_id, config_dict)
 
     def delete_channel_config(self, channel_id):
-        delete_private_channel_config(channel_id)
+        self.repository.delete(channel_id)
 
     def transfer_channel_owner(self, channel_id: int, new_owner_id: int):
         """Update in-memory tracking and DB when channel ownership is transferred."""
@@ -193,7 +70,7 @@ class PrivateVoiceManager:
         if old_owner_id is not None and self.user_channels.get(old_owner_id) == channel_id:
             del self.user_channels[old_owner_id]
         self.user_channels[new_owner_id] = channel_id
-        update_channel_owner(channel_id, new_owner_id)
+        self.repository.update_owner(channel_id, new_owner_id)
 
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         """Handle voice state updates"""
