@@ -71,3 +71,11 @@ test('roller requests use the shared API client', async () => {
   assert.match(source, /import\s*\{\s*requestJSON\s*\}\s*from\s*['"]\.\/api_client\.mjs['"]/);
   assert.doesNotMatch(source, /\bfetch\s*\(/);
 });
+
+test('announcement submission retains its form reference after awaiting the API', async () => {
+  const source = await readFile(resolve(publicJs, 'admin.mjs'), 'utf8');
+
+  assert.match(source, /const announcementForm = document\.getElementById\('announcementForm'\)/);
+  assert.match(source, /announcementForm\.reset\(\)/);
+  assert.doesNotMatch(source, /event\.currentTarget\.reset\(\)/);
+});

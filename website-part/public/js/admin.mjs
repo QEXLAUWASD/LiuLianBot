@@ -535,7 +535,8 @@ async function loadAnnouncements() {
   } catch (error) { if (!redirectForAuthError(error)) renderLoadError('announcementsTableBody', 6, 'Failed to load announcements'); }
 }
 
-document.getElementById('announcementForm').addEventListener('submit', async event => {
+const announcementForm = document.getElementById('announcementForm');
+announcementForm.addEventListener('submit', async event => {
   event.preventDefault();
   const status = document.getElementById('announcementStatus');
   try {
@@ -549,7 +550,7 @@ document.getElementById('announcementForm').addEventListener('submit', async eve
       }),
     });
     status.textContent = 'Announcement scheduled.';
-    event.currentTarget.reset();
+  announcementForm.reset();
     await loadAnnouncements();
   } catch (error) { status.textContent = error.message; status.className = 'status-msg status-error'; }
 });
