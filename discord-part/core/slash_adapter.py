@@ -68,7 +68,9 @@ def _create_interaction_message(
             self.channel_mentions = channel_mentions or []
             self.role_mentions = role_mentions or []
 
-    return InteractionMessage(interaction, content, mentions, channel_mentions)
+    return InteractionMessage(
+        interaction, content, mentions, channel_mentions, role_mentions
+    )
 
 
 async def _send_slash_response(
