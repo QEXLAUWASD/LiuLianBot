@@ -1,4 +1,5 @@
 import { requestJSON } from './api_client.mjs';
+import { authState } from './auth_state.mjs';
 import { element, replaceChildren } from './dom.mjs';
 import { withBusyControl } from './form_state.mjs';
 
@@ -43,6 +44,7 @@ export async function initializeEventsPage() {
   const panel = document.getElementById('createEventPanel');
   const form = document.getElementById('eventForm');
   const formStatus = document.getElementById('eventFormStatus');
+  const createButton = document.getElementById('showCreateEvent');
   const load = async () => {
     try {
       const data = await requestJSON('/api/events');
@@ -51,7 +53,9 @@ export async function initializeEventsPage() {
       status(listStatus, events.length ? '' : 'No upcoming events yet.');
     } catch (error) { status(listStatus, error.message, 'error'); }
   };
-  document.getElementById('showCreateEvent').addEventListener('click', () => { panel.hidden = false; document.getElementById('eventTitle').focus(); });
+  const auth = await authState.load();
+  createButton.hidden = auth?.user?.role !== 'admin';
+  createButton.addEventListener('click', () => { panel.hidden = false; document.getElementById('eventTitle').focus(); });
   document.getElementById('cancelCreateEvent').addEventListener('click', () => { panel.hidden = true; form.reset(); });
   form.addEventListener('submit', async event => {
     event.preventDefault();

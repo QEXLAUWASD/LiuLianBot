@@ -2,9 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
 
-async function fixture() {
+async function fixture({ role = 'admin' } = {}) {
   const dbPath = require.resolve('../src/db');
   const routePath = require.resolve('../src/routes/events');
+  const adminAuthPath = require.resolve('../src/middleware/admin_auth');
   const events = [];
   let nextId = 1;
   require.cache[dbPath] = {
@@ -20,9 +21,10 @@ async function fixture() {
       listEvents: async () => events,
       joinEvent: async () => ({ joined: true }),
       leaveEvent: async () => ({ left: true }),
-      findUserById: async () => ({ id: 'user-1', discord_user_id: '123456789012345678' }),
+      findUserById: async () => ({ id: 'user-1', role_name: role, discord_user_id: '123456789012345678' }),
     },
   };
+  delete require.cache[adminAuthPath];
   delete require.cache[routePath];
   const router = require(routePath);
   const app = express();
@@ -63,4 +65,18 @@ test('authenticated users can list and join or leave events', async t => {
   assert.equal(response.status, 200);
   response = await app.request('/api/events/1/leave', { method: 'POST' });
   assert.equal(response.status, 200);
+});
+
+test('only administrators can create events', async t => {
+  const app = await fixture({ role: 'user' });
+  t.after(app.close);
+  const response = await app.request('/api/events', {
+    method: 'POST',
+    body: JSON.stringify({
+      title: 'Ranked night', guildId: '123456789012345678',
+      startAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(), maxPlayers: 10,
+    }),
+  });
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), { error: 'Admin access required' });
 });

@@ -1,6 +1,7 @@
 const express = require('express');
-const { createEvent, joinEvent, leaveEvent, listEvents, getEventParticipants, findUserById } = require('../db');
+const { createEvent, joinEvent, leaveEvent, listEvents, getEventParticipants } = require('../db');
 const { requireApiAuth } = require('../middleware/auth');
+const { requireAdmin } = require('../middleware/admin_auth');
 const { normalizeEventInput } = require('../services/event_validation');
 
 const router = express.Router();
@@ -20,10 +21,10 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   try {
     normalizeEventInput(req.body);
-    const user = await findUserById(req.session.user.id);
+    const user = req.adminUser;
     if (!user?.discord_user_id) {
       return res.status(409).json({ error: 'Connect Discord before creating an event' });
     }
