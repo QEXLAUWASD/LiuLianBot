@@ -159,6 +159,15 @@ def create_guild_metadata_table(conn) -> None:
         )
 
 
+def enable_announcement_dispatch(conn) -> None:
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "ALTER TABLE website_announcements MODIFY status "
+            "ENUM('scheduled', 'sending', 'sent', 'cancelled') "
+            "NOT NULL DEFAULT 'scheduled'"
+        )
+
+
 DEFAULT_MIGRATIONS = (
     Migration("001", "create guild_log_channels table", create_log_channel_table),
     Migration("002", "create guild_roller_channels table", create_roller_channel_table),
@@ -171,6 +180,7 @@ DEFAULT_MIGRATIONS = (
     Migration("005", "create self role table", create_self_role_table),
     Migration("006", "create activity stats table", create_activity_stats_table),
     Migration("007", "create Discord guild metadata table", create_guild_metadata_table),
+    Migration("008", "enable scheduled announcement dispatch", enable_announcement_dispatch),
 )
 
 

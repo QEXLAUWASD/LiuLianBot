@@ -189,8 +189,9 @@ def test_default_migrations_register_tables_in_version_order():
         create_roller_channel_table,
         migrate_private_voice_table,
         create_self_role_table,
-        create_activity_stats_table,
-        create_guild_metadata_table,
+            create_activity_stats_table,
+            create_guild_metadata_table,
+            enable_announcement_dispatch,
     )
 
     assert [(migration.version, migration.apply) for migration in DEFAULT_MIGRATIONS] == [
@@ -200,8 +201,9 @@ def test_default_migrations_register_tables_in_version_order():
         ("004", migrate_private_voice_table),
         ("005", create_self_role_table),
         ("006", create_activity_stats_table),
-        ("007", create_guild_metadata_table),
-    ]
+            ("007", create_guild_metadata_table),
+            ("008", enable_announcement_dispatch),
+        ]
 
 
 class FakeMySqlError(Exception):

@@ -24,6 +24,7 @@ from core.slash_adapter import (
 from features.stats.repository import StatsRepository
 from utils.async_io import run_blocking
 from features.guild_metadata import GuildMetadataRepository
+from features.announcements.dispatcher import AnnouncementDispatcher
 
 
 class MyClient(commands.Bot):
@@ -48,6 +49,7 @@ class MyClient(commands.Bot):
         self.private_voice_manager = None
         self.stats_repository = StatsRepository()
         self.guild_metadata_repository = GuildMetadataRepository()
+        self.announcement_dispatcher = AnnouncementDispatcher(self, logger=self.logger)
 
     # ------------------------------------------------------------------
     # Setup hook - 註冊 slash 指令與事件處理器
@@ -111,6 +113,7 @@ class MyClient(commands.Bot):
         self.private_voice_manager = get_manager(self)
         await self.private_voice_manager.initialize()
         self.private_voice_manager.start_cleanup_task()
+        self.announcement_dispatcher.start()
         self.logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
         self.logger.info("------")
         for guild in self.guilds:
@@ -123,6 +126,7 @@ class MyClient(commands.Bot):
         """Flush batched logs before shutting down."""
         from features.server_logger.base import _batcher
         self.logger.info("Flushing batched logs before shutdown...")
+        await self.announcement_dispatcher.stop()
         await _batcher.flush_all()
         await super().close()
 
