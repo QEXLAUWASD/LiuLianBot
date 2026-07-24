@@ -2,10 +2,9 @@ import { requestJSON } from './api_client.mjs';
 import { authState } from './auth_state.mjs';
 import { element, replaceChildren } from './dom.mjs';
 import { withBusyControl } from './form_state.mjs';
+import { formatUtc8, utc8InputToIso } from './time_zone.mjs';
 
-const formatDate = value => new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'medium', timeStyle: 'short',
-}).format(new Date(value));
+const formatDate = formatUtc8;
 
 function status(target, message, type = '') {
   target.textContent = message;
@@ -69,7 +68,7 @@ export async function initializeEventsPage() {
             mode: document.getElementById('eventMode').value,
             guildId: document.getElementById('eventGuild').value,
             channelId: document.getElementById('eventChannel').value || null,
-            startAt: new Date(document.getElementById('eventStart').value).toISOString(),
+            startAt: utc8InputToIso(document.getElementById('eventStart').value),
             maxPlayers: Number(document.getElementById('eventCapacity').value),
             description: document.getElementById('eventDescription').value,
           }),

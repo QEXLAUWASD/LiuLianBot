@@ -139,7 +139,7 @@
           <input id="announcementGuild" placeholder="Discord server ID" inputmode="numeric" required>
           <input id="announcementChannel" placeholder="Channel ID" inputmode="numeric" required>
           <input id="announcementContent" placeholder="Announcement" maxlength="2000" required>
-          <input id="announcementTime" type="datetime-local" required>
+          <label for="announcementTime">Scheduled time (UTC+8)</label><input id="announcementTime" type="datetime-local" required>
           <button class="btn btn-primary" type="submit">Schedule</button>
         </form>
         <div id="announcementStatus" class="status-msg" role="status" aria-live="polite"></div>

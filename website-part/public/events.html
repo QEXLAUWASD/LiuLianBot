@@ -21,7 +21,7 @@
         <div class="form-group"><label for="eventMode">Mode</label><input id="eventMode" maxlength="30" value="Custom match"></div>
         <div class="form-group"><label for="eventGuild">Discord server ID</label><input id="eventGuild" inputmode="numeric" pattern="[0-9]+" required></div>
         <div class="form-group"><label for="eventChannel">Reminder channel ID (optional)</label><input id="eventChannel" inputmode="numeric" pattern="[0-9]*"></div>
-        <div class="form-group"><label for="eventStart">Start time</label><input id="eventStart" type="datetime-local" required></div>
+        <div class="form-group"><label for="eventStart">Start time (UTC+8)</label><input id="eventStart" type="datetime-local" required></div>
         <div class="form-group"><label for="eventCapacity">Players</label><input id="eventCapacity" type="number" min="2" max="99" value="10" required></div>
         <div class="form-group event-description"><label for="eventDescription">Notes</label><textarea id="eventDescription" maxlength="500" rows="3"></textarea></div>
         <div id="eventFormStatus" class="status-msg" role="status" aria-live="polite"></div>

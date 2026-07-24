@@ -3,6 +3,7 @@ import { element, replaceChildren } from './dom.mjs';
 import { withBusyControl } from './form_state.mjs';
 import { setupTabs } from './tabs.mjs';
 import { setupAdminDialogs } from './admin_dialogs.mjs';
+import { formatUtc8, utc8InputToIso } from './time_zone.mjs';
 
 let allUsers = [];
 let allGroups = [];
@@ -485,7 +486,7 @@ function renderEvents() {
   replaceChildren(tbody, allEvents.map(event => element('tr', {}, [
     element('td', {}, [element('strong', { text: event.title }), element('div', { className: 'table-subtext', text: event.creator_username })]),
       element('td', {}, [element('strong', { text: event.guild_name || `Guild ${event.guild_id}` }), element('div', { className: 'table-subtext mono', text: event.guild_id })]),
-    element('td', { text: event.start_at ? new Date(event.start_at).toLocaleString() : '-' }),
+    element('td', { text: event.start_at ? formatUtc8(event.start_at) : '-' }),
     element('td', { text: String(event.participant_count || 0) }),
     element('td', {}, [element('span', { className: `badge ${event.visible ? 'badge-enabled' : 'badge-disabled'}`, text: event.visible ? 'Visible' : 'Hidden' })]),
     element('td', { className: 'actions' }, [actionButton(event.visible ? 'Hide' : 'Show', 'toggle-event-visibility', event.id)]),
@@ -528,7 +529,7 @@ async function loadAnnouncements() {
       element('td', { className: 'mono', text: item.guild_id }),
       element('td', { className: 'mono', text: item.channel_id }),
       element('td', { text: item.content }),
-      element('td', { text: item.scheduled_at ? new Date(item.scheduled_at).toLocaleString() : '-' }),
+      element('td', { text: item.scheduled_at ? formatUtc8(item.scheduled_at) : '-' }),
       element('td', { text: item.status }),
       element('td', { className: 'actions' }, [item.status === 'scheduled' ? actionButton('Cancel', 'cancel-announcement', item.id, 'btn-danger') : null]),
     ])) : [tableMessage(6, 'No announcements found')]);
@@ -546,7 +547,7 @@ announcementForm.addEventListener('submit', async event => {
         guildId: document.getElementById('announcementGuild').value,
         channelId: document.getElementById('announcementChannel').value,
         content: document.getElementById('announcementContent').value,
-        scheduledAt: new Date(document.getElementById('announcementTime').value).toISOString(),
+        scheduledAt: utc8InputToIso(document.getElementById('announcementTime').value),
       }),
     });
     status.textContent = 'Announcement scheduled.';
