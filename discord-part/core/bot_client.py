@@ -5,6 +5,7 @@ Bot 客戶端模組 - 包含 MyClient (discord.py commands.Bot 子類別)。
 """
 
 from datetime import datetime
+import asyncio
 from typing import Optional
 from uuid import uuid4
 
@@ -20,6 +21,9 @@ from core.slash_adapter import (
     build_simple_slash_callback,
     load_interaction_arg_specs,
 )
+from features.stats.repository import StatsRepository
+from utils.async_io import run_blocking
+from features.guild_metadata import GuildMetadataRepository
 
 
 class MyClient(commands.Bot):
@@ -42,6 +46,8 @@ class MyClient(commands.Bot):
         self._root_folder = root_folder
         self.start_time: Optional[datetime] = None
         self.private_voice_manager = None
+        self.stats_repository = StatsRepository()
+        self.guild_metadata_repository = GuildMetadataRepository()
 
     # ------------------------------------------------------------------
     # Setup hook - 註冊 slash 指令與事件處理器
@@ -107,6 +113,8 @@ class MyClient(commands.Bot):
         self.private_voice_manager.start_cleanup_task()
         self.logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
         self.logger.info("------")
+        for guild in self.guilds:
+            asyncio.create_task(self._record_guild_metadata(guild))
         await self.change_presence(
             activity=discord.Game(name="with discord.py")
         )
@@ -124,6 +132,8 @@ class MyClient(commands.Bot):
             await self.private_voice_manager.on_voice_state_update(
                 member, before, after
             )
+        if before.channel != after.channel and after.channel is not None:
+            asyncio.create_task(self._record_voice_join(member.guild.id))
 
     async def on_message(self, message):
         """處理收到的訊息 - 維持舊版前綴指令相容。"""
@@ -131,9 +141,29 @@ class MyClient(commands.Bot):
             return
 
         if message.content.startswith(self.command_prefix):
+            if message.guild is not None:
+                asyncio.create_task(self._record_command(message.guild.id))
             await self._process_command(
                 message, responder=message.channel.send
             )
+
+    async def _record_command(self, guild_id):
+        try:
+            await run_blocking(self.stats_repository.record_command, guild_id)
+        except Exception:
+            self.logger.debug("Unable to record command statistic", exc_info=True)
+
+    async def _record_voice_join(self, guild_id):
+        try:
+            await run_blocking(self.stats_repository.record_voice_join, guild_id)
+        except Exception:
+            self.logger.debug("Unable to record voice statistic", exc_info=True)
+
+    async def _record_guild_metadata(self, guild):
+        try:
+            await run_blocking(self.guild_metadata_repository.upsert, guild.id, guild.name)
+        except Exception:
+            self.logger.debug("Unable to record guild metadata", exc_info=True)
 
     # ------------------------------------------------------------------
     # 指令處理核心

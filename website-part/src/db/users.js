@@ -69,6 +69,7 @@ async function findUserById(id) {
   const p = await getPool();
   const [rows] = await p.execute(
     `SELECT u.id, u.username, u.role_id, u.created_at,
+            u.discord_user_id,
             CASE
               WHEN EXISTS (
                 SELECT 1 FROM website_user_roles aur
@@ -85,6 +86,71 @@ async function findUserById(id) {
     [safe]
   );
   return rows.length > 0 ? rows[0] : null;
+}
+
+async function findUserByDiscordId(discordUserId) {
+  const safe = validateString(String(discordUserId), 'discord user id');
+  const p = await getPool();
+  const [rows] = await p.execute(
+    'SELECT id, username, discord_user_id FROM website_users WHERE discord_user_id = ?',
+    [safe]
+  );
+  return rows.length > 0 ? rows[0] : null;
+}
+
+async function createDiscordLinkCode(userId, codeHash, expiresAt) {
+  const p = await getPool();
+  await p.execute(
+    'UPDATE website_link_codes SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL',
+    [validateString(userId, 'user id')]
+  );
+  await p.execute(
+    'INSERT INTO website_link_codes (user_id, code_hash, expires_at) VALUES (?, ?, ?)',
+    [userId, validateString(codeHash, 'code hash'), expiresAt]
+  );
+}
+
+async function consumeDiscordLinkCode(codeHash, discordUserId) {
+  const p = await getPool();
+  const conn = await p.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [codes] = await conn.execute(
+      `SELECT id, user_id FROM website_link_codes
+       WHERE code_hash = ? AND used_at IS NULL AND expires_at > NOW()
+       ORDER BY id DESC LIMIT 1 FOR UPDATE`,
+      [validateString(codeHash, 'code hash')]
+    );
+    if (codes.length === 0) {
+      await conn.rollback();
+      return null;
+    }
+    const [existing] = await conn.execute(
+      'SELECT id FROM website_users WHERE discord_user_id = ?',
+      [String(discordUserId)]
+    );
+    if (existing.length > 0 && existing[0].id !== codes[0].user_id) {
+      await conn.rollback();
+      throw new Error('Discord account is already linked');
+    }
+    await conn.execute(
+      'UPDATE website_users SET discord_user_id = ? WHERE id = ?',
+      [String(discordUserId), codes[0].user_id]
+    );
+    await conn.execute('UPDATE website_link_codes SET used_at = NOW() WHERE id = ?', [codes[0].id]);
+    await conn.commit();
+    return findUserById(codes[0].user_id);
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+async function unlinkDiscordUser(userId) {
+  const p = await getPool();
+  await p.execute('UPDATE website_users SET discord_user_id = NULL WHERE id = ?', [userId]);
 }
 
 async function findUserCredentialsById(id) {
@@ -226,4 +292,8 @@ module.exports = {
   getAllUsers,
   updateUserRoles,
   deleteUser,
+  findUserByDiscordId,
+  createDiscordLinkCode,
+  consumeDiscordLinkCode,
+  unlinkDiscordUser,
 };

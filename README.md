@@ -22,6 +22,8 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - Authorized HTTP and WebSocket proxy connections
 - Optional hidden connections: hidden from navigation but still available to authorized users by direct URL
 - MySQL-backed sessions, authentication rate limiting, and automatic website migrations
+- R6 events page for creating events and managing shared signups
+- One-time account linking lets Discord commands and website signups use the same identity
 
 ## Project structure
 
@@ -176,10 +178,20 @@ The default prefix is `>`. The command list below reflects the currently registe
 
 | Access level | Commands |
 |---|---|
-| User | `>help`, `>getlang`, `>r6maproll`, `>r6opsroll`, `>getr6mapinfo`, `>roller`, `>mypermissions`, `>listguildadmins`, `>transfervoice` |
-| Guild admin | `>setlang`, `>setlogchannel`, `>setprivatevoice`, `>setupvoice`, `>removeprivatevoice`, `>setrollerchannel`, `>setrollermode` |
+| User | `>help`, `>getlang`, `>r6maproll`, `>r6opsroll`, `>getr6mapinfo`, `>roller`, `>mypermissions`, `>listguildadmins`, `>transfervoice`, `>link`, `>events`, `>eventjoin`, `>eventleave`, `>eventteams` |
+| Guild admin | `>setlang`, `>setlogchannel`, `>setprivatevoice`, `>setupvoice`, `>removeprivatevoice`, `>setrollerchannel`, `>setrollermode`, `>setselfrole`, `>removeselfrole`, `>announce` |
 | Guild owner | `>addguildadmin`, `>removeguildadmin`, `>guildpermissions` |
 | Bot owner | `>addadmin`, `>removeadmin`, `>getinfo`, `>getserverlist`, `>r6update`, `>update` |
+
+### R6 events
+
+1. Log in to the website, open Account, and generate a Discord link code.
+2. Run `>link <code>` in Discord. The code expires after 10 minutes and is single-use.
+3. Open Events on the website and create an event with the Discord server ID, start time, and capacity.
+4. Use `>events` to list events, then `>eventjoin <event_id>` or `>eventleave <event_id>` to manage signup.
+5. Use `>eventteams <event_id>` to generate two balanced teams from the signup order.
+
+Discord must be linked before creating an event. The website and bot share the same MySQL participant records. Members can use `>roles` and `>role <role_id>` for configured self-assignable roles; administrators can use the Admin Announcements tab for scheduled notices.
 
 ## Security notes
 

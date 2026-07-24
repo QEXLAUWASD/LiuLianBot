@@ -53,11 +53,12 @@ def _create_interaction_message(
     content: str,
     mentions: list | None = None,
     channel_mentions: list | None = None,
+    role_mentions: list | None = None,
 ):
     """為 interaction 建立一個相容於舊版 discord.Message 的包裝物件。"""
 
     class InteractionMessage:
-        def __init__(self, interaction, content, mentions, channel_mentions):
+        def __init__(self, interaction, content, mentions, channel_mentions, role_mentions):
             self.content = content
             self.author = interaction.user
             self.channel = _create_interaction_channel(interaction)
@@ -65,6 +66,7 @@ def _create_interaction_message(
             self.interaction = interaction
             self.mentions = mentions or []
             self.channel_mentions = channel_mentions or []
+            self.role_mentions = role_mentions or []
 
     return InteractionMessage(interaction, content, mentions, channel_mentions)
 
@@ -94,6 +96,7 @@ def _option_python_type(opt_type: str):
         "user": discord.User,
         "text_channel": discord.TextChannel,
         "voice_channel": discord.VoiceChannel,
+        "role": discord.Role,
     }
     return mapping.get(t, str)
 
@@ -123,6 +126,7 @@ def build_slash_callback(
         parts: list[str] = []
         mentions = []
         channel_mentions = []
+        role_mentions = []
 
         for opt in option_specs:
             name = opt.get("name")
@@ -141,6 +145,9 @@ def build_slash_callback(
                 channel_mentions.append(val)
             elif opt_type == "voice_channel":
                 parts.append(str(val.id))
+            elif opt_type == "role":
+                parts.append(f"<@&{val.id}>")
+                role_mentions.append(val)
             else:
                 parts.append(str(val))
 
@@ -149,7 +156,7 @@ def build_slash_callback(
         )
 
         msg = _create_interaction_message(
-            interaction, full_content, mentions, channel_mentions
+            interaction, full_content, mentions, channel_mentions, role_mentions
         )
 
         async def responder(

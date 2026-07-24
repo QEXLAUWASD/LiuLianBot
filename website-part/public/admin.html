@@ -22,6 +22,12 @@
           aria-controls="guildsTab" aria-selected="false" tabindex="-1">🌐 Discord Guilds</button>
         <button id="connections-tab" class="tab" type="button" role="tab" data-tab="connections"
           aria-controls="connectionsTab" aria-selected="false" tabindex="-1">🔗 Website Access</button>
+        <button id="events-tab" class="tab" type="button" role="tab" data-tab="events"
+          aria-controls="eventsTab" aria-selected="false" tabindex="-1">📅 Events</button>
+        <button id="stats-tab" class="tab" type="button" role="tab" data-tab="stats"
+          aria-controls="statsTab" aria-selected="false" tabindex="-1">📊 Stats</button>
+        <button id="announcements-tab" class="tab" type="button" role="tab" data-tab="announcements"
+          aria-controls="announcementsTab" aria-selected="false" tabindex="-1">📣 Announcements</button>
       </div>
 
       <!-- ============ Users Tab ============ -->
@@ -94,7 +100,7 @@
           <table class="admin-table">
             <thead>
               <tr>
-                <th>Guild ID</th>
+                <th>Guild</th>
                 <th>Language</th>
                 <th>Admins</th>
                 <th>Log Channel</th>
@@ -106,6 +112,40 @@
             <tbody id="guildsTableBody">
               <tr><td colspan="7" class="empty-state">Loading...</td></tr>
             </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="eventsTab" class="tab-panel" role="tabpanel" aria-labelledby="events-tab" hidden>
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead><tr><th>Event</th><th>Guild</th><th>Start</th><th>Participants</th><th>Visibility</th><th>Actions</th></tr></thead>
+            <tbody id="eventsTableBody"><tr><td colspan="6" class="empty-state">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="statsTab" class="tab-panel" role="tabpanel" aria-labelledby="stats-tab" hidden>
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead><tr><th>Guild</th><th>Commands (30d)</th><th>Voice joins (30d)</th><th>Last activity</th></tr></thead>
+            <tbody id="statsTableBody"><tr><td colspan="4" class="empty-state">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="announcementsTab" class="tab-panel" role="tabpanel" aria-labelledby="announcements-tab" hidden>
+        <form id="announcementForm" class="admin-toolbar">
+          <input id="announcementGuild" placeholder="Discord server ID" inputmode="numeric" required>
+          <input id="announcementChannel" placeholder="Channel ID" inputmode="numeric" required>
+          <input id="announcementContent" placeholder="Announcement" maxlength="2000" required>
+          <input id="announcementTime" type="datetime-local" required>
+          <button class="btn btn-primary" type="submit">Schedule</button>
+        </form>
+        <div id="announcementStatus" class="status-msg" role="status" aria-live="polite"></div>
+        <div class="admin-table-wrapper">
+          <table class="admin-table"><thead><tr><th>Guild</th><th>Channel</th><th>Content</th><th>Scheduled</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="announcementsTableBody"><tr><td colspan="6" class="empty-state">Loading...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -246,6 +286,6 @@
   </div>
 
   <script type="module" src="/js/app.mjs"></script>
-  <script type="module" src="/js/admin.mjs?v=20260723-1"></script>
+  <script type="module" src="/js/admin.mjs?v=20260724-2"></script>
 </body>
 </html>

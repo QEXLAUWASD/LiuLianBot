@@ -132,6 +132,114 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: '004',
+    name: 'events and Discord account links',
+    async up(conn) {
+      await addColumnIfMissing(
+        conn,
+        'ALTER TABLE website_users ADD COLUMN discord_user_id VARCHAR(32) DEFAULT NULL UNIQUE'
+      );
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_link_codes (
+          id BIGINT AUTO_INCREMENT PRIMARY KEY,
+          user_id VARCHAR(30) NOT NULL,
+          code_hash CHAR(64) NOT NULL,
+          expires_at DATETIME NOT NULL,
+          used_at DATETIME DEFAULT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_link_codes_hash (code_hash),
+          FOREIGN KEY (user_id) REFERENCES website_users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_events (
+          id BIGINT AUTO_INCREMENT PRIMARY KEY,
+          created_by VARCHAR(30) NOT NULL,
+          guild_id BIGINT NOT NULL,
+          channel_id BIGINT DEFAULT NULL,
+          title VARCHAR(100) NOT NULL,
+          description VARCHAR(500) DEFAULT '',
+          mode VARCHAR(30) DEFAULT 'Custom match',
+          start_at DATETIME NOT NULL,
+          max_players SMALLINT UNSIGNED NOT NULL DEFAULT 10,
+          status ENUM('draft', 'open', 'closed', 'cancelled') NOT NULL DEFAULT 'open',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_events_guild_start (guild_id, start_at),
+          FOREIGN KEY (created_by) REFERENCES website_users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_event_participants (
+          event_id BIGINT NOT NULL,
+          user_id VARCHAR(30) NOT NULL,
+          joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (event_id, user_id),
+          FOREIGN KEY (event_id) REFERENCES website_events(id) ON DELETE CASCADE,
+          FOREIGN KEY (user_id) REFERENCES website_users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+    },
+  },
+  {
+    version: '005',
+    name: 'event visibility controls',
+    async up(conn) {
+      await addColumnIfMissing(
+        conn,
+        'ALTER TABLE website_events ADD COLUMN visible TINYINT(1) NOT NULL DEFAULT 1 AFTER status'
+      );
+    },
+  },
+  {
+    version: '006',
+    name: 'guild activity statistics',
+    async up(conn) {
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS guild_activity_stats (
+          guild_id BIGINT NOT NULL,
+          day DATE NOT NULL,
+          command_count INT NOT NULL DEFAULT 0,
+          voice_joins INT NOT NULL DEFAULT 0,
+          PRIMARY KEY (guild_id, day)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+    },
+  },
+  {
+    version: '007',
+    name: 'scheduled announcements',
+    async up(conn) {
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_announcements (
+          id BIGINT AUTO_INCREMENT PRIMARY KEY,
+          created_by VARCHAR(30) NOT NULL,
+          guild_id BIGINT NOT NULL,
+          channel_id BIGINT NOT NULL,
+          content VARCHAR(2000) NOT NULL,
+          scheduled_at DATETIME NOT NULL,
+          status ENUM('scheduled', 'sent', 'cancelled') NOT NULL DEFAULT 'scheduled',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_announcements_due (status, scheduled_at),
+          FOREIGN KEY (created_by) REFERENCES website_users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+    },
+  },
+  {
+    version: '008',
+    name: 'Discord guild metadata',
+    async up(conn) {
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS discord_guild_metadata (
+          guild_id BIGINT PRIMARY KEY,
+          guild_name VARCHAR(100) NOT NULL,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

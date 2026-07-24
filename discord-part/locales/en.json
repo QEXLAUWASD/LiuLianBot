@@ -393,5 +393,15 @@
   "bulk_delete_title": "Messages Bulk Deleted",
   "bulk_delete_count": "Count",
   "bulk_delete_messages": "Messages (sample)",
-  "bulk_delete_more": "... and {count} more messages"
+  "bulk_delete_more": "... and {count} more messages",
+  "cmd_desc_link": "Link your website account to Discord.",
+  "cmd_desc_events": "List upcoming R6 events for this server.",
+  "cmd_desc_eventjoin": "Join an R6 event.",
+  "cmd_desc_eventleave": "Leave an R6 event.",
+  "cmd_desc_eventteams": "Show balanced teams for an event.",
+  "cmd_desc_roles": "List self-assignable roles.",
+  "cmd_desc_role": "Toggle a self-assignable role.",
+  "cmd_desc_setselfrole": "Allow members to self-assign a role.",
+  "cmd_desc_removeselfrole": "Remove a role from the self-assignable list.",
+  "cmd_desc_announce": "Send an announcement to a Discord channel."
 }

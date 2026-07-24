@@ -392,5 +392,15 @@
   "bulk_delete_title": "大量訊息已刪除",
   "bulk_delete_count": "數量",
   "bulk_delete_messages": "訊息（摘錄）",
-  "bulk_delete_more": "... 還有 {count} 則訊息"
+  "bulk_delete_more": "... 還有 {count} 則訊息",
+  "cmd_desc_link": "將網站帳戶連結至 Discord。",
+  "cmd_desc_events": "列出此伺服器即將開始的 R6 活動。",
+  "cmd_desc_eventjoin": "加入 R6 活動。",
+  "cmd_desc_eventleave": "退出 R6 活動。",
+  "cmd_desc_eventteams": "顯示活動的平衡分隊。",
+  "cmd_desc_roles": "列出可自助選擇的身份組。",
+  "cmd_desc_role": "切換自助身份組。",
+  "cmd_desc_setselfrole": "開放成員自助選擇身份組。",
+  "cmd_desc_removeselfrole": "移除自助身份組。",
+  "cmd_desc_announce": "向 Discord 頻道發送公告。"
 }

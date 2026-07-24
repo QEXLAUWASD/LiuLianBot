@@ -50,6 +50,15 @@
             <button type="submit" class="btn btn-primary" disabled aria-busy="true">Save password</button>
           </form>
         </section>
+
+        <section class="settings-card" aria-labelledby="discordHeading">
+          <h3 id="discordHeading">Connect Discord</h3>
+          <p class="account-desc">Link this account so Discord event commands use the same signup.</p>
+          <div id="discordLinkState" class="status-msg" role="status" aria-live="polite">Loading...</div>
+          <div id="discordLinkCode" class="link-code" hidden></div>
+          <button id="generateDiscordLink" class="btn btn-primary" type="button">Generate link code</button>
+          <button id="unlinkDiscord" class="btn btn-outline" type="button" hidden>Unlink Discord</button>
+        </section>
       </div>
     </div>
   </main>

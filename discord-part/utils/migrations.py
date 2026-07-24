@@ -132,6 +132,33 @@ def migrate_private_voice_table(conn) -> None:
                     raise
 
 
+def create_self_role_table(conn) -> None:
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS guild_self_roles ("
+            "guild_id BIGINT NOT NULL, role_id BIGINT NOT NULL, role_name VARCHAR(100) NOT NULL, "
+            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (guild_id, role_id))"
+        )
+
+
+def create_activity_stats_table(conn) -> None:
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS guild_activity_stats ("
+            "guild_id BIGINT NOT NULL, day DATE NOT NULL, command_count INT NOT NULL DEFAULT 0, "
+            "voice_joins INT NOT NULL DEFAULT 0, PRIMARY KEY (guild_id, day))"
+        )
+
+
+def create_guild_metadata_table(conn) -> None:
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS discord_guild_metadata ("
+            "guild_id BIGINT PRIMARY KEY, guild_name VARCHAR(100) NOT NULL, "
+            "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)"
+        )
+
+
 DEFAULT_MIGRATIONS = (
     Migration("001", "create guild_log_channels table", create_log_channel_table),
     Migration("002", "create guild_roller_channels table", create_roller_channel_table),
@@ -141,6 +168,9 @@ DEFAULT_MIGRATIONS = (
         create_legacy_private_voice_table,
     ),
     Migration("004", "normalize private voice persistence", migrate_private_voice_table),
+    Migration("005", "create self role table", create_self_role_table),
+    Migration("006", "create activity stats table", create_activity_stats_table),
+    Migration("007", "create Discord guild metadata table", create_guild_metadata_table),
 )
 
 

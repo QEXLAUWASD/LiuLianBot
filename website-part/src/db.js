@@ -4,4 +4,7 @@ module.exports = {
   ...require('./db/roles'),
   ...require('./db/connections'),
   ...require('./db/guilds'),
+  ...require('./db/events'),
+  ...require('./db/stats'),
+  ...require('./db/announcements'),
 };

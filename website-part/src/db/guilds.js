@@ -21,12 +21,13 @@ function loadDiscordConfig() {
 
 async function getAllGuilds() {
   const p = await getPool();
-  const [[logChannels], [rollerChannels], [voiceChannels]] = await Promise.all([
+  const [[logChannels], [rollerChannels], [voiceChannels], [metadata]] = await Promise.all([
     p.execute('SELECT guild_id, channel_id FROM guild_log_channels'),
     p.execute('SELECT guild_id, channel_id, dm_result FROM guild_roller_channels'),
     p.execute(
       'SELECT guild_id, COUNT(*) AS voice_count FROM private_voice_channels GROUP BY guild_id'
     ),
+    p.execute('SELECT guild_id, guild_name FROM discord_guild_metadata'),
   ]);
   const discordConfig = loadDiscordConfig();
   const guildLanguages = discordConfig.guild_languages || {};
@@ -36,6 +37,7 @@ async function getAllGuilds() {
     if (!guildMap.has(gid)) {
       guildMap.set(gid, {
         guild_id: gid,
+        guild_name: null,
         language: guildLanguages[gid] || 'en',
         admin_count: (guildAdmins[gid] || []).length,
         log_channel_id: null,
@@ -57,6 +59,7 @@ async function getAllGuilds() {
   for (const row of voiceChannels) {
     ensure(String(row.guild_id)).voice_channel_count = row.voice_count;
   }
+  for (const row of metadata) ensure(String(row.guild_id)).guild_name = row.guild_name;
   for (const guildId of Object.keys(guildLanguages)) ensure(guildId);
   for (const guildId of Object.keys(guildAdmins)) ensure(guildId);
   return Array.from(guildMap.values());
@@ -65,7 +68,7 @@ async function getAllGuilds() {
 async function getGuildDetail(guildId) {
   const safeId = validateString(guildId, 'guild id');
   const p = await getPool();
-  const [[logChannel], [rollerChannel], [voiceList]] = await Promise.all([
+  const [[logChannel], [rollerChannel], [voiceList], [metadata]] = await Promise.all([
     p.execute(
       'SELECT channel_id FROM guild_log_channels WHERE guild_id = ?',
       [safeId]
@@ -78,12 +81,14 @@ async function getGuildDetail(guildId) {
       'SELECT channel_id, owner_id, config_json, created_at FROM private_voice_channels WHERE guild_id = ?',
       [safeId]
     ),
+    p.execute('SELECT guild_name FROM discord_guild_metadata WHERE guild_id = ?', [safeId]),
   ]);
   const discordConfig = loadDiscordConfig();
   const language = (discordConfig.guild_languages || {})[safeId] || 'en';
   const admins = (discordConfig.guild_admins || {})[safeId] || [];
   return {
     guild_id: safeId,
+    guild_name: metadata.length > 0 ? metadata[0].guild_name : null,
     language,
     admin_ids: admins,
     log_channel_id: logChannel.length > 0 ? String(logChannel[0].channel_id) : null,

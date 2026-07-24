@@ -22,6 +22,8 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 已授權嘅 HTTP 及 WebSocket 代理連線
 - 可隱藏連線：唔會出現喺導覽內，但已授權用戶仍可用直接網址存取
 - 使用 MySQL 儲存 Session、限制登入嘗試，並會自動執行網站 migration
+- R6 活動頁面：建立活動、查看報名人數、加入或退出活動
+- 網站帳戶可產生一次性代碼，連結 Discord 身分後可共用活動報名資料
 
 ## 專案結構
 
@@ -176,10 +178,20 @@ npm test
 
 | 存取級別 | 指令 |
 |---|---|
-| 一般用戶 | `>help`, `>getlang`, `>r6maproll`, `>r6opsroll`, `>getr6mapinfo`, `>roller`, `>mypermissions`, `>listguildadmins`, `>transfervoice` |
-| 伺服器管理員 | `>setlang`, `>setlogchannel`, `>setprivatevoice`, `>setupvoice`, `>removeprivatevoice`, `>setrollerchannel`, `>setrollermode` |
+| 一般用戶 | `>help`, `>getlang`, `>r6maproll`, `>r6opsroll`, `>getr6mapinfo`, `>roller`, `>mypermissions`, `>listguildadmins`, `>transfervoice`, `>link`, `>events`, `>eventjoin`, `>eventleave`, `>eventteams` |
+| 伺服器管理員 | `>setlang`, `>setlogchannel`, `>setprivatevoice`, `>setupvoice`, `>removeprivatevoice`, `>setrollerchannel`, `>setrollermode`, `>setselfrole`, `>removeselfrole`, `>announce` |
 | 伺服器擁有者 | `>addguildadmin`, `>removeguildadmin`, `>guildpermissions` |
 | Bot 擁有者 | `>addadmin`, `>removeadmin`, `>getinfo`, `>getserverlist`, `>r6update`, `>update` |
+
+### R6 活動流程
+
+1. 登入網站，開啟 Account，按「Generate link code」。
+2. 在 Discord 使用 `>link <code>`；代碼 10 分鐘後失效且只能使用一次。
+3. 在網站 Events 建立活動，填入 Discord 伺服器 ID、開始時間及人數上限。
+4. Discord 使用 `>events` 查看活動，再用 `>eventjoin <event_id>` 或 `>eventleave <event_id>` 報名。
+5. 使用 `>eventteams <event_id>` 依報名順序產生人數平衡的兩隊。
+
+建立活動前必須先連結 Discord 身分；網站與 Bot 會使用同一份 MySQL 報名資料。成員可用 `>roles` 及 `>role <role_id>` 選擇已開放身份組，管理員可在 Admin 的 Announcements 分頁建立排程公告。
 
 ## 安全注意事項
 

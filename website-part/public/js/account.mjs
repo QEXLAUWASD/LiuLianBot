@@ -38,6 +38,33 @@ export async function initializeAccountPage() {
   const passwordStatus = document.getElementById('passwordStatus');
   let ready = false;
 
+  const discordState = document.getElementById('discordLinkState');
+  const discordCode = document.getElementById('discordLinkCode');
+  const generateLink = document.getElementById('generateDiscordLink');
+  const unlinkDiscord = document.getElementById('unlinkDiscord');
+  const loadDiscordLink = async () => {
+    const data = await requestJSON('/api/auth/discord-link');
+    discordState.textContent = data.linked ? `Linked Discord user ${data.discordUserId}` : 'Not linked';
+    generateLink.hidden = Boolean(data.linked);
+    unlinkDiscord.hidden = !data.linked;
+  };
+  if (generateLink && unlinkDiscord && discordState) generateLink.addEventListener('click', async () => {
+    await withBusyControl(generateLink, async () => {
+      try {
+        const data = await requestJSON('/api/auth/discord-link', { method: 'POST' });
+        discordCode.hidden = false;
+        discordCode.textContent = `Run >link ${data.code} in Discord within 10 minutes.`;
+        setAccountStatus(discordState, 'Code generated.', 'success');
+      } catch (error) { setAccountStatus(discordState, error.message, 'error'); }
+    });
+  });
+  if (generateLink && unlinkDiscord && discordState) unlinkDiscord.addEventListener('click', async () => {
+    await withBusyControl(unlinkDiscord, async () => {
+      try { await requestJSON('/api/auth/discord-link', { method: 'DELETE' }); discordCode.hidden = true; await loadDiscordLink(); }
+      catch (error) { setAccountStatus(discordState, error.message, 'error'); }
+    });
+  });
+
   setAccountStatus(usernameStatus, 'Loading account...');
   setFormState(usernameForm, { disabled: true, busy: true });
   setFormState(passwordForm, { disabled: true, busy: true });
@@ -111,6 +138,9 @@ export async function initializeAccountPage() {
 
   usernameInput.value = auth.user.username;
   ready = true;
+  if (generateLink && unlinkDiscord && discordState) {
+    try { await loadDiscordLink(); } catch (error) { setAccountStatus(discordState, error.message, 'error'); }
+  }
   setAccountStatus(usernameStatus, '');
   setFormState(usernameForm, { disabled: false, busy: false });
   setFormState(passwordForm, { disabled: false, busy: false });

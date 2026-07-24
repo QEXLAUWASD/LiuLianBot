@@ -25,6 +25,7 @@ function createApp({ sessionOptions, routers }) {
   app.use('/api/auth/register', authRateLimiter);
   app.use('/api/auth', routers.auth);
   app.use('/api/roller', routers.roller);
+  if (routers.events) app.use('/api/events', routers.events);
   app.use('/api/admin', routers.admin);
   app.use('/api/connections', routers.connections);
 
@@ -36,6 +37,9 @@ function createApp({ sessionOptions, routers }) {
   });
   app.get('/account.html', requirePageAuth, (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'account.html'));
+  });
+  app.get('/events.html', requirePageAuth, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'events.html'));
   });
   app.get('/admin.html', requirePageAuth, requireAdmin, (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));

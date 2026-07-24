@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiuLianBot - Events</title>
+  <link rel="stylesheet" href="/css/style.css?v=20260724-1">
+</head>
+<body>
+  <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
+  <main class="main-content events-page">
+    <header class="page-heading">
+      <div><h1>R6 Events</h1><p>Plan matches and keep one shared signup list with Discord.</p></div>
+      <button id="showCreateEvent" class="btn btn-primary" type="button">Create event</button>
+    </header>
+
+    <section id="createEventPanel" class="event-form-panel" hidden aria-labelledby="createEventHeading">
+      <h2 id="createEventHeading">Create an event</h2>
+      <form id="eventForm" class="event-form">
+        <div class="form-group"><label for="eventTitle">Title</label><input id="eventTitle" maxlength="100" required></div>
+        <div class="form-group"><label for="eventMode">Mode</label><input id="eventMode" maxlength="30" value="Custom match"></div>
+        <div class="form-group"><label for="eventGuild">Discord server ID</label><input id="eventGuild" inputmode="numeric" pattern="[0-9]+" required></div>
+        <div class="form-group"><label for="eventChannel">Reminder channel ID (optional)</label><input id="eventChannel" inputmode="numeric" pattern="[0-9]*"></div>
+        <div class="form-group"><label for="eventStart">Start time</label><input id="eventStart" type="datetime-local" required></div>
+        <div class="form-group"><label for="eventCapacity">Players</label><input id="eventCapacity" type="number" min="2" max="99" value="10" required></div>
+        <div class="form-group event-description"><label for="eventDescription">Notes</label><textarea id="eventDescription" maxlength="500" rows="3"></textarea></div>
+        <div id="eventFormStatus" class="status-msg" role="status" aria-live="polite"></div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit">Create</button><button id="cancelCreateEvent" class="btn btn-outline" type="button">Cancel</button></div>
+      </form>
+    </section>
+
+    <div id="eventsStatus" class="status-msg" role="status" aria-live="polite">Loading events...</div>
+    <section id="eventList" class="event-list" aria-label="Upcoming events"></section>
+  </main>
+  <script type="module" src="/js/app.mjs"></script>
+  <script type="module" src="/js/events.mjs"></script>
+</body>
+</html>

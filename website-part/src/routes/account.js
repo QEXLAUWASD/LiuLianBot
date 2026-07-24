@@ -1,10 +1,14 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const {
   findUserByUsername,
   findUserCredentialsById,
   updateUsername,
   updatePasswordHash,
+  findUserById,
+  createDiscordLinkCode,
+  unlinkDiscordUser,
 } = require('../db');
 const {
   AccountInputError,
@@ -15,6 +19,30 @@ const { requireApiAuth } = require('../middleware/auth');
 const { revokeOtherUserSessions } = require('../services/session');
 
 const router = express.Router();
+
+router.get('/discord-link', requireApiAuth, async (req, res, next) => {
+  try {
+    const user = await findUserById(req.session.user.id);
+    res.json({ linked: Boolean(user?.discord_user_id), discordUserId: user?.discord_user_id || null });
+  } catch (err) { next(err); }
+});
+
+router.post('/discord-link', requireApiAuth, async (req, res, next) => {
+  try {
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await createDiscordLinkCode(req.session.user.id, codeHash, expiresAt);
+    res.status(201).json({ code, expiresAt: expiresAt.toISOString() });
+  } catch (err) { next(err); }
+});
+
+router.delete('/discord-link', requireApiAuth, async (req, res, next) => {
+  try {
+    await unlinkDiscordUser(req.session.user.id);
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
 
 async function verifyCurrentPassword(userId, currentPassword) {
   if (typeof currentPassword !== 'string' || currentPassword.length === 0) {

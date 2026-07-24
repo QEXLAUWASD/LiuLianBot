@@ -8,6 +8,7 @@ let allUsers = [];
 let allGroups = [];
 let allGuilds = [];
 let allConnections = [];
+let allEvents = [];
 let currentEditUserId = null;
 let confirmCallback = null;
 
@@ -370,7 +371,7 @@ function renderGuilds() {
       ? `${guild.roller_channel_id} (${guild.roller_dm_result === 1 ? 'DM' : 'Channel'})`
       : '';
     return element('tr', {}, [
-      element('td', {}, [element('span', { className: 'mono', text: guild.guild_id })]),
+    element('td', {}, [element('strong', { text: guild.guild_name || `Guild ${guild.guild_id}` }), element('div', { className: 'table-subtext mono', text: guild.guild_id })]),
       element('td', { text: language }),
       element('td', { text: guild.admin_count }),
       element('td', {}, [optionalValue(guild.log_channel_id, 'mono')]),
@@ -416,6 +417,7 @@ async function openGuildDetail(guildId) {
     replaceChildren(content, [
       guildInfoCard('General', [
         element('div', { className: 'guild-info-grid' }, [
+          guildInfoItem('Guild', guild.guild_name || `Guild ${guild.guild_id}`),
           guildInfoItem('Guild ID', guild.guild_id, 'mono'),
           guildInfoItem('Language', guild.language),
           guildInfoItem('Guild Admins', `${admins.length} admins`),
@@ -462,6 +464,99 @@ async function loadConnections() {
       renderLoadError('connectionsTableBody', 5, 'Failed to load website connections');
     }
   }
+}
+
+async function loadEvents() {
+  try {
+    const data = await requestJSON('/api/admin/events');
+    allEvents = data?.events || [];
+    renderEvents();
+  } catch (error) {
+    if (!redirectForAuthError(error)) renderLoadError('eventsTableBody', 6, 'Failed to load events');
+  }
+}
+
+function renderEvents() {
+  const tbody = document.getElementById('eventsTableBody');
+  if (allEvents.length === 0) {
+    replaceChildren(tbody, [tableMessage(6, 'No events found')]);
+    return;
+  }
+  replaceChildren(tbody, allEvents.map(event => element('tr', {}, [
+    element('td', {}, [element('strong', { text: event.title }), element('div', { className: 'table-subtext', text: event.creator_username })]),
+      element('td', {}, [element('strong', { text: event.guild_name || `Guild ${event.guild_id}` }), element('div', { className: 'table-subtext mono', text: event.guild_id })]),
+    element('td', { text: event.start_at ? new Date(event.start_at).toLocaleString() : '-' }),
+    element('td', { text: String(event.participant_count || 0) }),
+    element('td', {}, [element('span', { className: `badge ${event.visible ? 'badge-enabled' : 'badge-disabled'}`, text: event.visible ? 'Visible' : 'Hidden' })]),
+    element('td', { className: 'actions' }, [actionButton(event.visible ? 'Hide' : 'Show', 'toggle-event-visibility', event.id)]),
+  ])));
+}
+
+async function toggleEventVisibility(id) {
+  const event = allEvents.find(item => Number(item.id) === Number(id));
+  if (!event) return;
+  try {
+    await requestJSON(`/api/admin/events/${event.id}/visibility`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visible: !Boolean(event.visible) }),
+    });
+    await loadEvents();
+    showToast(`Event ${event.visible ? 'hidden' : 'visible'}`, 'success');
+  } catch (error) { showToast(error.message || 'Visibility update failed', 'error'); }
+}
+
+async function loadStats() {
+  try {
+    const data = await requestJSON('/api/admin/stats');
+    const stats = data?.stats || [];
+    replaceChildren(document.getElementById('statsTableBody'), stats.length ? stats.map(item => element('tr', {}, [
+      element('td', { className: 'mono', text: item.guild_id }),
+      element('td', { text: String(item.command_count || 0) }),
+      element('td', { text: String(item.voice_joins || 0) }),
+      element('td', { text: item.last_day ? new Date(item.last_day).toLocaleDateString() : '-' }),
+    ])) : [tableMessage(4, 'No activity recorded yet')]);
+  } catch (error) {
+    if (!redirectForAuthError(error)) renderLoadError('statsTableBody', 4, 'Failed to load statistics');
+  }
+}
+
+async function loadAnnouncements() {
+  try {
+    const data = await requestJSON('/api/admin/announcements');
+    const items = data?.announcements || [];
+    replaceChildren(document.getElementById('announcementsTableBody'), items.length ? items.map(item => element('tr', {}, [
+      element('td', { className: 'mono', text: item.guild_id }),
+      element('td', { className: 'mono', text: item.channel_id }),
+      element('td', { text: item.content }),
+      element('td', { text: item.scheduled_at ? new Date(item.scheduled_at).toLocaleString() : '-' }),
+      element('td', { text: item.status }),
+      element('td', { className: 'actions' }, [item.status === 'scheduled' ? actionButton('Cancel', 'cancel-announcement', item.id, 'btn-danger') : null]),
+    ])) : [tableMessage(6, 'No announcements found')]);
+  } catch (error) { if (!redirectForAuthError(error)) renderLoadError('announcementsTableBody', 6, 'Failed to load announcements'); }
+}
+
+document.getElementById('announcementForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const status = document.getElementById('announcementStatus');
+  try {
+    await requestJSON('/api/admin/announcements', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guildId: document.getElementById('announcementGuild').value,
+        channelId: document.getElementById('announcementChannel').value,
+        content: document.getElementById('announcementContent').value,
+        scheduledAt: new Date(document.getElementById('announcementTime').value).toISOString(),
+      }),
+    });
+    status.textContent = 'Announcement scheduled.';
+    event.currentTarget.reset();
+    await loadAnnouncements();
+  } catch (error) { status.textContent = error.message; status.className = 'status-msg status-error'; }
+});
+
+async function cancelAnnouncement(id) {
+  try { await requestJSON(`/api/admin/announcements/${id}`, { method: 'DELETE' }); await loadAnnouncements(); }
+  catch (error) { showToast(error.message || 'Cancel failed', 'error'); }
 }
 
 function renderConnections() {
@@ -629,6 +724,8 @@ const actions = {
   'guild-detail': control => openGuildDetail(control.dataset.id),
   'edit-connection': control => openConnectionEdit(Number(control.dataset.id)),
   'delete-connection': control => confirmDeleteConnection(Number(control.dataset.id)),
+  'toggle-event-visibility': control => toggleEventVisibility(Number(control.dataset.id)),
+  'cancel-announcement': control => cancelAnnouncement(Number(control.dataset.id)),
 };
 
 adminRoot.addEventListener('click', event => {
@@ -647,6 +744,9 @@ document.addEventListener('DOMContentLoaded', () => {
       groups: loadGroups,
       guilds: loadGuilds,
       connections: loadConnections,
+      events: loadEvents,
+      stats: loadStats,
+      announcements: loadAnnouncements,
     };
     loaders[tab.dataset.tab]?.();
   });

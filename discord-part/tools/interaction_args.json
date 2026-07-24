@@ -305,5 +305,54 @@
         "choices": null
       }
     ]
+  },
+  {
+    "command": "link",
+    "command_type": "user",
+    "usage": "用法: >link <code>",
+    "source": "override",
+    "options": [{"name": "code", "type": "str", "required": true, "description": "網站產生的連結代碼", "choices": null}]
+  },
+  {
+    "command": "eventjoin",
+    "command_type": "user",
+    "usage": "用法: >eventjoin <event_id>",
+    "source": "override",
+    "options": [{"name": "event_id", "type": "int", "required": true, "description": "活動 ID", "choices": null}]
+  },
+  {
+    "command": "eventleave",
+    "command_type": "user",
+    "usage": "用法: >eventleave <event_id>",
+    "source": "override",
+    "options": [{"name": "event_id", "type": "int", "required": true, "description": "活動 ID", "choices": null}]
+  },
+  {
+    "command": "eventteams",
+    "command_type": "user",
+    "usage": "用法: >eventteams <event_id>",
+    "source": "override",
+    "options": [{"name": "event_id", "type": "int", "required": true, "description": "活動 ID", "choices": null}]
+  },
+  {
+    "command": "role",
+    "command_type": "user",
+    "usage": "用法: >role <role_id>",
+    "source": "override",
+    "options": [{"name": "role_id", "type": "int", "required": true, "description": "身份組 ID", "choices": null}]
+  },
+  {
+    "command": "setselfrole",
+    "command_type": "guild_admin",
+    "usage": "用法: >setselfrole @role",
+    "source": "override",
+    "options": [{"name": "role", "type": "role", "required": true, "description": "身份組", "choices": null}]
+  },
+  {
+    "command": "removeselfrole",
+    "command_type": "guild_admin",
+    "usage": "用法: >removeselfrole @role",
+    "source": "override",
+    "options": [{"name": "role", "type": "role", "required": true, "description": "身份組", "choices": null}]
   }
 ]

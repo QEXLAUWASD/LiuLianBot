@@ -11,6 +11,12 @@ const {
   deleteRole,
   getAllGuilds,
   getGuildDetail,
+  listAdminEvents,
+  updateEventVisibility,
+  getGuildStats,
+  listAnnouncements,
+  createAnnouncement,
+  cancelAnnouncement,
 } = require('../db');
 const {
   UserGroupInputError,
@@ -18,6 +24,7 @@ const {
 } = require('../services/user_group_validation');
 const { InputError, ConflictError } = require('../errors');
 const { normalizeGroupInput } = require('../services/group_validation');
+const { normalizeEventVisibility } = require('../services/event_visibility_validation');
 
 function groupErrorStatus(err) {
   if (err instanceof InputError) return 400;
@@ -170,6 +177,44 @@ router.get('/guilds/:id', async (req, res) => {
     console.error('[Admin] GET /guilds/:id error:', err);
     res.status(500).json({ error: 'Failed to fetch guild details' });
   }
+});
+
+// ======================== Events ========================
+
+router.get('/events', async (_req, res, next) => {
+  try { res.json({ events: await listAdminEvents() }); }
+  catch (err) { next(err); }
+});
+
+router.put('/events/:id/visibility', async (req, res) => {
+  try {
+    const visible = normalizeEventVisibility(req.body?.visible);
+    await updateEventVisibility(req.params.id, visible);
+    res.json({ success: true, visible });
+  } catch (err) {
+    const status = err.message === 'Event not found' ? 404 : 400;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+router.get('/stats', async (_req, res, next) => {
+  try { res.json({ stats: await getGuildStats() }); }
+  catch (err) { next(err); }
+});
+
+router.get('/announcements', async (_req, res, next) => {
+  try { res.json({ announcements: await listAnnouncements() }); }
+  catch (err) { next(err); }
+});
+
+router.post('/announcements', async (req, res) => {
+  try { res.status(201).json({ announcement: await createAnnouncement(req.session.user.id, req.body || {}) }); }
+  catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+router.delete('/announcements/:id', async (req, res) => {
+  try { await cancelAnnouncement(req.params.id); res.json({ success: true }); }
+  catch (err) { res.status(409).json({ error: err.message }); }
 });
 
 module.exports = router;
