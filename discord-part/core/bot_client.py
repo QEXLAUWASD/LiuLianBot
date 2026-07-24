@@ -25,6 +25,7 @@ from features.stats.repository import StatsRepository
 from utils.async_io import run_blocking
 from features.guild_metadata import GuildMetadataRepository
 from features.announcements.dispatcher import AnnouncementDispatcher
+from features.guild_channels.repository import GuildChannelRepository
 
 
 class MyClient(commands.Bot):
@@ -49,6 +50,7 @@ class MyClient(commands.Bot):
         self.private_voice_manager = None
         self.stats_repository = StatsRepository()
         self.guild_metadata_repository = GuildMetadataRepository()
+        self.guild_channel_repository = GuildChannelRepository()
         self.announcement_dispatcher = AnnouncementDispatcher(self, logger=self.logger)
 
     # ------------------------------------------------------------------
@@ -118,6 +120,7 @@ class MyClient(commands.Bot):
         self.logger.info("------")
         for guild in self.guilds:
             asyncio.create_task(self._record_guild_metadata(guild))
+            asyncio.create_task(self._record_guild_channels(guild))
         await self.change_presence(
             activity=discord.Game(name="with discord.py")
         )
@@ -168,6 +171,22 @@ class MyClient(commands.Bot):
             await run_blocking(self.guild_metadata_repository.upsert, guild.id, guild.name)
         except Exception:
             self.logger.debug("Unable to record guild metadata", exc_info=True)
+
+    async def _record_guild_channels(self, guild):
+        try:
+            channels = [(channel.id, channel.name) for channel in guild.text_channels]
+            await run_blocking(self.guild_channel_repository.replace_for_guild, guild.id, channels)
+        except Exception:
+            self.logger.debug("Unable to record guild channel metadata", exc_info=True)
+
+    async def on_guild_channel_create(self, channel):
+        await self._record_guild_channels(channel.guild)
+
+    async def on_guild_channel_delete(self, channel):
+        await self._record_guild_channels(channel.guild)
+
+    async def on_guild_channel_update(self, before, after):
+        await self._record_guild_channels(after.guild)
 
     # ------------------------------------------------------------------
     # 指令處理核心

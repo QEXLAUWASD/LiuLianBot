@@ -14,6 +14,7 @@ const {
   listAdminEvents,
   updateEventVisibility,
   getGuildStats,
+  listAnnouncementTargets,
   listAnnouncements,
   createAnnouncement,
   cancelAnnouncement,
@@ -204,6 +205,11 @@ router.get('/stats', async (_req, res, next) => {
 
 router.get('/announcements', async (_req, res, next) => {
   try { res.json({ announcements: await listAnnouncements() }); }
+  catch (err) { next(err); }
+});
+
+router.get('/announcement-targets', async (_req, res, next) => {
+  try { res.json({ guilds: await listAnnouncementTargets() }); }
   catch (err) { next(err); }
 });
 

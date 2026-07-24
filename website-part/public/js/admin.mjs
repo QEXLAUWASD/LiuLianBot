@@ -10,6 +10,7 @@ let allGroups = [];
 let allGuilds = [];
 let allConnections = [];
 let allEvents = [];
+let announcementTargets = [];
 let currentEditUserId = null;
 let confirmCallback = null;
 
@@ -536,7 +537,40 @@ async function loadAnnouncements() {
   } catch (error) { if (!redirectForAuthError(error)) renderLoadError('announcementsTableBody', 6, 'Failed to load announcements'); }
 }
 
+function announcementOption(value, text) {
+  return element('option', { text, attributes: { value } });
+}
+
+function populateAnnouncementChannels() {
+  const guildSelect = document.getElementById('announcementGuild');
+  const channelSelect = document.getElementById('announcementChannel');
+  const guild = announcementTargets.find(item => item.guild_id === guildSelect.value);
+  const channels = guild?.channels || [];
+  replaceChildren(channelSelect, [
+    announcementOption('', channels.length ? 'Select channel' : 'No text channels available'),
+    ...channels.map(channel => announcementOption(channel.channel_id, `#${channel.channel_name}`)),
+  ]);
+  channelSelect.disabled = channels.length === 0;
+}
+
+async function loadAnnouncementTargets() {
+  const guildSelect = document.getElementById('announcementGuild');
+  try {
+    const data = await requestJSON('/api/admin/announcement-targets');
+    announcementTargets = data?.guilds || [];
+    replaceChildren(guildSelect, [
+      announcementOption('', announcementTargets.length ? 'Select Discord server' : 'No Discord servers available'),
+      ...announcementTargets.map(guild => announcementOption(guild.guild_id, guild.guild_name || `Guild ${guild.guild_id}`)),
+    ]);
+    guildSelect.disabled = announcementTargets.length === 0;
+    populateAnnouncementChannels();
+  } catch (error) {
+    if (!redirectForAuthError(error)) showToast('Failed to load Discord servers', 'error');
+  }
+}
+
 const announcementForm = document.getElementById('announcementForm');
+document.getElementById('announcementGuild').addEventListener('change', populateAnnouncementChannels);
 announcementForm.addEventListener('submit', async event => {
   event.preventDefault();
   const status = document.getElementById('announcementStatus');
@@ -748,7 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
       connections: loadConnections,
       events: loadEvents,
       stats: loadStats,
-      announcements: loadAnnouncements,
+      announcements: () => Promise.all([loadAnnouncements(), loadAnnouncementTargets()]),
     };
     loaders[tab.dataset.tab]?.();
   });

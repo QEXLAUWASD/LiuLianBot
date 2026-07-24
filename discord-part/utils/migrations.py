@@ -168,6 +168,16 @@ def enable_announcement_dispatch(conn) -> None:
         )
 
 
+def create_guild_channel_metadata_table(conn) -> None:
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS discord_guild_channels ("
+            "guild_id BIGINT NOT NULL, channel_id BIGINT NOT NULL, "
+            "channel_name VARCHAR(100) NOT NULL, "
+            "PRIMARY KEY (guild_id, channel_id), INDEX idx_guild_channel_name (guild_id, channel_name))"
+        )
+
+
 DEFAULT_MIGRATIONS = (
     Migration("001", "create guild_log_channels table", create_log_channel_table),
     Migration("002", "create guild_roller_channels table", create_roller_channel_table),
@@ -181,6 +191,7 @@ DEFAULT_MIGRATIONS = (
     Migration("006", "create activity stats table", create_activity_stats_table),
     Migration("007", "create Discord guild metadata table", create_guild_metadata_table),
     Migration("008", "enable scheduled announcement dispatch", enable_announcement_dispatch),
+    Migration("009", "create Discord guild channel metadata table", create_guild_channel_metadata_table),
 )
 
 

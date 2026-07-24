@@ -240,6 +240,21 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: '009',
+    name: 'Discord guild channels',
+    async up(conn) {
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS discord_guild_channels (
+          guild_id BIGINT NOT NULL,
+          channel_id BIGINT NOT NULL,
+          channel_name VARCHAR(100) NOT NULL,
+          PRIMARY KEY (guild_id, channel_id),
+          INDEX idx_guild_channel_name (guild_id, channel_name)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

@@ -136,8 +136,8 @@
 
       <div id="announcementsTab" class="tab-panel" role="tabpanel" aria-labelledby="announcements-tab" hidden>
         <form id="announcementForm" class="admin-toolbar">
-          <input id="announcementGuild" placeholder="Discord server ID" inputmode="numeric" required>
-          <input id="announcementChannel" placeholder="Channel ID" inputmode="numeric" required>
+          <select id="announcementGuild" required><option value="">Select Discord server</option></select>
+          <select id="announcementChannel" required disabled><option value="">Select channel</option></select>
           <input id="announcementContent" placeholder="Announcement" maxlength="2000" required>
           <label for="announcementTime">Scheduled time (UTC+8)</label><input id="announcementTime" type="datetime-local" required>
           <button class="btn btn-primary" type="submit">Schedule</button>
