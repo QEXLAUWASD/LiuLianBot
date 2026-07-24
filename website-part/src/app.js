@@ -11,6 +11,10 @@ const { errorHandler } = require('./middleware/error_handler');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
+function homeRedirectPath(session) {
+  return session?.user ? '/index.html' : '/login.html';
+}
+
 function createApp({ sessionOptions, routers }) {
   const app = express();
 
@@ -48,7 +52,7 @@ function createApp({ sessionOptions, routers }) {
   app.use('/connect/:slug', routers.connectionProxy);
   app.use(express.static(PUBLIC_DIR, { index: false }));
   app.get('/', (req, res) => {
-    res.redirect(req.session.user ? '/index.html' : '/login.html');
+    res.redirect(homeRedirectPath(req.session));
   });
   app.use(errorHandler);
   app.use((req, res) => {
@@ -58,4 +62,4 @@ function createApp({ sessionOptions, routers }) {
   return app;
 }
 
-module.exports = { createApp };
+module.exports = { createApp, homeRedirectPath };

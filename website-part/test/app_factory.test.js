@@ -6,6 +6,12 @@ test('importing the app factory does not listen on a port', () => {
   assert.equal(typeof appModule.createApp, 'function');
 });
 
+test('home redirect tolerates a request without session state', () => {
+  const { homeRedirectPath } = require('../src/app');
+  assert.equal(homeRedirectPath(undefined), '/login.html');
+  assert.equal(homeRedirectPath({ user: { id: 'u1' } }), '/index.html');
+});
+
 test('API auth returns 401 while page auth redirects', () => {
   const { requireApiAuth, requirePageAuth } = require('../src/middleware/auth');
   const apiRes = {
