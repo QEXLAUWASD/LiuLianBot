@@ -35,22 +35,27 @@ function loadConfig() {
   return config.mysql || config.mysql_config || {};
 }
 
-async function getPool() {
-  if (poolInitialization) return poolInitialization;
-  if (pool) return pool;
-
-  const cfg = loadConfig();
-  const candidate = mysql.createPool({
+function buildPoolOptions(cfg = {}) {
+  return {
     host: cfg.host || 'localhost',
     port: cfg.port || 3306,
     user: cfg.user || 'root',
     password: cfg.password || '',
     database: cfg.database || 'discordbot',
     charset: cfg.charset || 'utf8mb4',
+    timezone: 'Z',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-  });
+  };
+}
+
+async function getPool() {
+  if (poolInitialization) return poolInitialization;
+  if (pool) return pool;
+
+  const cfg = loadConfig();
+  const candidate = mysql.createPool(buildPoolOptions(cfg));
   pool = candidate;
   poolInitialization = (async () => {
     const conn = await candidate.getConnection();
@@ -80,4 +85,4 @@ async function closePool() {
   if (activePool) await activePool.end();
 }
 
-module.exports = { getPool, closePool, validateString, validateInt };
+module.exports = { getPool, closePool, validateString, validateInt, buildPoolOptions };
