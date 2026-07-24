@@ -44,6 +44,8 @@ function buildPoolOptions(cfg = {}) {
     database: cfg.database || 'discordbot',
     charset: cfg.charset || 'utf8mb4',
     timezone: 'Z',
+    supportBigNumbers: true,
+    bigNumberStrings: true,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,

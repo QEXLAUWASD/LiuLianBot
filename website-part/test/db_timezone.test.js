@@ -3,5 +3,8 @@ const assert = require('node:assert/strict');
 
 test('database DATETIME values are always interpreted as UTC', () => {
   const { buildPoolOptions } = require('../src/db/pool');
-  assert.equal(buildPoolOptions({}).timezone, 'Z');
+  const options = buildPoolOptions({});
+  assert.equal(options.timezone, 'Z');
+  assert.equal(options.supportBigNumbers, true);
+  assert.equal(options.bigNumberStrings, true);
 });
