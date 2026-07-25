@@ -1,11 +1,10 @@
 require('dotenv').config();
 
 const { createApp } = require('./app');
+const { buildListenOptions } = require('./config/server');
 const { buildSessionOptions } = require('./config/session');
 const { getPool } = require('./db');
 const { MySqlSessionStore } = require('./session_store');
-
-const PORT = process.env.PORT || 3000;
 
 async function startServer() {
   await getPool();
@@ -30,12 +29,15 @@ async function startServer() {
       connectionProxy,
     },
   });
-  const server = app.listen(PORT);
+  const listenOptions = buildListenOptions(process.env);
+  const server = app.listen(listenOptions);
   await new Promise((resolve, reject) => {
     server.once('listening', resolve);
     server.once('error', reject);
   });
-  console.log(`LiuLianBot Website running at http://localhost:${PORT}`);
+  console.log(
+    `LiuLianBot Website listening on ${listenOptions.host || 'all interfaces'}:${listenOptions.port}`,
+  );
 
   connectionProxy.attachWebSocketServer(server, {
     sessionStore,
