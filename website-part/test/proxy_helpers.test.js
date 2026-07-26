@@ -51,6 +51,21 @@ test('rewrites same-origin redirects and preserves external redirects', () => {
   );
 });
 
+test('rewrites loopback alias redirects from upstream apps', () => {
+  assert.equal(
+    rewriteLocation('http://localhost:4567/webUI', 'http://127.0.0.1:4567/', 'suwayomi'),
+    '/connect/suwayomi/webUI'
+  );
+  assert.equal(
+    rewriteLocation('http://127.0.0.1:4567/webUI', 'http://internal.example:4567/', 'suwayomi'),
+    '/connect/suwayomi/webUI'
+  );
+  assert.equal(
+    rewriteLocation('http://localhost:9999/webUI', 'http://127.0.0.1:4567/', 'suwayomi'),
+    'http://localhost:9999/webUI'
+  );
+});
+
 test('marks redirects outside the configured target base path', () => {
   assert.equal(
     rewriteLocation('/login', 'https://example.test/app/', 'reports'),
