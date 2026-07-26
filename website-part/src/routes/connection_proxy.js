@@ -1,8 +1,13 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
 const { requireConnectionAccess } = require('../middleware/connection_auth');
 const { getConnectionAccessBySlug } = require('../db');
-const { getUpstreamCookies, rewriteSetCookie, rewriteLocation } = require('../proxy_helpers');
+const {
+  getUpstreamCookies,
+  rewriteSetCookie,
+  rewriteLocation,
+  rewriteHtmlRootUrls,
+} = require('../proxy_helpers');
 const { getSessionId, getStoredSession } = require('../websocket_session');
 
 const router = express.Router({ mergeParams: true });
@@ -74,6 +79,7 @@ const proxy = createProxyMiddleware({
   router: req => req.connectionTarget.target_url,
   changeOrigin: true,
   xfwd: true,
+  selfHandleResponse: true,
   secure: process.env.PROXY_ALLOW_SELF_SIGNED !== 'true',
   proxyTimeout: 30000,
   timeout: 30000,
@@ -84,7 +90,7 @@ const proxy = createProxyMiddleware({
     proxyReqWs(proxyReq, req) {
       setUpstreamRequestHeaders(proxyReq, req, true);
     },
-    proxyRes(proxyRes, req) {
+    proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req) => {
       const setCookies = proxyRes.headers['set-cookie'];
       if (setCookies) {
         proxyRes.headers['set-cookie'] = setCookies.map(cookie =>
@@ -99,7 +105,13 @@ const proxy = createProxyMiddleware({
           req.params.slug
         );
       }
-    },
+
+      const contentType = proxyRes.headers['content-type'] || '';
+      if (/text\/html/i.test(contentType)) {
+        return rewriteHtmlRootUrls(responseBuffer.toString('utf8'), req.params.slug);
+      }
+      return responseBuffer;
+    }),
     error(err, req, responseOrSocket) {
       console.error(`[ConnectionProxy] ${req.params?.slug || 'unknown'}:`, err.message);
       if (typeof responseOrSocket.writeHead === 'function') {

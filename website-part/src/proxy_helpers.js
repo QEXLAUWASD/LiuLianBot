@@ -85,4 +85,18 @@ function rewriteLocation(location, targetUrl, slug) {
   }
 }
 
-module.exports = { getUpstreamCookies, rewriteSetCookie, rewriteLocation };
+function rewriteHtmlRootUrls(html, slug) {
+  if (!html) return html;
+  const proxyRoot = `/connect/${slug}/__upstream_root__/`;
+  return html.replace(
+    /\b(src|href|action|poster|content)=("|')\/(?!\/|connect\/)([^"']*)\2/gi,
+    (_, attribute, quote, path) => `${attribute}=${quote}${proxyRoot}${path}${quote}`
+  );
+}
+
+module.exports = {
+  getUpstreamCookies,
+  rewriteSetCookie,
+  rewriteLocation,
+  rewriteHtmlRootUrls,
+};

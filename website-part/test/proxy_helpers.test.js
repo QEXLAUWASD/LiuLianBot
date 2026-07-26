@@ -4,6 +4,7 @@ const {
   getUpstreamCookies,
   rewriteSetCookie,
   rewriteLocation,
+  rewriteHtmlRootUrls,
 } = require('../src/proxy_helpers');
 
 test('forwards only cookies belonging to the selected connection', () => {
@@ -71,4 +72,34 @@ test('marks redirects outside the configured target base path', () => {
     rewriteLocation('/login', 'https://example.test/app/', 'reports'),
     '/connect/reports/__upstream_root__/login'
   );
+});
+
+test('rewrites root-relative HTML asset and API URLs through the upstream root marker', () => {
+  const html = [
+    '<link rel="stylesheet" href="/index-TZrNw7dA.css">',
+    '<script type="module" src="/index-BA7g9K9t.js"></script>',
+    '<script src="/polyfills-KOa4MKuO.js"></script>',
+    '<link rel="icon" href="/favicon.svg">',
+    '<form action="/api/graphql"></form>',
+  ].join('');
+
+  assert.equal(
+    rewriteHtmlRootUrls(html, 'suwayomi'),
+    [
+      '<link rel="stylesheet" href="/connect/suwayomi/__upstream_root__/index-TZrNw7dA.css">',
+      '<script type="module" src="/connect/suwayomi/__upstream_root__/index-BA7g9K9t.js"></script>',
+      '<script src="/connect/suwayomi/__upstream_root__/polyfills-KOa4MKuO.js"></script>',
+      '<link rel="icon" href="/connect/suwayomi/__upstream_root__/favicon.svg">',
+      '<form action="/connect/suwayomi/__upstream_root__/api/graphql"></form>',
+    ].join('')
+  );
+});
+
+test('preserves protocol-relative and already proxied HTML URLs', () => {
+  const html = [
+    '<script src="//cdn.example.test/app.js"></script>',
+    '<link href="/connect/suwayomi/index.css">',
+  ].join('');
+
+  assert.equal(rewriteHtmlRootUrls(html, 'suwayomi'), html);
 });
