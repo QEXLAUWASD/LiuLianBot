@@ -39,13 +39,36 @@ function rewriteSetCookie(cookie, slug, targetUrl) {
   return rewritten.join('; ');
 }
 
+function effectivePort(url) {
+  if (url.port) return url.port;
+  if (url.protocol === 'https:') return '443';
+  if (url.protocol === 'http:') return '80';
+  return '';
+}
+
+function isLoopbackHostname(hostname) {
+  const normalized = hostname.toLowerCase();
+  return normalized === 'localhost'
+    || normalized === '127.0.0.1'
+    || normalized === '::1'
+    || normalized === '[::1]';
+}
+
+function isSameUpstreamOrigin(target, redirected) {
+  if (redirected.origin === target.origin) return true;
+
+  return redirected.protocol === target.protocol
+    && effectivePort(redirected) === effectivePort(target)
+    && isLoopbackHostname(redirected.hostname);
+}
+
 function rewriteLocation(location, targetUrl, slug) {
   if (!location) return location;
 
   try {
     const target = new URL(targetUrl);
     const redirected = new URL(location, target);
-    if (redirected.origin !== target.origin) return location;
+    if (!isSameUpstreamOrigin(target, redirected)) return location;
 
     const targetPath = target.pathname.replace(/\/$/, '');
     const withinTargetPath = !targetPath
