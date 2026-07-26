@@ -109,7 +109,7 @@ function rewriteHtmlAssetUrl(value, slug, requestUrl = '/') {
 function rewriteHtmlRootUrls(html, slug, requestUrl = '/') {
   if (!html) return html;
   return html.replace(
-    /\b(src|href|action|poster|content)=("|')([^"']*)\2/gi,
+    /\b(src|href|action|poster)=("|')([^"']*)\2/gi,
     (_, attribute, quote, value) =>
       `${attribute}=${quote}${rewriteHtmlAssetUrl(value, slug, requestUrl)}${quote}`
   );

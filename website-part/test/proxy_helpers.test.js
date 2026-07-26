@@ -125,3 +125,9 @@ test('preserves anchors, protocol-relative, absolute, and already proxied HTML U
 
   assert.equal(rewriteHtmlRootUrls(html, 'suwayomi'), html);
 });
+
+test('preserves non-url content attributes such as viewport metadata', () => {
+  const html = '<meta name="viewport" content="minimum-scale=1, initial-scale=1, viewport-fit=cover, width=device-width">';
+
+  assert.equal(rewriteHtmlRootUrls(html, 'suwayomi'), html);
+});
