@@ -4,6 +4,7 @@ import psutil
 import os
 from datetime import datetime
 from commands.language_manager import get_translation
+from utils.async_io import run_blocking
 
 
 async def getinfo(message, bot):
@@ -22,10 +23,11 @@ async def getinfo(message, bot):
     # Process information
     process = psutil.Process(os.getpid())
     memory_usage = process.memory_info().rss / 1024 / 1024  # MB
-    cpu_usage = process.cpu_percent(interval=1)
+    cpu_usage = await run_blocking(process.cpu_percent, interval=1)
     
     # Uptime
-    uptime = datetime.now() - bot.start_time if hasattr(bot, 'start_time') else None
+    start_time = getattr(bot, 'start_time', None)
+    uptime = datetime.now() - start_time if start_time is not None else None
     
     gid = message.guild.id if message.guild else None
     embed = discord.Embed(

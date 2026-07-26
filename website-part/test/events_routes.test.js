@@ -6,8 +6,14 @@ async function fixture({ role = 'admin' } = {}) {
   const dbPath = require.resolve('../src/db');
   const routePath = require.resolve('../src/routes/events');
   const adminAuthPath = require.resolve('../src/middleware/admin_auth');
-  const events = [];
-  let nextId = 1;
+  const events = [{
+    id: 1,
+    title: 'Existing event',
+    status: 'open',
+    visible: 1,
+    start_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+  }];
+  let nextId = 2;
   require.cache[dbPath] = {
     id: dbPath,
     filename: dbPath,
@@ -65,6 +71,15 @@ test('authenticated users can list and join or leave events', async t => {
   assert.equal(response.status, 200);
   response = await app.request('/api/events/1/leave', { method: 'POST' });
   assert.equal(response.status, 200);
+});
+
+test('event mutations and participants reject hidden or unknown events', async t => {
+  const app = await fixture();
+  t.after(app.close);
+  let response = await app.request('/api/events/999/participants');
+  assert.equal(response.status, 404);
+  response = await app.request('/api/events/999/join', { method: 'POST' });
+  assert.equal(response.status, 404);
 });
 
 test('only administrators can create events', async t => {

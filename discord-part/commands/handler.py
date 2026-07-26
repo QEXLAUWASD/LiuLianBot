@@ -1,5 +1,6 @@
 import importlib
 import inspect
+import logging
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, List, Tuple, Callable
@@ -9,12 +10,14 @@ if TYPE_CHECKING:
     import discord
 
 class CommandHandler:
-    def __init__(self) -> None:
+    def __init__(self, logger=None) -> None:
+        self.logger = logger or logging.getLogger(__name__)
         self.commands = {}
         self.command_types = {}  # Store command type (admin/owner/user)
         self.bot_owners = set()  # Store bot owner IDs
         self.bot_admins = set()  # Store bot admin IDs
         self.guild_admins = {}  # Store guild-specific admin IDs {guild_id: set(user_ids)}
+        self.load_errors = []
         self.permission_checker = PermissionChecker(self)  # Initialize permission checker
         self.load_commands()
     
@@ -23,7 +26,7 @@ class CommandHandler:
         commands_dir = Path(__file__).parent
         
         if not commands_dir.exists():
-            print(f"Commands directory not found: {commands_dir}")
+            self.logger.error("Commands directory not found: %s", commands_dir)
             return
         
         # Add parent directory to sys.path for imports
@@ -57,12 +60,22 @@ class CommandHandler:
                             and not name.startswith('_')
                             and obj.__module__ == module.__name__
                         ):
+                            if name in self.commands:
+                                self.load_errors.append(
+                                    f"duplicate command: {name} ({module_name})"
+                                )
+                                self.logger.error(
+                                    "Duplicate command '%s' in %s; keeping first registration",
+                                    name,
+                                    module_name,
+                                )
+                                continue
                             self.commands[name] = obj
                             self.command_types[name] = command_type
-                            print(f"Loaded {command_type} command: {name}")
                 
-                except Exception as e:
-                    print(f"Error loading {file_path.name}: {e}")
+                except Exception:
+                    self.load_errors.append(str(file_path))
+                    self.logger.exception("Error loading command module %s", file_path)
 
     
     def add_guild_admin(self, guild_id: int, user_id: str) -> None:
@@ -189,5 +202,9 @@ class CommandHandler:
             self.bot_admins = set()
         self.bot_admins.add(admin_id)
 
-# Create a global instance
-handler = CommandHandler()
+    def remove_bot_admin(self, admin_id: str) -> bool:
+        """Remove a bot admin ID from the runtime permission set."""
+        if admin_id not in self.bot_admins:
+            return False
+        self.bot_admins.remove(admin_id)
+        return True

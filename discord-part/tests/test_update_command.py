@@ -13,7 +13,7 @@ import pytest
 from commands.owner import update as update_module
 from commands import language_manager
 from commands.user import help as help_module
-from core import bot_client
+from core import bot_client, command_processor, slash_commands
 from updater import updater
 
 
@@ -111,7 +111,7 @@ async def test_help_update_detail_and_list_use_localized_description(
         list_commands=lambda: ["update"],
         command_types={"update": "owner"},
     )
-    monkeypatch.setattr(help_module.commands.handler, "handler", handler)
+    bot = SimpleNamespace(command_handler=handler)
 
     detail_channel = SimpleNamespace(send=AsyncMock())
     detail_message = SimpleNamespace(
@@ -119,7 +119,7 @@ async def test_help_update_detail_and_list_use_localized_description(
         guild=SimpleNamespace(id=1),
         channel=detail_channel,
     )
-    await help_module.help(detail_message, SimpleNamespace())
+    await help_module.help(detail_message, bot)
     assert detail_channel.send.await_args.kwargs["embed"].description == expected
 
     list_channel = SimpleNamespace(send=AsyncMock())
@@ -128,7 +128,7 @@ async def test_help_update_detail_and_list_use_localized_description(
         guild=SimpleNamespace(id=1),
         channel=list_channel,
     )
-    await help_module.help(list_message, SimpleNamespace())
+    await help_module.help(list_message, bot)
     owner_field = next(
         field
         for field in list_channel.send.await_args.kwargs["embed"].fields
@@ -186,7 +186,7 @@ async def test_setup_hook_uses_default_locale_for_update_slash_description(monke
         sync=AsyncMock(),
     )
     client = SimpleNamespace(
-        _cmd_handler=command_handler,
+        command_handler=command_handler,
         _root_folder="unused",
         command_prefix=">",
         _process_command=AsyncMock(),
@@ -198,14 +198,14 @@ async def test_setup_hook_uses_default_locale_for_update_slash_description(monke
         return None
 
     monkeypatch.setattr(bot_client, "register_handlers", lambda client: None)
-    monkeypatch.setattr(bot_client, "load_interaction_arg_specs", lambda root: {})
+    monkeypatch.setattr(slash_commands, "load_interaction_arg_specs", lambda root: {})
     monkeypatch.setattr(
-        bot_client,
+        slash_commands,
         "build_simple_slash_callback",
         lambda **kwargs: slash_callback,
     )
     monkeypatch.setattr(
-        bot_client.app_commands,
+        slash_commands.app_commands,
         "Command",
         lambda **kwargs: SimpleNamespace(**kwargs),
     )
@@ -374,7 +374,7 @@ async def test_command_error_uses_reference_without_exposing_exception(monkeypat
         check_permission=lambda name, author, context: (True, None),
     )
     logger = Mock()
-    client = SimpleNamespace(command_prefix=">", _cmd_handler=command_handler, logger=logger)
+    client = SimpleNamespace(command_prefix=">", command_handler=command_handler, logger=logger)
     message = SimpleNamespace(
         content=">update",
         author=SimpleNamespace(id=42),
@@ -382,12 +382,12 @@ async def test_command_error_uses_reference_without_exposing_exception(monkeypat
     )
     responder = AsyncMock()
     monkeypatch.setattr(
-        bot_client,
+        command_processor,
         "get_translation",
         lambda key, guild_id: "localized error: {error}",
     )
     monkeypatch.setattr(
-        bot_client,
+        command_processor,
         "uuid4",
         lambda: SimpleNamespace(hex="a1b2c3d4e5f678901234567890abcdef"),
     )

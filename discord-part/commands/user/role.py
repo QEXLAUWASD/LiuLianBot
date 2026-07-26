@@ -17,6 +17,8 @@ async def role(message, bot):
     target = message.guild.get_role(role_id)
     if target is None:
         return "❌ 找不到此身份組。"
+    if target.permissions.administrator or target.permissions.manage_roles:
+        return "❌ 此身份組包含高權限，無法自助加入。"
     try:
         if target in message.author.roles:
             await message.author.remove_roles(target, reason="Self-role toggle")

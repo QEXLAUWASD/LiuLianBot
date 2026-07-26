@@ -37,6 +37,10 @@ class PermissionChecker:
         # Command doesn't exist
         if command_type is None:
             return False, get_translation("cmd_not_found", None).replace("{command}", command_name)
+
+        # Bot owners inherit every command capability.
+        if self._is_bot_owner(member):
+            return True, ""
         
         # Check based on command type
         if command_type == 'owner':
@@ -55,7 +59,7 @@ class PermissionChecker:
     
     def _check_owner(self, member: 'discord.Member') -> Tuple[bool, str]:
         """Check if member is a bot owner"""
-        if str(member.id) not in self.handler.bot_owners:
+        if not self._is_bot_owner(member):
             gid = member.guild.id if hasattr(member, 'guild') and member.guild else None
             return False, get_translation("owner_only", gid)
         return True, ""
@@ -71,36 +75,55 @@ class PermissionChecker:
     
     def _check_admin(self, member: 'discord.Member') -> Tuple[bool, str]:
         """Check if member has admin permissions (global or guild)"""
-        is_bot_admin = str(member.id) in self.handler.bot_admins
-        is_guild_admin = (
-            self.handler.is_guild_admin(member.guild.id, str(member.id))
-            if hasattr(member, 'guild') and member.guild else False
-        )
-        is_server_admin = (
-            member.guild_permissions.administrator
-            if hasattr(member, 'guild_permissions') else False
-        )
-        
-        if not (is_bot_admin or is_guild_admin or is_server_admin):
+        if not (
+            self._is_bot_admin(member)
+            or self._is_guild_owner(member)
+            or self._is_guild_admin(member)
+            or self._is_server_admin(member)
+        ):
             gid = member.guild.id if hasattr(member, 'guild') and member.guild else None
             return False, get_translation("require_admin", gid)
         return True, ""
     
     def _check_guild_admin(self, member: 'discord.Member') -> Tuple[bool, str]:
-        """Check if member has guild admin permissions (no global bot admins)"""
-        is_guild_admin = (
-            self.handler.is_guild_admin(member.guild.id, str(member.id))
-            if hasattr(member, 'guild') and member.guild else False
-        )
-        is_server_admin = (
-            member.guild_permissions.administrator
-            if hasattr(member, 'guild_permissions') else False
-        )
-        
-        if not (is_guild_admin or is_server_admin):
+        """Check if member has guild admin permissions."""
+        if not (
+            self._is_bot_admin(member)
+            or self._is_guild_owner(member)
+            or self._is_guild_admin(member)
+            or self._is_server_admin(member)
+        ):
             gid = member.guild.id if hasattr(member, 'guild') and member.guild else None
             return False, get_translation("require_guild_admin", gid)
         return True, ""
+
+    def _is_bot_owner(self, member: 'discord.Member') -> bool:
+        return str(member.id) in self.handler.bot_owners
+
+    def _is_bot_admin(self, member: 'discord.Member') -> bool:
+        return str(member.id) in self.handler.bot_admins
+
+    @staticmethod
+    def _is_guild_owner(member: 'discord.Member') -> bool:
+        return bool(
+            hasattr(member, 'guild')
+            and member.guild
+            and member.guild.owner_id == member.id
+        )
+
+    def _is_guild_admin(self, member: 'discord.Member') -> bool:
+        return bool(
+            hasattr(member, 'guild')
+            and member.guild
+            and self.handler.is_guild_admin(member.guild.id, str(member.id))
+        )
+
+    @staticmethod
+    def _is_server_admin(member: 'discord.Member') -> bool:
+        return bool(
+            hasattr(member, 'guild_permissions')
+            and member.guild_permissions.administrator
+        )
     
     def _check_user(self, member: 'discord.Member') -> Tuple[bool, str]:
         """Check if member can use user commands (always true)"""

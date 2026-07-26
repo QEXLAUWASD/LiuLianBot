@@ -29,15 +29,28 @@ class PrivateVoiceManager:
         self._load_private_channel_rows(private_channels)
 
     def start_cleanup_task(self):
+        if self.cleanup_task is None or self.cleanup_task.done():
+            self.cleanup_task = asyncio.create_task(self._cleanup_loop())
+
+    async def stop_cleanup_task(self) -> None:
         if self.cleanup_task is None:
-            self.cleanup_task = self.bot.loop.create_task(self._cleanup_loop())
+            return
+        if not self.cleanup_task.done():
+            self.cleanup_task.cancel()
+            try:
+                await self.cleanup_task
+            except asyncio.CancelledError:
+                pass
+        self.cleanup_task = None
 
     async def _cleanup_loop(self):
         while True:
             try:
                 await self.cleanup_empty_channels()
-            except Exception as e:
-                print(f"[ERROR] Failed to cleanup private voice configs: {e}")
+            except Exception:
+                logger = getattr(self.bot, "logger", None)
+                if logger:
+                    logger.exception("Failed to cleanup private voice configs")
             await asyncio.sleep(self.cleanup_interval_seconds)
 
     def _load_private_channel_rows(self, rows):
@@ -129,7 +142,7 @@ class PrivateVoiceManager:
                 try:
                     await member.move_to(existing_channel)
                     return
-                except:
+                except discord.HTTPException:
                     pass
         
         # Create new private channel
@@ -189,9 +202,12 @@ class PrivateVoiceManager:
             self.user_channels[(member.guild.id, member.id)] = private_channel.id
             
         except discord.Forbidden:
-            print(f"Missing permissions to create voice channel in {member.guild.name}")
-        except discord.HTTPException as e:
-            print(f"Failed to create private voice channel: {e}")
+            self.bot.logger.warning(
+                "Missing permissions to create voice channel in %s",
+                member.guild.name,
+            )
+        except discord.HTTPException:
+            self.bot.logger.exception("Failed to create private voice channel")
     
     async def check_and_delete_channel(self, channel: discord.VoiceChannel):
         """Check if a private channel is empty and delete it"""
@@ -207,9 +223,15 @@ class PrivateVoiceManager:
                     await self.delete_channel_config(channel.id)
                     self._remove_private_channel_cache(channel.id, owner_id)
                 except discord.Forbidden:
-                    print(f"Missing permissions to delete voice channel {channel.name}")
-                except discord.HTTPException as e:
-                    print(f"Failed to delete private voice channel: {e}")
+                    self.bot.logger.warning(
+                        "Missing permissions to delete voice channel %s",
+                        channel.name,
+                    )
+                except discord.HTTPException:
+                    self.bot.logger.exception(
+                        "Failed to delete private voice channel %s",
+                        channel.name,
+                    )
     
     async def cleanup_empty_channels(self):
         """Cleanup any empty private channels (run periodically)"""
@@ -229,13 +251,10 @@ class PrivateVoiceManager:
             await self.check_and_delete_channel(channel)
 
 
-# Global instance
-private_voice_manager = None
-
-
 def get_manager(bot):
-    """Get or create the private voice manager instance"""
-    global private_voice_manager
-    if private_voice_manager is None:
-        private_voice_manager = PrivateVoiceManager(bot)
-    return private_voice_manager
+    """Get or create the private voice manager owned by this bot instance."""
+    manager = getattr(bot, "private_voice_manager", None)
+    if manager is None:
+        manager = PrivateVoiceManager(bot)
+        bot.private_voice_manager = manager
+    return manager

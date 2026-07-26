@@ -1,5 +1,6 @@
 from commands.language_manager import get_translation
 from core.config import get_config, update_config
+from utils.error_reporting import report_exception
 
 async def removeadmin(message, bot):
     """Remove a user from the bot admins
@@ -48,9 +49,14 @@ async def removeadmin(message, bot):
                 ]
             )
         )
+
+        bot.command_handler.remove_bot_admin(user_id_str)
         
         return get_translation("admin_removed", message.guild.id).replace("{user}", user_name)
     
-    except Exception as e:
-        print(f"Error in removeadmin: {e}")
-        return get_translation("error_occurred", message.guild.id)
+    except Exception:
+        return report_exception(
+            bot.logger,
+            "removeadmin",
+            get_translation("error_occurred", message.guild.id),
+        )

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const crypto = require('node:crypto');
 const { findUserByUsername, createUser } = require('../db');
 const {
   AccountInputError,
@@ -12,9 +13,8 @@ const { establishUserSession } = require('../services/session');
 const REMEMBER_LOGIN_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
 
-// ---------- helper: generate a short unique id ----------
 function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  return crypto.randomUUID();
 }
 
 // Register
@@ -48,9 +48,10 @@ router.post('/register', async (req, res, next) => {
 // Login
 router.post('/login', async (req, res, next) => {
   try {
-    const { username, password, remember = false } = req.body;
+    const { password, remember = false } = req.body;
+    const username = normalizeUsername(req.body.username);
 
-    if (!username || !password) {
+    if (typeof password !== 'string' || password.length === 0) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
@@ -74,6 +75,9 @@ router.post('/login', async (req, res, next) => {
     );
     res.json({ success: true, user: { id: user.id, username: user.username } });
   } catch (err) {
+    if (err instanceof AccountInputError) {
+      return res.status(400).json({ error: err.message });
+    }
     next(err);
   }
 });

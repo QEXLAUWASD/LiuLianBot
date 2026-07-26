@@ -12,10 +12,6 @@ async def setupvoice(message, bot):
     if not message.guild:
         return get_translation('must_be_in_guild', None)
 
-    # Check if user has administrator permissions
-    if not message.author.guild_permissions.administrator:
-        return get_translation('no_permission_admin', message.guild.id)
-
     gid = message.guild.id
 
     # Create the setup embed

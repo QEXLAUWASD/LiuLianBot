@@ -28,16 +28,19 @@ class AnnouncementDispatcher:
                 pass
 
     async def _run(self) -> None:
-        try:
-            await run_blocking(self.repository.recover_claims)
-            while not self.bot.is_closed():
+        claims_recovered = False
+        while not self.bot.is_closed():
+            try:
+                if not claims_recovered:
+                    await run_blocking(self.repository.recover_claims)
+                    claims_recovered = True
                 await self.dispatch_due()
-                await asyncio.sleep(self.interval_seconds)
-        except asyncio.CancelledError:
-            raise
-        except Exception:
-            if self.logger:
-                self.logger.exception("Scheduled announcement dispatcher stopped")
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                if self.logger:
+                    self.logger.exception("Scheduled announcement dispatch cycle failed")
+            await asyncio.sleep(self.interval_seconds)
 
     async def dispatch_due(self) -> None:
         announcements = await run_blocking(self.repository.claim_due)

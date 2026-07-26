@@ -10,8 +10,6 @@ async def r6maproll(message, bot):
 	except Exception:  # pragma: no cover - defensive
 		return report_exception(bot.logger, "r6maproll", "Map roll failed")
 
-	playlists = ", ".join(result.get("playlists", [])) or "N/A"
-	mode = result.get("playlist", "N/A")
 	parts = [
 		f"{get_translation('r6_map_name', guild_id=message.guild.id if message.guild else None)}: {result.get('name', 'Unknown')}",
 		f"{get_translation('r6_map_game_modes', guild_id=message.guild.id if message.guild else None)}: {random.choice(['Bomb', 'Secure Area', 'Hostage'])}",

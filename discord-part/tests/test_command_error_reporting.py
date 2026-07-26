@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, Mock, call
 import pytest
 
 from commands.guild_owner import add_guild_admin
-from commands.owner import add_admin, r6_update
+from commands.owner import add_admin, r6_update, remove_admin
 from commands.guild_owner import remove_guild_admin
 from commands.user import r6_map_roll, r6_ops_roll
 from commands.user import transfer_voice
@@ -249,6 +249,48 @@ async def test_localized_command_error_redacts_exception_and_correlates_log(monk
     )
 
 
+@pytest.mark.asyncio
+async def test_remove_admin_error_uses_reference_without_exposing_exception(monkeypatch):
+    error_reporting = importlib.import_module("utils.error_reporting")
+    secret = "C:\\private\\config.json token=do-not-expose"
+    logger = Mock()
+    monkeypatch.setattr(
+        remove_admin,
+        "get_config",
+        Mock(side_effect=RuntimeError(secret)),
+    )
+    monkeypatch.setattr(
+        remove_admin,
+        "get_translation",
+        lambda key, guild_id: "localized remove failure: {error}",
+    )
+    monkeypatch.setattr(
+        error_reporting,
+        "generate_error_reference",
+        lambda: "222222222222",
+    )
+    message = SimpleNamespace(
+        content=">removeadmin 42",
+        mentions=[],
+        guild=SimpleNamespace(id=7),
+    )
+    bot = SimpleNamespace(
+        fetch_user=AsyncMock(return_value="target-user"),
+        logger=logger,
+    )
+
+    public_message = await remove_admin.removeadmin(message, bot)
+
+    assert public_message == "localized remove failure (Reference: 222222222222)"
+    assert secret not in public_message
+    logger.error.assert_called_once_with(
+        "%s failed [reference=%s]",
+        "removeadmin",
+        "222222222222",
+        exc_info=True,
+    )
+
+
 @pytest.mark.parametrize(
     ("command_module", "command", "content", "operation", "translation"),
     [
@@ -308,6 +350,7 @@ async def test_guild_admin_errors_redact_exception_and_use_bot_logger(
     bot = SimpleNamespace(
         fetch_user=AsyncMock(return_value="target-user"),
         logger=logger,
+        command_handler=SimpleNamespace(bot_owners=set()),
     )
 
     public_message = await command(message, bot)

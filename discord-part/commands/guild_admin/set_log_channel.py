@@ -6,6 +6,9 @@ from utils.async_io import run_blocking
 
 async def setlogchannel(message, bot):
     # Usage: >setlogchannel #channel
+    if message.guild is None:
+        return get_translation("no_guild", None)
+
     parts = message.content.strip().split()
     if len(parts) < 2:
         return get_translation("setlogchannel_missing_arg", message.guild.id) + "\n" + get_translation("setlogchannel_usage", message.guild.id).replace("{prefix}", bot.command_prefix)

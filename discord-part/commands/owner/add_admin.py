@@ -42,8 +42,7 @@ async def addadmin(message, bot):
         )
         
         # Also add to runtime handler
-        import commands.handler as cmd_handler
-        cmd_handler.handler.add_bot_admin(user_id_str)
+        bot.command_handler.add_bot_admin(user_id_str)
         
         return get_translation("addadmin_success", message.guild.id).replace("{user}", user_name)
     

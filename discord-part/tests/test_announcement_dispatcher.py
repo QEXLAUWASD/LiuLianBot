@@ -42,3 +42,24 @@ async def test_dispatcher_releases_announcement_when_channel_is_unavailable():
 
     repository.release.assert_called_once_with(10)
     repository.mark_sent.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_dispatcher_retries_after_transient_cycle_failure():
+    from features.announcements.dispatcher import AnnouncementDispatcher
+
+    repository = MagicMock()
+    bot = MagicMock()
+    bot.is_closed.side_effect = [False, False, True]
+    logger = MagicMock()
+    dispatcher = AnnouncementDispatcher(bot, repository=repository, logger=logger)
+    dispatcher.interval_seconds = 0
+    dispatcher.dispatch_due = AsyncMock(side_effect=[RuntimeError("temporary"), None])
+
+    await dispatcher._run()
+
+    assert dispatcher.dispatch_due.await_count == 2
+    repository.recover_claims.assert_called_once_with()
+    logger.exception.assert_called_once_with(
+        "Scheduled announcement dispatch cycle failed"
+    )

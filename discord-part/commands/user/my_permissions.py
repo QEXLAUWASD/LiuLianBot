@@ -1,5 +1,4 @@
 import discord
-import commands.handler as cmd_handler
 from commands.language_manager import get_translation
 
 
@@ -8,7 +7,7 @@ async def mypermissions(message, bot):
     
     用法: >mypermissions
     """
-    handler = cmd_handler.handler
+    handler = bot.command_handler
 
     # Get user's permission level
     permission_level = handler.get_permission_level(message.author)

@@ -1,5 +1,4 @@
 import discord
-import commands.handler as cmd_handler
 from commands.language_manager import get_translation
 
 
@@ -12,7 +11,7 @@ async def listguildadmins(message, bot):
     if not message.guild:
         return get_translation("no_guild", None)
     
-    guild_admins = cmd_handler.handler.get_guild_admins(message.guild.id)
+    guild_admins = bot.command_handler.get_guild_admins(message.guild.id)
     
     embed = discord.Embed(
         title=get_translation("listguildadmins_title", message.guild.id).replace("{guild}", message.guild.name),

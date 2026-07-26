@@ -1,6 +1,5 @@
 import discord
 from commands.language_manager import get_translation, resolve_command_description
-import commands.handler
 
 async def help(message, bot):
     """
@@ -8,7 +7,7 @@ async def help(message, bot):
     用法：>help 或 >help 指令名稱
     """
     # Get handler instance
-    cmd_handler = commands.handler.handler
+    cmd_handler = bot.command_handler
     
     args = message.content.split()
     # try to detect prefix, fallback to '>' when unsure
