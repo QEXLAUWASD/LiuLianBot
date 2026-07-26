@@ -95,10 +95,32 @@ test('rewrites root-relative HTML asset and API URLs through the upstream root m
   );
 });
 
-test('preserves protocol-relative and already proxied HTML URLs', () => {
+test('rewrites relative HTML asset URLs against the proxied request path', () => {
+  const html = [
+    '<link rel="stylesheet" href="index-TZrNw7dA.css">',
+    '<script type="module" src="index-BA7g9K9t.js"></script>',
+    '<script src="./polyfills-KOa4MKuO.js"></script>',
+    '<link rel="manifest" href="assets/site.webmanifest">',
+  ].join('');
+
+  assert.equal(
+    rewriteHtmlRootUrls(html, 'suwayomi', '/webUI/'),
+    [
+      '<link rel="stylesheet" href="/connect/suwayomi/webUI/index-TZrNw7dA.css">',
+      '<script type="module" src="/connect/suwayomi/webUI/index-BA7g9K9t.js"></script>',
+      '<script src="/connect/suwayomi/webUI/polyfills-KOa4MKuO.js"></script>',
+      '<link rel="manifest" href="/connect/suwayomi/webUI/assets/site.webmanifest">',
+    ].join('')
+  );
+});
+
+test('preserves anchors, protocol-relative, absolute, and already proxied HTML URLs', () => {
   const html = [
     '<script src="//cdn.example.test/app.js"></script>',
     '<link href="/connect/suwayomi/index.css">',
+    '<link href="https://cdn.example.test/app.css">',
+    '<a href="#main">',
+    '<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">',
   ].join('');
 
   assert.equal(rewriteHtmlRootUrls(html, 'suwayomi'), html);

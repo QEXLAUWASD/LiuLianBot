@@ -85,12 +85,33 @@ function rewriteLocation(location, targetUrl, slug) {
   }
 }
 
-function rewriteHtmlRootUrls(html, slug) {
+function rewriteHtmlAssetUrl(value, slug, requestUrl = '/') {
+  if (!value
+    || value.startsWith('#')
+    || value.startsWith('//')
+    || value.startsWith('/connect/')
+    || /^[a-z][a-z0-9+.-]*:/i.test(value)) {
+    return value;
+  }
+
+  if (value.startsWith('/')) {
+    return `/connect/${slug}/__upstream_root__${value}`;
+  }
+
+  try {
+    const resolved = new URL(value, `http://upstream.local${requestUrl || '/'}`);
+    return `/connect/${slug}${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch (_) {
+    return value;
+  }
+}
+
+function rewriteHtmlRootUrls(html, slug, requestUrl = '/') {
   if (!html) return html;
-  const proxyRoot = `/connect/${slug}/__upstream_root__/`;
   return html.replace(
-    /\b(src|href|action|poster|content)=("|')\/(?!\/|connect\/)([^"']*)\2/gi,
-    (_, attribute, quote, path) => `${attribute}=${quote}${proxyRoot}${path}${quote}`
+    /\b(src|href|action|poster|content)=("|')([^"']*)\2/gi,
+    (_, attribute, quote, value) =>
+      `${attribute}=${quote}${rewriteHtmlAssetUrl(value, slug, requestUrl)}${quote}`
   );
 }
 

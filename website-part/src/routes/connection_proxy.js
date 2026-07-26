@@ -108,7 +108,7 @@ const proxy = createProxyMiddleware({
 
       const contentType = proxyRes.headers['content-type'] || '';
       if (/text\/html/i.test(contentType)) {
-        return rewriteHtmlRootUrls(responseBuffer.toString('utf8'), req.params.slug);
+        return rewriteHtmlRootUrls(responseBuffer.toString('utf8'), req.params.slug, req.url);
       }
       return responseBuffer;
     }),
