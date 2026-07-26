@@ -32,3 +32,12 @@ def test_loaded_commands_keep_permission_categories(command_handler):
         "user": 16,
     }
     assert command_handler.get_command_type("setprivatevoice") == "guild_admin"
+
+
+def test_remove_bot_admin_updates_runtime_permissions():
+    handler = CommandHandler()
+    handler.add_bot_admin("123")
+
+    assert handler.remove_bot_admin("123")
+    assert "123" not in handler.bot_admins
+    assert not handler.remove_bot_admin("123")

@@ -46,12 +46,12 @@ async function createAuthServer() {
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
 
   return {
-    login: remember => fetch(`${baseUrl}/login`, {
+    login: (remember, credentials = {}) => fetch(`${baseUrl}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: 'player-one',
-        password: 'test-password',
+        username: credentials.username ?? 'player-one',
+        password: credentials.password ?? 'test-password',
         remember,
       }),
     }),
@@ -93,4 +93,13 @@ test('remember me only accepts a boolean', async t => {
   const response = await fixture.login('yes');
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: 'Remember me must be a boolean' });
+});
+
+test('login rejects non-string credentials before querying the database', async t => {
+  const fixture = await createAuthServer();
+  t.after(fixture.close);
+
+  const response = await fixture.login(false, { username: { value: 'player-one' } });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Username is required' });
 });

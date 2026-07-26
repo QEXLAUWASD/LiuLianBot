@@ -9,9 +9,22 @@ router.use(requireApiAuth);
 
 function eventError(res, err) {
   const message = err?.message || 'Unable to process event';
-  const status = message === 'Event not found' ? 404
-    : message === 'Event is full' || message === 'Event is not open' ? 409 : 400;
+  const status = err?.statusCode || (
+    message === 'Event not found' ? 404
+      : message === 'Event is full' || message === 'Event is not open' ? 409 : 400
+  );
   return res.status(status).json({ error: message });
+}
+
+async function requireVisibleEvent(req) {
+  const events = await listEvents({ userId: req.session.user.id });
+  const event = events.find(item => String(item.id) === String(req.params.id));
+  if (!event) {
+    const error = new Error('Event not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  return event;
 }
 
 router.get('/', async (req, res, next) => {
@@ -35,18 +48,25 @@ router.post('/', requireAdmin, async (req, res) => {
 
 router.get('/:id/participants', async (req, res) => {
   try {
+    await requireVisibleEvent(req);
     const participants = await getEventParticipants(req.params.id);
     res.json({ participants });
   } catch (err) { eventError(res, err); }
 });
 
 router.post('/:id/join', async (req, res) => {
-  try { res.json(await joinEvent(req.params.id, req.session.user.id)); }
+  try {
+    await requireVisibleEvent(req);
+    res.json(await joinEvent(req.params.id, req.session.user.id));
+  }
   catch (err) { eventError(res, err); }
 });
 
 router.post('/:id/leave', async (req, res) => {
-  try { res.json(await leaveEvent(req.params.id, req.session.user.id)); }
+  try {
+    await requireVisibleEvent(req);
+    res.json(await leaveEvent(req.params.id, req.session.user.id));
+  }
   catch (err) { eventError(res, err); }
 });
 

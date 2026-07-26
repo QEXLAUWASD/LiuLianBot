@@ -89,7 +89,9 @@ async def on_message_delete(message: discord.Message) -> None:
     attachment_info = []
     for att in message.attachments:
         attachment_info.append(f"{att.filename} ({att.url})")
-    attachments_text = "\n".join(attachment_info) if attachment_info else "None"
+    attachments_text = _safe_field_value(
+        "\n".join(attachment_info) if attachment_info else "None"
+    )
 
     embed = discord.Embed(
         title=get_translation("message_deleted_title", guild_id),

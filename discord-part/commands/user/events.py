@@ -11,6 +11,13 @@ def _event_id(message):
     return int(parts[1])
 
 
+async def _event_is_in_guild(event_id: int, message) -> bool:
+    if message.guild is None:
+        return False
+    events = await run_blocking(EventRepository().list_events, message.guild.id)
+    return any(int(row["id"]) == event_id for row in events)
+
+
 async def events(message, bot):
     """列出此 Discord 伺服器的近期活動。用法：>events"""
     if message.guild is None:
@@ -34,6 +41,8 @@ async def eventjoin(message, bot):
     event_id = _event_id(message)
     if event_id is None:
         return "❌ 用法：`>eventjoin <event_id>`"
+    if not await _event_is_in_guild(event_id, message):
+        return "❌ 找不到此活動。"
     result = await run_blocking(EventRepository().join_event, event_id, message.author.id)
     return {
         "joined": "✅ 已加入活動。" if result == "joined" else "✅ 你已經報名此活動。",
@@ -49,6 +58,8 @@ async def eventleave(message, bot):
     event_id = _event_id(message)
     if event_id is None:
         return "❌ 用法：`>eventleave <event_id>`"
+    if not await _event_is_in_guild(event_id, message):
+        return "❌ 找不到此活動。"
     result = await run_blocking(EventRepository().leave_event, event_id, message.author.id)
     return {
         "left": "✅ 已退出活動。",
@@ -62,6 +73,8 @@ async def eventteams(message, bot):
     event_id = _event_id(message)
     if event_id is None:
         return "❌ 用法：`>eventteams <event_id>`"
+    if not await _event_is_in_guild(event_id, message):
+        return "❌ 找不到此活動。"
     players = await run_blocking(EventRepository().participants, event_id)
     if not players:
         return "此活動目前沒有報名者。"

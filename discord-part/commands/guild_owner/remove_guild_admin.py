@@ -1,5 +1,4 @@
 import discord
-import commands.handler as cmd_handler
 from commands.language_manager import get_translation
 from core.config import get_config, update_config
 from utils.error_reporting import report_exception
@@ -16,7 +15,7 @@ async def removeguildadmin(message, bot):
     
     # Check permissions (must be server admin or bot owner)
     is_server_admin = message.author.guild_permissions.administrator
-    is_bot_owner = str(message.author.id) in cmd_handler.handler.bot_owners
+    is_bot_owner = str(message.author.id) in bot.command_handler.bot_owners
     
     if not (is_server_admin or is_bot_owner):
         return get_translation("no_permission_admin", message.guild.id)
@@ -70,7 +69,7 @@ async def removeguildadmin(message, bot):
         update_config(apply)
         
         # Also remove from runtime handler
-        cmd_handler.handler.remove_guild_admin(message.guild.id, user_id_str)
+        bot.command_handler.remove_guild_admin(message.guild.id, user_id_str)
         
         return get_translation("removeguildadmin_success", message.guild.id).replace("{user}", user_name)
     

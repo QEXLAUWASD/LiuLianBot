@@ -1,5 +1,4 @@
 import discord
-import commands.handler as cmd_handler
 from commands.language_manager import get_translation
 
 
@@ -31,7 +30,7 @@ async def guildpermissions(message, bot):
     )
     
     # Guild Admins
-    guild_admins = cmd_handler.handler.get_guild_admins(message.guild.id)
+    guild_admins = bot.command_handler.get_guild_admins(message.guild.id)
     if guild_admins:
         admin_list = []
         for user_id in guild_admins:

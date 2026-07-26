@@ -3,6 +3,9 @@ from discord import Embed
 
 async def setlang(message, bot):
     # permission: guild_admin or guild_owner (checked by handler before calling)
+    if message.guild is None:
+        return get_translation("no_guild", None)
+
     parts = message.content.strip().split()
     if len(parts) < 2:
         codes = ", ".join(list_locale_codes())

@@ -44,11 +44,9 @@ async def getserverlist(message, bot):
                 )
             embeds.append(chunk_embed)
         
-        # Send first embed as return, others directly
-        if embeds:
-            for embed in embeds[1:]:
-                await message.channel.send(embed=embed)
-            return embeds[0]
+        for page in embeds:
+            await message.channel.send(embed=page)
+        return None
     else:
         embed.description = "\n\n".join(server_list)
         return embed
