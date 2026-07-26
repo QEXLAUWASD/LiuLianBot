@@ -79,6 +79,24 @@ test('leaves root-relative requests alone without a proxied same-origin referrer
   assert.equal(continued, true);
 });
 
+test('removes upstream browser policy headers that do not match the proxy origin', () => {
+  const proxyRes = {
+    headers: {
+      'content-security-policy': "default-src 'self'",
+      'content-security-policy-report-only': "script-src 'unsafe-inline' 'unsafe-eval'",
+      'service-worker-allowed': '/',
+      'content-type': 'text/html',
+    },
+  };
+
+  connectionProxy.sanitizeUpstreamResponseHeaders(proxyRes);
+
+  assert.equal(proxyRes.headers['content-security-policy'], undefined);
+  assert.equal(proxyRes.headers['content-security-policy-report-only'], undefined);
+  assert.equal(proxyRes.headers['service-worker-allowed'], undefined);
+  assert.equal(proxyRes.headers['content-type'], 'text/html');
+});
+
 test('rejects a WebSocket upgrade without a signed session cookie', async () => {
   const server = http.createServer();
   connectionProxy.attachWebSocketServer(server, {

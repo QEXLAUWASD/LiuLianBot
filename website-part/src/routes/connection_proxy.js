@@ -75,6 +75,12 @@ function redirectRootRelativeRequest(req, res, next) {
   return res.redirect(307, `/connect/${slug}/__upstream_root__${requestUrl}`);
 }
 
+function sanitizeUpstreamResponseHeaders(proxyRes) {
+  delete proxyRes.headers['content-security-policy'];
+  delete proxyRes.headers['content-security-policy-report-only'];
+  delete proxyRes.headers['service-worker-allowed'];
+}
+
 const proxy = createProxyMiddleware({
   router: req => req.connectionTarget.target_url,
   changeOrigin: true,
@@ -91,6 +97,8 @@ const proxy = createProxyMiddleware({
       setUpstreamRequestHeaders(proxyReq, req, true);
     },
     proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req) => {
+      sanitizeUpstreamResponseHeaders(proxyRes);
+
       const setCookies = proxyRes.headers['set-cookie'];
       if (setCookies) {
         proxyRes.headers['set-cookie'] = setCookies.map(cookie =>
@@ -108,6 +116,7 @@ const proxy = createProxyMiddleware({
 
       const contentType = proxyRes.headers['content-type'] || '';
       if (/text\/html/i.test(contentType)) {
+        proxyRes.headers['cache-control'] = 'no-store';
         return rewriteHtmlRootUrls(responseBuffer.toString('utf8'), req.params.slug, req.url);
       }
       return responseBuffer;
@@ -206,5 +215,6 @@ router.attachWebSocketServer = attachWebSocketServer;
 router.websocketRequest = websocketRequest;
 router.applyUpstreamRootPath = applyUpstreamRootPath;
 router.redirectRootRelativeRequest = redirectRootRelativeRequest;
+router.sanitizeUpstreamResponseHeaders = sanitizeUpstreamResponseHeaders;
 
 module.exports = router;
