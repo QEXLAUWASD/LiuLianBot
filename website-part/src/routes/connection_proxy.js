@@ -40,6 +40,36 @@ function applyUpstreamRootPath(req) {
   req.url = req.url.slice(marker.length) || '/';
 }
 
+function referrerConnectionSlug(req) {
+  const header = req.get('referer') || req.get('referrer');
+  if (!header) return null;
+
+  try {
+    const host = req.get('host');
+    const referrer = new URL(header, `${req.protocol}://${host || 'localhost'}`);
+    if (host && referrer.host !== host) return null;
+    const match = referrer.pathname.match(
+      /^\/connect\/([a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?)(?=\/|$)/i
+    );
+    return match ? match[1].toLowerCase() : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function redirectRootRelativeRequest(req, res, next) {
+  const slug = referrerConnectionSlug(req);
+  if (!slug) return next();
+
+  const requestUrl = req.originalUrl || req.url || '/';
+  const requestPath = new URL(requestUrl, 'http://localhost').pathname;
+  if (requestPath === `/connect/${slug}` || requestPath.startsWith(`/connect/${slug}/`)) {
+    return next();
+  }
+
+  return res.redirect(307, `/connect/${slug}/__upstream_root__${requestUrl}`);
+}
+
 const proxy = createProxyMiddleware({
   router: req => req.connectionTarget.target_url,
   changeOrigin: true,
@@ -163,5 +193,6 @@ function attachWebSocketServer(server, options) {
 router.attachWebSocketServer = attachWebSocketServer;
 router.websocketRequest = websocketRequest;
 router.applyUpstreamRootPath = applyUpstreamRootPath;
+router.redirectRootRelativeRequest = redirectRootRelativeRequest;
 
 module.exports = router;

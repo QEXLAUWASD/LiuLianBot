@@ -20,6 +20,9 @@ function createApp({ sessionOptions, routers }) {
 
   if (sessionOptions.cookie.secure) app.set('trust proxy', 1);
   app.use(session(sessionOptions));
+  if (routers.connectionProxy.redirectRootRelativeRequest) {
+    app.use(routers.connectionProxy.redirectRootRelativeRequest);
+  }
   app.use('/api', requestContext);
   app.use('/api', express.json({ limit: '16kb' }));
   app.use('/api', express.urlencoded({ extended: false, limit: '16kb' }));
