@@ -5,7 +5,6 @@ test('importing the app factory does not listen on a port', () => {
   const appModule = require('../src/app');
   assert.equal(typeof appModule.createApp, 'function');
 });
-
 test('home redirect tolerates a request without session state', () => {
   const { homeRedirectPath } = require('../src/app');
   assert.equal(homeRedirectPath(undefined), '/login.html');
@@ -67,51 +66,6 @@ test('app factory redirects protected HTML before static files are considered', 
     });
     assert.equal(response.status, 302);
     assert.equal(response.headers.get('location'), '/login.html');
-  } finally {
-    await new Promise(resolve => server.close(resolve));
-  }
-});
-
-test('root-relative requests from a proxied page are redirected back through the connection proxy', async () => {
-  const express = require('express');
-  const { createApp } = require('../src/app');
-  const router = () => express.Router();
-  const connectionProxy = router();
-  connectionProxy.redirectRootRelativeRequest = (req, res, next) => {
-    const header = req.get('referer');
-    if (header?.includes('/connect/suwayomi/')) {
-      return res.redirect(307, `/connect/suwayomi/__upstream_root__${req.originalUrl}`);
-    }
-    return next();
-  };
-  const app = createApp({
-    sessionOptions: {
-      secret: 'test-secret',
-      resave: false,
-      saveUninitialized: false,
-      cookie: { secure: false, httpOnly: true, sameSite: 'strict' },
-    },
-    routers: {
-      auth: router(),
-      roller: router(),
-      adminConnections: router(),
-      admin: router(),
-      connections: router(),
-      connectionProxy,
-    },
-  });
-  const server = app.listen(0);
-
-  try {
-    const { port } = server.address();
-    const response = await fetch(`http://127.0.0.1:${port}/api/graphql`, {
-      redirect: 'manual',
-      headers: {
-        Referer: `http://127.0.0.1:${port}/connect/suwayomi/`,
-      },
-    });
-    assert.equal(response.status, 307);
-    assert.equal(response.headers.get('location'), '/connect/suwayomi/__upstream_root__/api/graphql');
   } finally {
     await new Promise(resolve => server.close(resolve));
   }

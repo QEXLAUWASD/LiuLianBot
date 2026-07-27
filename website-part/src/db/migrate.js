@@ -104,6 +104,7 @@ const MIGRATIONS = [
           description VARCHAR(255) DEFAULT '',
           enabled TINYINT(1) NOT NULL DEFAULT 1,
           hidden TINYINT(1) NOT NULL DEFAULT 0,
+          legacy_proxy_routing TINYINT(1) NOT NULL DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -253,6 +254,16 @@ const MIGRATIONS = [
           INDEX idx_guild_channel_name (guild_id, channel_name)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
       `);
+    },
+  },
+  {
+    version: '010',
+    name: 'connection proxy routing mode',
+    async up(conn) {
+      await addColumnIfMissing(
+        conn,
+        'ALTER TABLE website_connections ADD COLUMN legacy_proxy_routing TINYINT(1) NOT NULL DEFAULT 0 AFTER hidden'
+      );
     },
   },
 ];

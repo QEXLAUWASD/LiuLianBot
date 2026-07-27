@@ -80,25 +80,33 @@ function referrerConnectionSlug(req) {
   }
 }
 
-function redirectRootRelativeRequest(req, res, next) {
-  const slug = referrerConnectionSlug(req);
-  if (!slug) return next();
+function createRedirectRootRelativeRequest(getAccessBySlug = getConnectionAccessBySlug) {
+  return async function redirectRootRelativeRequest(req, res, next) {
+    const slug = referrerConnectionSlug(req);
+    const userId = req.session?.user?.id;
+    if (!slug || !userId) return next();
 
-  const requestUrl = req.originalUrl || req.url || '/';
-  const requestPath = new URL(requestUrl, 'http://localhost').pathname;
-  if (requestPath === `/connect/${slug}` || requestPath.startsWith(`/connect/${slug}/`)) {
-    return next();
-  }
+    const requestUrl = req.originalUrl || req.url || '/';
+    const requestPath = new URL(requestUrl, 'http://localhost').pathname;
+    if (requestPath === `/connect/${slug}` || requestPath.startsWith(`/connect/${slug}/`)) {
+      return next();
+    }
 
-  // Some upstream apps expose their own /connect/<id> endpoints, such as MCSM.
-  // Keep the configured target base for those paths instead of treating them as
-  // an upstream-root escape.
-  if (requestPath.startsWith('/connect/')) {
-    return res.redirect(307, `/connect/${slug}${requestUrl}`);
-  }
+    try {
+      const access = await getAccessBySlug(slug, userId);
+      if (!access?.allowed || access.connection.legacy_proxy_routing) return next();
 
-  return res.redirect(307, `/connect/${slug}/__upstream_root__${requestUrl}`);
+      if (requestPath.startsWith('/connect/')) {
+        return res.redirect(307, `/connect/${slug}${requestUrl}`);
+      }
+      return res.redirect(307, `/connect/${slug}/__upstream_root__${requestUrl}`);
+    } catch (err) {
+      return next(err);
+    }
+  };
 }
+
+const redirectRootRelativeRequest = createRedirectRootRelativeRequest();
 
 function sanitizeUpstreamResponseHeaders(proxyRes) {
   delete proxyRes.headers['content-security-policy'];
@@ -239,6 +247,7 @@ function attachWebSocketServer(server, options) {
 router.attachWebSocketServer = attachWebSocketServer;
 router.websocketRequest = websocketRequest;
 router.applyUpstreamRootPath = applyUpstreamRootPath;
+router.createRedirectRootRelativeRequest = createRedirectRootRelativeRequest;
 router.redirectRootRelativeRequest = redirectRootRelativeRequest;
 router.sanitizeUpstreamResponseHeaders = sanitizeUpstreamResponseHeaders;
 router.setUpstreamRequestHeaders = setUpstreamRequestHeaders;

@@ -25,6 +25,7 @@ test('normalizes a valid connection and removes duplicate access IDs', () => {
     description: 'Operations',
     enabled: true,
     hidden: true,
+    legacy_proxy_routing: false,
     role_ids: [2, 3],
     user_ids: ['abc_123'],
   });

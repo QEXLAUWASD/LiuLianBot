@@ -50,79 +50,35 @@ test('keeps configured target base for marked upstream internal connect paths', 
   assert.equal(req.connectionTarget.target_url, 'https://internal.example/mcsm/');
 });
 
-test('redirects root-relative HTTP requests back through the referring connection', () => {
-  const req = {
+test('uses new routing only for connections that do not opt into legacy routing', async () => {
+  const createRequest = legacyProxyRouting => ({
+    session: { user: { id: 'user-1' } },
     originalUrl: '/api/graphql?operation=GetAbout',
     url: '/api/graphql?operation=GetAbout',
-    protocol: 'http',
-    get(name) {
-      return {
-        host: 'dash.example.test',
-        referer: 'http://dash.example.test/connect/suwayomi/',
-      }[name.toLowerCase()];
-    },
-  };
-  const res = {
-    statusCode: null,
-    location: null,
-    redirect(statusCode, location) {
-      this.statusCode = statusCode;
-      this.location = location;
-    },
-  };
-
-  connectionProxy.redirectRootRelativeRequest(req, res, () => assert.fail('must redirect'));
-
-  assert.equal(res.statusCode, 307);
-  assert.equal(res.location, '/connect/suwayomi/__upstream_root__/api/graphql?operation=GetAbout');
-});
-
-test('keeps upstream internal connect paths on the configured target base', () => {
-  const req = {
-    originalUrl: '/connect/4090-mcsm-daemon/socket.io/?EIO=4&transport=polling',
-    url: '/connect/4090-mcsm-daemon/socket.io/?EIO=4&transport=polling',
     protocol: 'https',
     get(name) {
       return {
-        host: 'www.liulian.dev',
-        referer: 'https://www.liulian.dev/connect/mcsm/',
-      }[name.toLowerCase()];
-    },
-  };
-  const res = {
-    statusCode: null,
-    location: null,
-    redirect(statusCode, location) {
-      this.statusCode = statusCode;
-      this.location = location;
-    },
-  };
-
-  connectionProxy.redirectRootRelativeRequest(req, res, () => assert.fail('must redirect'));
-
-  assert.equal(res.statusCode, 307);
-  assert.equal(
-    res.location,
-    '/connect/mcsm/connect/4090-mcsm-daemon/socket.io/?EIO=4&transport=polling'
-  );
-});
-
-test('leaves root-relative requests alone without a proxied same-origin referrer', () => {
-  const req = {
-    originalUrl: '/api/auth/me',
-    url: '/api/auth/me',
-    protocol: 'http',
-    get(name) {
-      return {
         host: 'dash.example.test',
-        referer: 'http://dash.example.test/index.html',
+        referer: 'https://dash.example.test/connect/suwayomi/',
       }[name.toLowerCase()];
     },
-  };
+  });
+  const redirects = [];
+  const middleware = connectionProxy.createRedirectRootRelativeRequest(async () => ({
+    allowed: true,
+    connection: { legacy_proxy_routing: false },
+  }));
+  await middleware(createRequest(false), {
+    redirect(status, location) { redirects.push([status, location]); },
+  }, () => assert.fail('must redirect'));
+  assert.deepEqual(redirects, [[307, '/connect/suwayomi/__upstream_root__/api/graphql?operation=GetAbout']]);
+
   let continued = false;
-
-  connectionProxy.redirectRootRelativeRequest(req, {}, () => { continued = true; });
-
+  const legacyMiddleware = connectionProxy.createRedirectRootRelativeRequest(async () => ({
+    allowed: true,
+    connection: { legacy_proxy_routing: true },
+  }));
+  await legacyMiddleware(createRequest(true), {}, () => { continued = true; });
   assert.equal(continued, true);
 });
 

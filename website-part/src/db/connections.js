@@ -14,7 +14,7 @@ async function getAllConnections() {
   const p = await getPool();
   const [[connections], [roles], [users]] = await Promise.all([
     p.execute(
-      `SELECT id, name, slug, target_url, description, enabled, hidden, created_at, updated_at
+      `SELECT id, name, slug, target_url, description, enabled, hidden, legacy_proxy_routing, created_at, updated_at
        FROM website_connections ORDER BY name ASC`
     ),
     p.execute(
@@ -36,6 +36,7 @@ async function getAllConnections() {
     ...connection,
     enabled: Boolean(connection.enabled),
     hidden: Boolean(connection.hidden),
+    legacy_proxy_routing: Boolean(connection.legacy_proxy_routing),
     roles: (rolesByConnection.get(connection.id) || [])
       .map(({ id, name }) => ({ id, name })),
     users: (usersByConnection.get(connection.id) || [])
@@ -69,7 +70,7 @@ async function getConnectionAccessBySlug(slug, userId) {
   const safeUserId = validateString(userId, 'user id');
   const p = await getPool();
   const [rows] = await p.execute(
-    `SELECT c.id, c.name, c.slug, c.target_url, c.description,
+    `SELECT c.id, c.name, c.slug, c.target_url, c.description, c.legacy_proxy_routing,
             u.id AS user_id, u.username,
             EXISTS(
               SELECT 1 FROM website_user_roles aur
@@ -99,6 +100,7 @@ async function getConnectionAccessBySlug(slug, userId) {
       slug: row.slug,
       target_url: row.target_url,
       description: row.description,
+      legacy_proxy_routing: Boolean(row.legacy_proxy_routing),
     },
     user: {
       id: row.user_id,
@@ -142,8 +144,8 @@ async function createConnection(data) {
   try {
     await conn.beginTransaction();
     const [result] = await conn.execute(
-      `INSERT INTO website_connections (name, slug, target_url, description, enabled, hidden)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO website_connections (name, slug, target_url, description, enabled, hidden, legacy_proxy_routing)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         data.name,
         data.slug,
@@ -151,6 +153,7 @@ async function createConnection(data) {
         data.description,
         data.enabled ? 1 : 0,
         data.hidden ? 1 : 0,
+        data.legacy_proxy_routing ? 1 : 0,
       ]
     );
     await replaceConnectionAccess(conn, result.insertId, data.role_ids, data.user_ids);
@@ -177,7 +180,7 @@ async function updateConnection(id, data) {
     if (existing.length === 0) throw new Error('Connection not found');
     await conn.execute(
       `UPDATE website_connections
-       SET name = ?, slug = ?, target_url = ?, description = ?, enabled = ?, hidden = ?
+       SET name = ?, slug = ?, target_url = ?, description = ?, enabled = ?, hidden = ?, legacy_proxy_routing = ?
        WHERE id = ?`,
       [
         data.name,
@@ -186,6 +189,7 @@ async function updateConnection(id, data) {
         data.description,
         data.enabled ? 1 : 0,
         data.hidden ? 1 : 0,
+        data.legacy_proxy_routing ? 1 : 0,
         safeId,
       ]
     );

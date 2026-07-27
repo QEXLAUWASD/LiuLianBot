@@ -82,6 +82,9 @@ function normalizeConnectionInput(input) {
   if (input.hidden !== undefined && typeof input.hidden !== 'boolean') {
     throw new ConnectionInputError('Hidden must be a boolean');
   }
+  if (input.legacy_proxy_routing !== undefined && typeof input.legacy_proxy_routing !== 'boolean') {
+    throw new ConnectionInputError('Legacy proxy routing must be a boolean');
+  }
 
   const slug = normalizeText(input.slug, 'Slug', 50).toLowerCase();
   if (!/^[a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?$/.test(slug)) {
@@ -95,6 +98,7 @@ function normalizeConnectionInput(input) {
     description: normalizeText(input.description || '', 'Description', 255, false),
     enabled: input.enabled === undefined ? true : input.enabled === true,
     hidden: input.hidden === true,
+    legacy_proxy_routing: input.legacy_proxy_routing === true,
     role_ids: normalizeIntegerIds(input.role_ids || [], 'Role IDs'),
     user_ids: normalizeUserIds(input.user_ids || []),
   };

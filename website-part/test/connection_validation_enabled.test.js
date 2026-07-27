@@ -14,7 +14,7 @@ test('requires enabled to be a boolean when provided', () => {
   );
 });
 
-test('defaults hidden to false and requires a boolean when provided', () => {
+test('defaults hidden and legacy proxy routing to false and requires booleans when provided', () => {
   const base = {
     name: 'Dashboard',
     slug: 'dashboard',
@@ -22,8 +22,13 @@ test('defaults hidden to false and requires a boolean when provided', () => {
   };
 
   assert.equal(normalizeConnectionInput(base).hidden, false);
+  assert.equal(normalizeConnectionInput(base).legacy_proxy_routing, false);
   assert.throws(
     () => normalizeConnectionInput({ ...base, hidden: 'true' }),
     /Hidden must be a boolean/
+  );
+  assert.throws(
+    () => normalizeConnectionInput({ ...base, legacy_proxy_routing: 'true' }),
+    /Legacy proxy routing must be a boolean/
   );
 });

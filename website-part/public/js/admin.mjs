@@ -678,6 +678,7 @@ document.getElementById('createConnectionBtn').addEventListener('click', async (
   document.getElementById('editConnectionDesc').value = '';
   document.getElementById('editConnectionEnabled').checked = true;
   document.getElementById('editConnectionHidden').checked = false;
+  document.getElementById('editConnectionLegacyRouting').checked = false;
   document.getElementById('connectionEditError').textContent = '';
   renderConnectionAccessOptions(null);
   openModal('connectionEditModal');
@@ -696,6 +697,7 @@ async function openConnectionEdit(id) {
   document.getElementById('editConnectionDesc').value = connection.description || '';
   document.getElementById('editConnectionEnabled').checked = Boolean(connection.enabled);
   document.getElementById('editConnectionHidden').checked = Boolean(connection.hidden);
+  document.getElementById('editConnectionLegacyRouting').checked = Boolean(connection.legacy_proxy_routing);
   document.getElementById('connectionEditError').textContent = '';
   renderConnectionAccessOptions(connection);
   openModal('connectionEditModal');
@@ -711,6 +713,7 @@ document.getElementById('saveConnectionBtn').addEventListener('click', async eve
     description: document.getElementById('editConnectionDesc').value.trim(),
     enabled: document.getElementById('editConnectionEnabled').checked,
     hidden: document.getElementById('editConnectionHidden').checked,
+    legacy_proxy_routing: document.getElementById('editConnectionLegacyRouting').checked,
     role_ids: Array.from(
       document.querySelectorAll('input[name="connectionRole"]:checked'),
       input => Number(input.value),
