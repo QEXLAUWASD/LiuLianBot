@@ -97,6 +97,43 @@ test('removes upstream browser policy headers that do not match the proxy origin
   assert.equal(proxyRes.headers['content-type'], 'text/html');
 });
 
+test('rewrites browser origin headers for upstream CSRF checks', () => {
+  const headers = new Map([
+    ['cookie', 'llb_qbit_SID=upstream-session; connect.sid=main-session'],
+    ['origin', 'https://www.liulian.dev'],
+    ['referer', 'https://www.liulian.dev/connect/qbit/'],
+  ]);
+  const proxyReq = {
+    getHeader(name) {
+      return headers.get(name.toLowerCase());
+    },
+    setHeader(name, value) {
+      headers.set(name.toLowerCase(), value);
+    },
+    removeHeader(name) {
+      headers.delete(name.toLowerCase());
+    },
+  };
+  const req = {
+    params: { slug: 'qbit' },
+    protocol: 'https',
+    url: '/api/v2/auth/login',
+    connectionTarget: { target_url: 'http://127.0.0.1:8080/' },
+    get(name) {
+      return { host: 'www.liulian.dev' }[name.toLowerCase()];
+    },
+  };
+
+  connectionProxy.setUpstreamRequestHeaders(proxyReq, req);
+
+  assert.equal(headers.get('cookie'), 'SID=upstream-session');
+  assert.equal(headers.get('origin'), 'http://127.0.0.1:8080');
+  assert.equal(headers.get('referer'), 'http://127.0.0.1:8080/api/v2/auth/login');
+  assert.equal(headers.get('x-forwarded-host'), 'www.liulian.dev');
+  assert.equal(headers.get('x-forwarded-proto'), 'https');
+  assert.equal(headers.get('x-forwarded-prefix'), '/connect/qbit');
+});
+
 test('rejects a WebSocket upgrade without a signed session cookie', async () => {
   const server = http.createServer();
   connectionProxy.attachWebSocketServer(server, {

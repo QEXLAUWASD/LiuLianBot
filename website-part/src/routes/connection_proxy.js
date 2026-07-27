@@ -28,9 +28,17 @@ function setUpstreamRequestHeaders(proxyReq, req, websocket = false) {
   if (cookies) proxyReq.setHeader('cookie', cookies);
   else proxyReq.removeHeader('cookie');
   proxyReq.setHeader('x-forwarded-prefix', `/connect/${req.params.slug}`);
+  if (req.get('host')) proxyReq.setHeader('x-forwarded-host', req.get('host'));
+  if (req.protocol) proxyReq.setHeader('x-forwarded-proto', req.protocol);
 
-  if (websocket && proxyReq.getHeader('origin')) {
-    proxyReq.setHeader('origin', new URL(req.connectionTarget.target_url).origin);
+  const target = new URL(req.connectionTarget.target_url);
+  const upstreamRequestUrl = new URL(req.url || '/', target);
+
+  if (proxyReq.getHeader('origin')) {
+    proxyReq.setHeader('origin', target.origin);
+  }
+  if (!websocket && proxyReq.getHeader('referer')) {
+    proxyReq.setHeader('referer', upstreamRequestUrl.href);
   }
 }
 
@@ -216,5 +224,6 @@ router.websocketRequest = websocketRequest;
 router.applyUpstreamRootPath = applyUpstreamRootPath;
 router.redirectRootRelativeRequest = redirectRootRelativeRequest;
 router.sanitizeUpstreamResponseHeaders = sanitizeUpstreamResponseHeaders;
+router.setUpstreamRequestHeaders = setUpstreamRequestHeaders;
 
 module.exports = router;
