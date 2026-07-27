@@ -80,6 +80,13 @@ function redirectRootRelativeRequest(req, res, next) {
     return next();
   }
 
+  // Some upstream apps expose their own /connect/<id> endpoints, such as MCSM.
+  // Keep the configured target base for those paths instead of treating them as
+  // an upstream-root escape.
+  if (requestPath.startsWith('/connect/')) {
+    return res.redirect(307, `/connect/${slug}${requestUrl}`);
+  }
+
   return res.redirect(307, `/connect/${slug}/__upstream_root__${requestUrl}`);
 }
 

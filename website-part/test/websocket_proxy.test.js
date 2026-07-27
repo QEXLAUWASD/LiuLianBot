@@ -60,6 +60,36 @@ test('redirects root-relative HTTP requests back through the referring connectio
   assert.equal(res.location, '/connect/suwayomi/__upstream_root__/api/graphql?operation=GetAbout');
 });
 
+test('keeps upstream internal connect paths on the configured target base', () => {
+  const req = {
+    originalUrl: '/connect/4090-mcsm-daemon/socket.io/?EIO=4&transport=polling',
+    url: '/connect/4090-mcsm-daemon/socket.io/?EIO=4&transport=polling',
+    protocol: 'https',
+    get(name) {
+      return {
+        host: 'www.liulian.dev',
+        referer: 'https://www.liulian.dev/connect/mcsm/',
+      }[name.toLowerCase()];
+    },
+  };
+  const res = {
+    statusCode: null,
+    location: null,
+    redirect(statusCode, location) {
+      this.statusCode = statusCode;
+      this.location = location;
+    },
+  };
+
+  connectionProxy.redirectRootRelativeRequest(req, res, () => assert.fail('must redirect'));
+
+  assert.equal(res.statusCode, 307);
+  assert.equal(
+    res.location,
+    '/connect/mcsm/connect/4090-mcsm-daemon/socket.io/?EIO=4&transport=polling'
+  );
+});
+
 test('leaves root-relative requests alone without a proxied same-origin referrer', () => {
   const req = {
     originalUrl: '/api/auth/me',
