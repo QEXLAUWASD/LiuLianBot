@@ -13,6 +13,7 @@ async function startServer() {
   const admin = require('./routes/admin');
   const adminConnections = require('./routes/admin_connections');
   const connections = require('./routes/connections');
+  const mobileConnections = require('./routes/mobile_connections');
   const events = require('./routes/events');
   const connectionProxy = require('./routes/connection_proxy');
   const sessionStore = new MySqlSessionStore();
@@ -25,6 +26,7 @@ async function startServer() {
       admin,
       adminConnections,
       connections,
+      mobileConnections,
       events,
       connectionProxy,
     },

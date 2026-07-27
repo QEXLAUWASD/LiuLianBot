@@ -7,6 +7,31 @@ import { JSDOM } from 'jsdom';
 
 const publicDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../public');
 
+test('pages expose install metadata for iPhone and iPad home screen shortcuts', async () => {
+  const pageNames = ['login.html', 'index.html', 'account.html', 'roller.html', 'admin.html', 'events.html', '404.html'];
+
+  for (const pageName of pageNames) {
+    const html = await readFile(resolve(publicDir, pageName), 'utf8');
+    const document = new JSDOM(html).window.document;
+
+    assert.equal(document.querySelector('link[rel="manifest"]')?.getAttribute('href'), '/manifest.webmanifest');
+    assert.equal(document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href'), '/img/apple-touch-icon.png');
+    assert.equal(document.querySelector('meta[name="theme-color"]')?.getAttribute('content'), '#1c6ba0');
+    assert.equal(document.querySelector('meta[name="apple-mobile-web-app-capable"]')?.getAttribute('content'), 'yes');
+    assert.equal(document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute('content'), 'LiuLianBot');
+  }
+
+  const manifest = JSON.parse(await readFile(resolve(publicDir, 'manifest.webmanifest'), 'utf8'));
+  assert.equal(manifest.name, 'LiuLianBot');
+  assert.equal(manifest.display, 'standalone');
+  assert.equal(manifest.start_url, '/index.html');
+
+  for (const icon of ['apple-touch-icon.png', 'icon-192.png', 'icon-512.png']) {
+    const data = await readFile(resolve(publicDir, 'img', icon));
+    assert.ok(data.length > 0, `${icon} should exist`);
+  }
+});
+
 test('tab pages use shared classes and complete live-region semantics', async () => {
   for (const pageName of ['login.html', 'roller.html', 'admin.html']) {
     const html = await readFile(resolve(publicDir, pageName), 'utf8');

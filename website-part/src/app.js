@@ -35,6 +35,7 @@ function createApp({ sessionOptions, routers }) {
   if (routers.events) app.use('/api/events', routers.events);
   app.use('/api/admin', routers.admin);
   app.use('/api/connections', routers.connections);
+  if (routers.mobileConnections) app.use('/api/mobile', routers.mobileConnections);
 
   app.get('/roller.html', (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'roller.html'));
