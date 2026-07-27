@@ -10,6 +10,7 @@ const {
 test('forwards only cookies belonging to the selected connection', () => {
   const header = [
     'connect.sid=main-session',
+    'SID=qbit-session',
     'llb_reports_session=upstream-session',
     'llb_reports_theme=dark',
     'llb_other_session=wrong-target',
@@ -17,7 +18,7 @@ test('forwards only cookies belonging to the selected connection', () => {
 
   assert.equal(
     getUpstreamCookies(header, 'reports'),
-    'session=upstream-session; theme=dark'
+    'SID=qbit-session; session=upstream-session; theme=dark'
   );
 });
 
@@ -30,14 +31,14 @@ test('isolates upstream cookies and maps a target base path', () => {
 
   assert.equal(
     result,
-    'llb_reports_connect.sid=abc; Path=/connect/reports/; HttpOnly; SameSite=Lax'
+    'connect.sid=abc; Path=/connect/reports/; HttpOnly; SameSite=Lax'
   );
 });
 
 test('adds a proxy-scoped path when an upstream cookie has no path', () => {
   assert.equal(
     rewriteSetCookie('theme=dark; Secure', 'reports', 'https://internal.example/'),
-    'llb_reports_theme=dark; Secure; Path=/connect/reports/'
+    'theme=dark; Secure; Path=/connect/reports/'
   );
 });
 

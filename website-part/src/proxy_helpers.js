@@ -4,8 +4,12 @@ function getUpstreamCookies(cookieHeader, slug) {
   return cookieHeader
     .split(';')
     .map(part => part.trim())
-    .filter(part => part.startsWith(prefix) && part.includes('='))
-    .map(part => part.slice(prefix.length))
+    .filter(part => {
+      if (!part.includes('=') || part.startsWith('connect.sid=')) return false;
+      if (part.startsWith(prefix)) return true;
+      return !/^llb_[a-z0-9-]+_/i.test(part);
+    })
+    .map(part => part.startsWith(prefix) ? part.slice(prefix.length) : part)
     .join('; ');
 }
 
@@ -13,7 +17,7 @@ function rewriteSetCookie(cookie, slug, targetUrl) {
   const proxyBase = `/connect/${slug}`;
   const parts = cookie.split(';').map(part => part.trim());
   const [nameValue, ...attributes] = parts;
-  const rewritten = [`llb_${slug}_${nameValue}`];
+  const rewritten = [nameValue];
   const targetPath = new URL(targetUrl).pathname.replace(/\/$/, '');
   let hasPath = false;
 
