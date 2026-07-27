@@ -45,12 +45,22 @@ function setUpstreamRequestHeaders(proxyReq, req, websocket = false) {
 function applyUpstreamRootPath(req) {
   const marker = '/__upstream_root__';
   if (req.url !== marker && !req.url.startsWith(`${marker}/`)) return;
+  const upstreamPath = req.url.slice(marker.length) || '/';
+
+  // MCSM exposes daemon Socket.IO endpoints under /connect/<daemon>. Those
+  // paths belong to the configured target base, even when an older client has
+  // already routed them through the upstream-root marker.
+  if (upstreamPath.startsWith('/connect/')) {
+    req.url = upstreamPath;
+    return;
+  }
+
   const target = new URL(req.connectionTarget.target_url);
   req.connectionTarget = {
     ...req.connectionTarget,
     target_url: target.origin,
   };
-  req.url = req.url.slice(marker.length) || '/';
+  req.url = upstreamPath;
 }
 
 function referrerConnectionSlug(req) {

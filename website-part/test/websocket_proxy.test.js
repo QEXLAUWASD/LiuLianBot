@@ -33,6 +33,23 @@ test('maps upstream-root markers without mutating the configured connection', ()
   assert.equal(configured.target_url, 'https://internal.example/app/');
 });
 
+test('keeps configured target base for marked upstream internal connect paths', () => {
+  const configured = {
+    id: 1,
+    target_url: 'https://internal.example/mcsm/',
+  };
+  const req = {
+    url: '/__upstream_root__/connect/4090-mcsm-daemon/socket.io/?EIO=4',
+    connectionTarget: configured,
+  };
+
+  connectionProxy.applyUpstreamRootPath(req);
+
+  assert.equal(req.url, '/connect/4090-mcsm-daemon/socket.io/?EIO=4');
+  assert.equal(req.connectionTarget, configured);
+  assert.equal(req.connectionTarget.target_url, 'https://internal.example/mcsm/');
+});
+
 test('redirects root-relative HTTP requests back through the referring connection', () => {
   const req = {
     originalUrl: '/api/graphql?operation=GetAbout',
