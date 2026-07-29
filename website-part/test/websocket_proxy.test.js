@@ -137,6 +137,36 @@ test('rewrites browser origin headers for upstream CSRF checks', () => {
   assert.equal(headers.get('x-forwarded-prefix'), '/connect/qbit');
 });
 
+test('supports native WebSocket upgrade requests without Express helpers', () => {
+  const headers = new Map([
+    ['cookie', 'connect.sid=main-session'],
+    ['origin', 'https://www.liulian.dev'],
+    ['referer', 'https://www.liulian.dev/connect/suwayomi/api/v1/webview'],
+  ]);
+  const proxyReq = {
+    getHeader(name) { return headers.get(name.toLowerCase()); },
+    setHeader(name, value) { headers.set(name.toLowerCase(), value); },
+    removeHeader(name) { headers.delete(name.toLowerCase()); },
+  };
+  const req = {
+    params: { slug: 'suwayomi' },
+    url: '/api/v1/webview',
+    headers: {
+      host: 'www.liulian.dev',
+      'x-forwarded-proto': 'https',
+    },
+    socket: { encrypted: false },
+    connectionTarget: { target_url: 'http://192.168.0.1:4567/connect/suwayomi/' },
+  };
+
+  connectionProxy.setUpstreamRequestHeaders(proxyReq, req, true);
+
+  assert.equal(headers.get('origin'), 'http://192.168.0.1:4567');
+  assert.equal(headers.get('referer'), 'https://www.liulian.dev/connect/suwayomi/api/v1/webview');
+  assert.equal(headers.get('x-forwarded-host'), 'www.liulian.dev');
+  assert.equal(headers.get('x-forwarded-proto'), 'https');
+});
+
 test('rejects a WebSocket upgrade without a signed session cookie', async () => {
   const server = http.createServer();
   connectionProxy.attachWebSocketServer(server, {

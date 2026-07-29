@@ -23,13 +23,27 @@ router.use((req, res, next) => {
   return next();
 });
 
+function requestHeader(req, name) {
+  if (typeof req.get === 'function') return req.get(name);
+  const value = req.headers?.[name.toLowerCase()];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function forwardedValue(value) {
+  return typeof value === 'string' ? value.split(',', 1)[0].trim() : value;
+}
+
 function setUpstreamRequestHeaders(proxyReq, req, websocket = false) {
   const cookies = getUpstreamCookies(proxyReq.getHeader('cookie'), req.params.slug);
   if (cookies) proxyReq.setHeader('cookie', cookies);
   else proxyReq.removeHeader('cookie');
   proxyReq.setHeader('x-forwarded-prefix', `/connect/${req.params.slug}`);
-  if (req.get('host')) proxyReq.setHeader('x-forwarded-host', req.get('host'));
-  if (req.protocol) proxyReq.setHeader('x-forwarded-proto', req.protocol);
+  const host = forwardedValue(requestHeader(req, 'x-forwarded-host')) || requestHeader(req, 'host');
+  const protocol = req.protocol
+    || forwardedValue(requestHeader(req, 'x-forwarded-proto'))
+    || (req.socket?.encrypted ? 'https' : 'http');
+  if (host) proxyReq.setHeader('x-forwarded-host', host);
+  if (protocol) proxyReq.setHeader('x-forwarded-proto', protocol);
 
   const target = new URL(req.connectionTarget.target_url);
   const upstreamRequestUrl = new URL(req.url || '/', target);
