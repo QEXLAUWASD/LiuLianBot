@@ -63,6 +63,19 @@ function applyUpstreamRootPath(req) {
   req.url = upstreamPath;
 }
 
+function applyNewWebSocketRouting(req) {
+  if (req.connectionTarget.legacy_proxy_routing || (req.url || '/').startsWith('/connect/')) return;
+
+  // Browsers do not follow redirects for WebSocket upgrades. In the new proxy
+  // mode, dynamically created root-relative sockets must therefore be sent to
+  // the upstream origin directly instead of the configured target base path.
+  const target = new URL(req.connectionTarget.target_url);
+  req.connectionTarget = {
+    ...req.connectionTarget,
+    target_url: target.origin,
+  };
+}
+
 function referrerConnectionSlug(req) {
   const header = req.get('referer') || req.get('referrer');
   if (!header) return null;
@@ -236,6 +249,7 @@ function attachWebSocketServer(server, options) {
       req.connectionUser = access.user;
       req.url = request.upstreamUrl;
       applyUpstreamRootPath(req);
+      applyNewWebSocketRouting(req);
       proxy.upgrade(req, socket, head);
     } catch (err) {
       console.error('[ConnectionProxy] WebSocket authorization error:', err);
@@ -247,6 +261,7 @@ function attachWebSocketServer(server, options) {
 router.attachWebSocketServer = attachWebSocketServer;
 router.websocketRequest = websocketRequest;
 router.applyUpstreamRootPath = applyUpstreamRootPath;
+router.applyNewWebSocketRouting = applyNewWebSocketRouting;
 router.createRedirectRootRelativeRequest = createRedirectRootRelativeRequest;
 router.redirectRootRelativeRequest = redirectRootRelativeRequest;
 router.sanitizeUpstreamResponseHeaders = sanitizeUpstreamResponseHeaders;
