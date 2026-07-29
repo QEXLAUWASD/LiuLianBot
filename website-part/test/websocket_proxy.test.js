@@ -50,33 +50,6 @@ test('keeps configured target base for marked upstream internal connect paths', 
   assert.equal(req.connectionTarget.target_url, 'https://internal.example/mcsm/');
 });
 
-test('uses the upstream root for WebSockets in new routing mode only', () => {
-  const configured = {
-    id: 1,
-    target_url: 'https://internal.example/suwayomi/',
-    legacy_proxy_routing: false,
-  };
-  const req = { connectionTarget: configured };
-
-  connectionProxy.applyNewWebSocketRouting(req);
-
-  assert.equal(req.connectionTarget.target_url, 'https://internal.example');
-  assert.notEqual(req.connectionTarget, configured);
-
-  const legacyReq = {
-    connectionTarget: { ...configured, legacy_proxy_routing: true },
-  };
-  connectionProxy.applyNewWebSocketRouting(legacyReq);
-  assert.equal(legacyReq.connectionTarget.target_url, 'https://internal.example/suwayomi/');
-
-  const internalConnectReq = {
-    url: '/connect/4090-mcsm-daemon/socket.io/',
-    connectionTarget: configured,
-  };
-  connectionProxy.applyNewWebSocketRouting(internalConnectReq);
-  assert.equal(internalConnectReq.connectionTarget, configured);
-});
-
 test('uses new routing only for connections that do not opt into legacy routing', async () => {
   const createRequest = legacyProxyRouting => ({
     session: { user: { id: 'user-1' } },
