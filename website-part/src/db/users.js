@@ -4,7 +4,7 @@ async function findUserByUsername(username) {
   const safe = validateString(username, 'username');
   const p = await getPool();
   const [rows] = await p.execute(
-    `SELECT u.id, u.username, u.password, u.role_id, u.created_at,
+    `SELECT u.id, u.username, u.password, u.role_id, u.created_at, u.terms_accepted_at, u.terms_version,
             CASE
               WHEN EXISTS (
                 SELECT 1 FROM website_user_roles aur
@@ -24,7 +24,7 @@ async function findUserByUsername(username) {
   return rows.length > 0 ? rows[0] : null;
 }
 
-async function createUser(id, username, hashedPassword) {
+async function createUser(id, username, hashedPassword, termsVersion = null) {
   const safeId = validateString(id, 'id');
   const safeUsername = validateString(username, 'username');
   if (typeof hashedPassword !== 'string' || hashedPassword.length === 0) {
@@ -40,8 +40,9 @@ async function createUser(id, username, hashedPassword) {
     );
     const defaultRoleId = roleRows.length > 0 ? roleRows[0].id : null;
     await conn.execute(
-      'INSERT INTO website_users (id, username, password, role_id) VALUES (?, ?, ?, ?)',
-      [safeId, safeUsername, hashedPassword, defaultRoleId]
+      `INSERT INTO website_users (id, username, password, role_id, terms_accepted_at, terms_version)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [safeId, safeUsername, hashedPassword, defaultRoleId, termsVersion ? new Date() : null, termsVersion]
     );
     if (defaultRoleId !== null) {
       await conn.execute(
@@ -68,7 +69,7 @@ async function findUserById(id) {
   const safe = validateString(id, 'id');
   const p = await getPool();
   const [rows] = await p.execute(
-    `SELECT u.id, u.username, u.role_id, u.created_at,
+    `SELECT u.id, u.username, u.role_id, u.created_at, u.terms_accepted_at, u.terms_version,
             u.discord_user_id,
             CASE
               WHEN EXISTS (
@@ -86,6 +87,27 @@ async function findUserById(id) {
     [safe]
   );
   return rows.length > 0 ? rows[0] : null;
+}
+
+async function getUserRoleNames(userId) {
+  const safeUserId = validateString(userId, 'user id');
+  const p = await getPool();
+  const [rows] = await p.execute(
+    `SELECT r.name
+     FROM website_user_roles ur
+     JOIN website_roles r ON r.id = ur.role_id
+     WHERE ur.user_id = ?`,
+    [safeUserId]
+  );
+  return rows.map(row => row.name);
+}
+
+async function acceptTerms(userId, termsVersion) {
+  const p = await getPool();
+  await p.execute(
+    'UPDATE website_users SET terms_accepted_at = CURRENT_TIMESTAMP, terms_version = ? WHERE id = ?',
+    [validateString(termsVersion, 'terms version'), validateString(userId, 'user id')]
+  );
 }
 
 async function findUserByDiscordId(discordUserId) {
@@ -285,6 +307,8 @@ async function deleteUser(userId) {
 module.exports = {
   findUserByUsername,
   findUserById,
+  getUserRoleNames,
+  acceptTerms,
   findUserCredentialsById,
   createUser,
   updateUsername,

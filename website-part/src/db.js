@@ -7,4 +7,5 @@ module.exports = {
   ...require('./db/events'),
   ...require('./db/stats'),
   ...require('./db/announcements'),
+  ...require('./db/remote_profiles'),
 };

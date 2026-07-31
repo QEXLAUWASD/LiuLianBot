@@ -53,6 +53,10 @@
           <label for="regPassword">Password</label>
           <input type="password" id="regPassword" placeholder="6-128 characters" required minlength="6" maxlength="128" autocomplete="new-password">
         </div>
+        <label class="remember-row" for="termsAccepted">
+          <input type="checkbox" id="termsAccepted" required>
+          <span>我已閱讀並同意<a href="/terms.html" target="_blank" rel="noopener">服務條款與隱私權說明</a>。</span>
+        </label>
         <div class="error-msg" id="regError" role="alert" aria-live="assertive"></div>
         <button type="submit" class="btn btn-primary">Register</button>
       </form>

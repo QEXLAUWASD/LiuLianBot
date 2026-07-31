@@ -1,9 +1,9 @@
 const express = require('express');
-const { requireApiAuth } = require('../middleware/auth');
+const { requireRemoteAccess } = require('../middleware/remote_auth');
 const { RemoteInputError, normalizeRdpInput } = require('../services/remote_validation');
 
 const router = express.Router();
-router.use(requireApiAuth);
+router.use(requireRemoteAccess);
 
 function rdpFile({ host, port, username, domain }) {
   const lines = [

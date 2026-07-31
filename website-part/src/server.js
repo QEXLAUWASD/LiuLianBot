@@ -17,6 +17,7 @@ async function startServer() {
   const mobileConnections = require('./routes/mobile_connections');
   const events = require('./routes/events');
   const rdp = require('./routes/rdp');
+  const remoteProfile = require('./routes/remote_profile');
   const connectionProxy = require('./routes/connection_proxy');
   const sessionStore = new MySqlSessionStore();
   const sessionOptions = buildSessionOptions(process.env, sessionStore);
@@ -31,6 +32,7 @@ async function startServer() {
       mobileConnections,
       events,
       rdp,
+      remoteProfile,
       connectionProxy,
     },
   });

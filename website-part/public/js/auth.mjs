@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (data?.success) {
-          window.location.href = postAuthDestination();
+          window.location.href = data.termsRequired ? '/terms.html?next=/index.html' : postAuthDestination();
         } else {
           errorEl.textContent = 'Login failed';
         }
@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitButton = form.querySelector('button[type="submit"]');
     const username = document.getElementById('regUsername').value.trim();
     const password = document.getElementById('regPassword').value;
+    const termsAccepted = document.getElementById('termsAccepted').checked;
     const errorEl = document.getElementById('regError');
 
     errorEl.textContent = '';
@@ -65,13 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
       errorEl.textContent = 'Password must be at least 6 characters';
       return;
     }
+    if (!termsAccepted) {
+      errorEl.textContent = 'You must accept the Terms of Service and Privacy Policy';
+      return;
+    }
 
     await withBusyControl(submitButton, async () => {
       try {
         const data = await requestJSON('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, password, termsAccepted }),
         });
 
         if (data?.success) {

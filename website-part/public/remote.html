@@ -11,7 +11,7 @@
   <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
   <main class="main-content remote-page">
     <h2>遠端連線</h2>
-    <p class="remote-desc">SSH 憑證只會用於目前連線，不會儲存在 LiuLianBot。</p>
+    <p class="remote-desc">可選擇只在此瀏覽器或以加密方式儲存於伺服器。SSH 密碼一律不會儲存。</p>
     <div class="remote-grid">
       <section class="remote-panel" aria-labelledby="sshHeading">
         <div class="remote-panel-heading"><h3 id="sshHeading">SSH 終端機</h3><span id="sshStatus" class="status-msg" role="status" aria-live="polite"></span></div>
@@ -22,6 +22,8 @@
           <label>驗證方式<select id="sshAuthType"><option value="password">密碼</option><option value="key">私密金鑰</option></select></label>
           <label id="sshPasswordLabel">密碼<input id="sshPassword" type="password" maxlength="512" autocomplete="current-password"></label>
           <label id="sshKeyLabel" hidden>私密金鑰<textarea id="sshKey" rows="4" maxlength="16384" spellcheck="false"></textarea></label>
+          <label>設定儲存位置<select id="sshStorage"><option value="browser">此瀏覽器</option><option value="server">伺服器（加密）</option></select></label>
+          <div class="remote-actions"><button class="btn btn-outline" id="saveSsh" type="button">儲存 SSH 設定</button></div>
           <div class="remote-actions"><button class="btn btn-primary" id="sshConnect" type="submit">連線</button><button class="btn btn-outline" id="sshDisconnect" type="button" disabled>中斷</button></div>
         </form>
         <pre id="sshTerminal" class="ssh-terminal" tabindex="0" aria-label="SSH terminal">尚未連線。</pre>
@@ -35,8 +37,10 @@
           <label>連接埠<input id="rdpPort" type="number" min="1" max="65535" value="3389"></label>
           <label>使用者名稱<input id="rdpUsername" required maxlength="256" autocomplete="username"></label>
           <label>網域（選填）<input id="rdpDomain" maxlength="256" autocomplete="off"></label>
+          <label>設定儲存位置<select id="rdpStorage"><option value="browser">此瀏覽器</option><option value="server">伺服器（加密）</option></select></label>
           <div id="rdpStatus" class="status-msg" role="status" aria-live="polite"></div>
-          <div class="remote-actions"><button class="btn btn-primary" type="submit">下載 RDP 檔案</button></div>
+          <div class="remote-actions"><button class="btn btn-outline" id="saveRdp" type="button">儲存 RDP 設定</button><button class="btn btn-primary" type="submit">下載 RDP 檔案</button></div>
+          <div class="remote-actions"><button class="btn btn-danger" id="deleteServerProfile" type="button">刪除伺服器儲存資料</button></div>
         </form>
       </section>
     </div>

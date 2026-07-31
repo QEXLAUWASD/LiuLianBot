@@ -24,6 +24,8 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 使用 MySQL 儲存 Session、限制登入嘗試，並會自動執行網站 migration
 - R6 活動頁面：建立活動、查看報名人數、加入或退出活動
 - 網站帳戶可產生一次性代碼，連結 Discord 身分後可共用活動報名資料
+- 記錄網站資料儲存同意；SSH/RDP 遠端功能可限制畀指定用戶群組
+- 提供 SSH 終端機及 RDP 連線檔，設定可選擇只保存喺瀏覽器或以 AES-256-GCM 加密保存喺伺服器
 
 ## 專案結構
 
@@ -157,6 +159,29 @@ npm ci
 npm start
 ```
 
+### 遠端用戶端設定
+
+遠端頁面只開放畀 `REMOTE_ALLOWED_GROUPS` 內嘅網站用戶群組（預設係 `admin`）。請設定可用群組；喺非受信任網絡，亦應限制網站伺服器可連去嘅 SSH 主機：
+
+```env
+REMOTE_ALLOWED_GROUPS=admin,server-operator
+SSH_ALLOWED_HOSTS=server.example.com,10.0.0.5
+```
+
+如要啟用伺服器端加密保存 SSH 主機資訊／私密金鑰及 RDP 連線資訊，請產生並安全保存一個 32-byte 金鑰。SSH 密碼絕不會被保存。
+
+```bash
+openssl rand -base64 32
+```
+
+將輸出填入 `website-part/.env`：
+
+```env
+REMOTE_CREDENTIAL_ENCRYPTION_KEY=<generated-base64-key>
+```
+
+加密設定仍存在時，唔好遺失或更換此金鑰，否則無法解密舊資料。未設定金鑰時，用戶仍可保存到瀏覽器，但伺服器端保存會被停用。
+
 Windows PowerShell：
 
 ```powershell
@@ -199,12 +224,14 @@ npm test
 - 請使用只擁有本程式所需權限嘅專用 MySQL 帳戶。
 - 喺受信任嘅本機網絡以外部署網站時，請使用 HTTPS 同安全嘅 Session Cookie 設定。
 - 只好設定你信任嘅代理目標；已授權用戶可以經 `/connect/<slug>/` 存取獲分配嘅連線。
+- 生產環境應設定 `SSH_ALLOWED_HOSTS`。留空代表容許連去網站伺服器可到達嘅任何主機。
+- 將 `REMOTE_CREDENTIAL_ENCRYPTION_KEY` 保留喺原始碼管理以外並安全備份；佢保護已保存嘅 SSH 私密金鑰及 RDP 連線資訊。
 
 ## 依賴套件
 
 Discord Bot 嘅依賴已列喺 `discord-part/requirements.txt`。網站嘅依賴同 lockfile 喺 `website-part/package.json` 同 `website-part/package-lock.json`。
 
-主要執行期套件包括 `discord.py`、`PyMySQL`、`Express`、`express-session`、`express-rate-limit`、`bcryptjs`、`mysql2` 同 `http-proxy-middleware`。
+主要執行期套件包括 `discord.py`、`PyMySQL`、`Express`、`express-session`、`express-rate-limit`、`bcryptjs`、`mysql2`、`http-proxy-middleware`、`ssh2` 同 `ws`。
 
 ## 授權
 

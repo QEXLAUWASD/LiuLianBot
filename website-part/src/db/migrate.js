@@ -266,6 +266,29 @@ const MIGRATIONS = [
       );
     },
   },
+  {
+    version: '011',
+    name: 'terms acceptance and encrypted remote profiles',
+    async up(conn) {
+      await addColumnIfMissing(
+        conn,
+        'ALTER TABLE website_users ADD COLUMN terms_accepted_at DATETIME DEFAULT NULL'
+      );
+      await addColumnIfMissing(
+        conn,
+        "ALTER TABLE website_users ADD COLUMN terms_version VARCHAR(32) DEFAULT NULL"
+      );
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_remote_profiles (
+          user_id VARCHAR(30) PRIMARY KEY,
+          encrypted_data MEDIUMTEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES website_users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

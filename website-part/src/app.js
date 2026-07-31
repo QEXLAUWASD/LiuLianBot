@@ -6,6 +6,7 @@ const path = require('path');
 const { requirePageAuth } = require('./middleware/auth');
 const { AUTH_RATE_LIMIT } = require('./middleware/auth_rate_limit');
 const { requireAdmin } = require('./middleware/admin_auth');
+const { requireRemotePageAccess } = require('./middleware/remote_auth');
 const { requestContext } = require('./middleware/request_context');
 const { errorHandler } = require('./middleware/error_handler');
 
@@ -24,7 +25,7 @@ function createApp({ sessionOptions, routers }) {
     app.use(routers.connectionProxy.redirectRootRelativeRequest);
   }
   app.use('/api', requestContext);
-  app.use('/api', express.json({ limit: '16kb' }));
+  app.use('/api', express.json({ limit: '32kb' }));
   app.use('/api', express.urlencoded({ extended: false, limit: '16kb' }));
   app.use('/api/admin/connections', routers.adminConnections);
   const authRateLimiter = rateLimit(AUTH_RATE_LIMIT);
@@ -36,6 +37,7 @@ function createApp({ sessionOptions, routers }) {
   app.use('/api/admin', routers.admin);
   app.use('/api/connections', routers.connections);
   if (routers.rdp) app.use('/api/rdp', routers.rdp);
+  if (routers.remoteProfile) app.use('/api/remote-profile', routers.remoteProfile);
   if (routers.mobileConnections) app.use('/api/mobile', routers.mobileConnections);
 
   app.get('/roller.html', (req, res) => {
@@ -50,8 +52,11 @@ function createApp({ sessionOptions, routers }) {
   app.get('/events.html', requirePageAuth, (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'events.html'));
   });
-  app.get('/remote.html', requirePageAuth, (req, res) => {
+  app.get('/remote.html', requireRemotePageAccess, (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'remote.html'));
+  });
+  app.get('/terms.html', (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'terms.html'));
   });
   app.get('/admin.html', requirePageAuth, requireAdmin, (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));

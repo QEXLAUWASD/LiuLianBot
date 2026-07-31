@@ -1,9 +1,85 @@
+import { requestJSON } from './api_client.mjs';
+
+const BROWSER_PROFILE_KEY = 'liulianbot.remote-profile.v1';
 const refs = Object.fromEntries([
   'sshForm', 'sshHost', 'sshPort', 'sshUsername', 'sshAuthType', 'sshPasswordLabel', 'sshPassword',
   'sshKeyLabel', 'sshKey', 'sshConnect', 'sshDisconnect', 'sshStatus', 'sshTerminal', 'sshInput',
-  'rdpForm', 'rdpHost', 'rdpPort', 'rdpUsername', 'rdpDomain', 'rdpStatus',
+  'sshStorage', 'saveSsh', 'rdpForm', 'rdpHost', 'rdpPort', 'rdpUsername', 'rdpDomain', 'rdpStatus',
+  'rdpStorage', 'saveRdp', 'deleteServerProfile',
 ].map(id => [id, document.getElementById(id)]));
 let socket = null;
+let serverProfile = { ssh: null, rdp: null };
+let serverStorageAvailable = false;
+
+function profileFromFields(type) {
+  if (type === 'ssh') {
+    return { host: refs.sshHost.value.trim(), port: refs.sshPort.value, username: refs.sshUsername.value.trim(), privateKey: refs.sshKey.value };
+  }
+  return { host: refs.rdpHost.value.trim(), port: refs.rdpPort.value, username: refs.rdpUsername.value.trim(), domain: refs.rdpDomain.value.trim() };
+}
+
+function fillFields(type, profile) {
+  if (!profile) return;
+  const fields = type === 'ssh'
+    ? { host: refs.sshHost, port: refs.sshPort, username: refs.sshUsername, privateKey: refs.sshKey }
+    : { host: refs.rdpHost, port: refs.rdpPort, username: refs.rdpUsername, domain: refs.rdpDomain };
+  Object.entries(fields).forEach(([key, field]) => { if (profile[key] !== undefined) field.value = profile[key]; });
+  if (type === 'ssh' && profile.privateKey) {
+    refs.sshAuthType.value = 'key';
+    refs.sshAuthType.dispatchEvent(new Event('change'));
+  }
+}
+
+function browserProfile() {
+  try { return JSON.parse(localStorage.getItem(BROWSER_PROFILE_KEY)) || { ssh: null, rdp: null }; } catch (_) { return { ssh: null, rdp: null }; }
+}
+
+function saveBrowserProfile(profile) {
+  localStorage.setItem(BROWSER_PROFILE_KEY, JSON.stringify(profile));
+}
+
+function setServerOptionEnabled(enabled) {
+  [refs.sshStorage, refs.rdpStorage].forEach(select => {
+    const option = select.querySelector('option[value="server"]');
+    option.disabled = !enabled;
+    if (!enabled && select.value === 'server') select.value = 'browser';
+  });
+}
+
+async function loadSavedProfiles() {
+  fillFields('ssh', browserProfile().ssh);
+  fillFields('rdp', browserProfile().rdp);
+  try {
+    const data = await requestJSON('/api/remote-profile');
+    serverStorageAvailable = Boolean(data.serverStorageAvailable);
+    serverProfile = data.profile || serverProfile;
+    setServerOptionEnabled(serverStorageAvailable);
+  } catch (_) {
+    setServerOptionEnabled(false);
+  }
+}
+
+async function saveProfile(type) {
+  const storage = type === 'ssh' ? refs.sshStorage.value : refs.rdpStorage.value;
+  const profile = profileFromFields(type);
+  const status = type === 'ssh' ? refs.sshStatus : refs.rdpStatus;
+  try {
+    if (storage === 'browser') {
+      const saved = browserProfile();
+      saved[type] = profile;
+      saveBrowserProfile(saved);
+    } else {
+      if (!serverStorageAvailable) throw new Error('伺服器加密儲存尚未設定');
+      serverProfile[type] = profile;
+      await requestJSON('/api/remote-profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(serverProfile) });
+    }
+    status.textContent = '設定已儲存。';
+    status.className = 'status-msg status-success';
+  } catch (error) {
+    status.textContent = error.message || '無法儲存設定。';
+    status.className = 'status-msg status-error';
+  }
+}
 
 function sshUrl() {
   return `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/api/ssh`;
@@ -66,6 +142,7 @@ refs.sshDisconnect.addEventListener('click', () => {
   socket?.send(JSON.stringify({ type: 'disconnect' }));
   disconnect();
 });
+refs.saveSsh.addEventListener('click', () => saveProfile('ssh'));
 refs.sshInput.addEventListener('keydown', event => {
   if (event.key !== 'Enter' || !socket) return;
   socket.send(JSON.stringify({ type: 'input', data: `${refs.sshInput.value}\n` }));
@@ -93,3 +170,18 @@ refs.rdpForm.addEventListener('submit', async event => {
     refs.rdpStatus.className = 'status-msg status-error';
   }
 });
+
+refs.saveRdp.addEventListener('click', () => saveProfile('rdp'));
+refs.deleteServerProfile.addEventListener('click', async () => {
+  try {
+    await requestJSON('/api/remote-profile', { method: 'DELETE' });
+    serverProfile = { ssh: null, rdp: null };
+    refs.rdpStatus.textContent = '伺服器儲存資料已刪除。';
+    refs.rdpStatus.className = 'status-msg status-success';
+  } catch (error) {
+    refs.rdpStatus.textContent = error.message || '無法刪除伺服器儲存資料。';
+    refs.rdpStatus.className = 'status-msg status-error';
+  }
+});
+
+loadSavedProfiles();

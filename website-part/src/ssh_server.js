@@ -1,6 +1,7 @@
 const { Client } = require('ssh2');
 const { WebSocketServer } = require('ws');
 const { getSessionId, getStoredSession } = require('./websocket_session');
+const { userHasRemoteAccess } = require('./middleware/remote_auth');
 const {
   RemoteInputError,
   normalizeHost,
@@ -45,6 +46,7 @@ function attachSshServer(server, options) {
       const sessionId = getSessionId(req.headers.cookie, options.sessionCookieName, options.sessionSecret);
       const sessionData = sessionId && await getStoredSession(options.sessionStore, sessionId);
       if (!sessionData?.user?.id) throw new Error('Unauthorized');
+      if (!await userHasRemoteAccess(sessionData.user.id)) throw new Error('Forbidden');
       websocketServer.handleUpgrade(req, socket, head, ws => {
         websocketServer.emit('connection', ws, req);
       });

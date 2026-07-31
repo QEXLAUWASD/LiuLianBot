@@ -24,6 +24,8 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - MySQL-backed sessions, authentication rate limiting, and automatic website migrations
 - R6 events page for creating events and managing shared signups
 - One-time account linking lets Discord commands and website signups use the same identity
+- Terms acceptance records consent for website data storage; remote SSH/RDP access can be limited to named user groups
+- SSH terminal and RDP file generation, with optional browser-local or AES-256-GCM encrypted server-side connection profiles
 
 ## Project structure
 
@@ -157,6 +159,29 @@ npm ci
 npm start
 ```
 
+### Remote client configuration
+
+The remote page is disabled for users outside `REMOTE_ALLOWED_GROUPS` (defaults to `admin`). Configure allowed website user groups and, on untrusted networks, restrict the SSH hosts that the server may reach:
+
+```env
+REMOTE_ALLOWED_GROUPS=admin,server-operator
+SSH_ALLOWED_HOSTS=server.example.com,10.0.0.5
+```
+
+To enable encrypted server-side storage for SSH host details/private keys and RDP connection details, generate and securely retain a 32-byte key. SSH passwords are never stored.
+
+```bash
+openssl rand -base64 32
+```
+
+Set the resulting value in `website-part/.env`:
+
+```env
+REMOTE_CREDENTIAL_ENCRYPTION_KEY=<generated-base64-key>
+```
+
+Do not change or lose this key while encrypted profiles exist, or those profiles cannot be decrypted. If it is omitted, users can still use browser-local storage but server-side profile storage is disabled.
+
 On Windows PowerShell:
 
 ```powershell
@@ -199,12 +224,14 @@ Discord must be linked before creating an event. The website and bot share the s
 - Use a dedicated MySQL user with only the permissions required by this application.
 - Use HTTPS and secure session cookies when deploying the website beyond a trusted local network.
 - Only configure connection proxy targets that you trust; authorized users can access their assigned connections through `/connect/<slug>/`.
+- Restrict `SSH_ALLOWED_HOSTS` in production. An empty value permits any host reachable from the website server.
+- Keep `REMOTE_CREDENTIAL_ENCRYPTION_KEY` outside source control and back it up securely; it protects stored SSH private keys and RDP connection details.
 
 ## Dependencies
 
 The Discord bot dependencies are pinned in `discord-part/requirements.txt`. The website dependencies and lockfile are in `website-part/package.json` and `website-part/package-lock.json`.
 
-Key runtime packages include `discord.py`, `PyMySQL`, `Express`, `express-session`, `express-rate-limit`, `bcryptjs`, `mysql2`, and `http-proxy-middleware`.
+Key runtime packages include `discord.py`, `PyMySQL`, `Express`, `express-session`, `express-rate-limit`, `bcryptjs`, `mysql2`, `http-proxy-middleware`, `ssh2`, and `ws`.
 
 ## License
 
