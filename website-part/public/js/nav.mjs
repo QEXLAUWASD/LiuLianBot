@@ -17,6 +17,7 @@ export function renderNavbar(target, location = globalThis.location) {
   const home = navLink('/index.html', 'Home', pathname);
   const roller = navLink('/roller.html', 'R6 Roller', pathname);
   const events = navLink('/events.html', 'Events', pathname);
+  const remote = navLink('/remote.html', 'Remote', pathname);
   const account = navLink('/account.html', 'Account', pathname);
   const admin = navLink('/admin.html', 'Admin', pathname);
   admin.classList.add('admin-only');
@@ -82,7 +83,7 @@ export function renderNavbar(target, location = globalThis.location) {
 
   replaceChildren(target, [
     element('div', { className: 'nav-brand', text: '🎮 LiuLianBot' }),
-    element('div', { className: 'nav-links' }, [home, roller, events, dropdown, account, admin]),
+    element('div', { className: 'nav-links' }, [home, roller, events, remote, dropdown, account, admin]),
     user,
   ]);
 
@@ -96,6 +97,7 @@ export function renderNavbar(target, location = globalThis.location) {
     login,
     logout,
     roller,
+    remote,
     status,
     user,
     username,

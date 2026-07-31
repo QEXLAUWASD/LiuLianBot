@@ -880,6 +880,24 @@ a:hover { color: var(--accent-hover); }
 .status-error { color: var(--error); }
 .status-success { color: var(--success); }
 
+/* ===== Remote clients ===== */
+.remote-page { max-width: 1200px; }
+.remote-page > h2 { font-size: 1.8rem; margin-bottom: 8px; }
+.remote-desc, .remote-note { color: var(--text-muted); margin-bottom: 20px; }
+.remote-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr); gap: 20px; align-items: start; }
+.remote-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+.remote-panel-heading { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.remote-panel-heading h3 { font-size: 1.15rem; margin-bottom: 18px; }
+.remote-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.remote-form label, .terminal-input-label { display: grid; gap: 6px; color: var(--text-muted); font-size: 0.85rem; }
+.remote-form input, .remote-form select, .remote-form textarea, .terminal-input-label input { width: 100%; }
+.remote-form textarea { resize: vertical; }
+.remote-actions { grid-column: 1 / -1; display: flex; gap: 10px; }
+.ssh-terminal { height: 380px; overflow: auto; margin: 18px 0 10px; padding: 14px; background: #101719; border: 1px solid #263d3d; color: #d7f5dd; font-family: Consolas, "Courier New", monospace; font-size: 0.85rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ssh-terminal:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 800px) { .remote-grid { grid-template-columns: 1fr; } }
+@media (max-width: 500px) { .remote-form { grid-template-columns: 1fr; } }
+
 @media (max-width: 700px) {
   .account-grid { grid-template-columns: 1fr; }
 }

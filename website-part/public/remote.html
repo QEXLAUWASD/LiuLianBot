@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1c6ba0">
+  <title>LiuLianBot - Remote</title>
+  <link rel="stylesheet" href="/css/style.css?v=20260731-remote">
+</head>
+<body>
+  <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
+  <main class="main-content remote-page">
+    <h2>遠端連線</h2>
+    <p class="remote-desc">SSH 憑證只會用於目前連線，不會儲存在 LiuLianBot。</p>
+    <div class="remote-grid">
+      <section class="remote-panel" aria-labelledby="sshHeading">
+        <div class="remote-panel-heading"><h3 id="sshHeading">SSH 終端機</h3><span id="sshStatus" class="status-msg" role="status" aria-live="polite"></span></div>
+        <form id="sshForm" class="remote-form">
+          <label>主機<input id="sshHost" required maxlength="253" autocomplete="off" placeholder="server.example.com"></label>
+          <label>連接埠<input id="sshPort" type="number" min="1" max="65535" value="22"></label>
+          <label>使用者名稱<input id="sshUsername" required maxlength="256" autocomplete="username"></label>
+          <label>驗證方式<select id="sshAuthType"><option value="password">密碼</option><option value="key">私密金鑰</option></select></label>
+          <label id="sshPasswordLabel">密碼<input id="sshPassword" type="password" maxlength="512" autocomplete="current-password"></label>
+          <label id="sshKeyLabel" hidden>私密金鑰<textarea id="sshKey" rows="4" maxlength="16384" spellcheck="false"></textarea></label>
+          <div class="remote-actions"><button class="btn btn-primary" id="sshConnect" type="submit">連線</button><button class="btn btn-outline" id="sshDisconnect" type="button" disabled>中斷</button></div>
+        </form>
+        <pre id="sshTerminal" class="ssh-terminal" tabindex="0" aria-label="SSH terminal">尚未連線。</pre>
+        <label class="terminal-input-label">輸入指令<input id="sshInput" disabled autocomplete="off" spellcheck="false"></label>
+      </section>
+      <section class="remote-panel" aria-labelledby="rdpHeading">
+        <div class="remote-panel-heading"><h3 id="rdpHeading">RDP 用戶端</h3></div>
+        <p class="remote-note">會下載 `.rdp` 檔案，請使用裝置上的 Microsoft Remote Desktop 或相容用戶端開啟。</p>
+        <form id="rdpForm" class="remote-form">
+          <label>主機<input id="rdpHost" required maxlength="253" autocomplete="off" placeholder="windows.example.com"></label>
+          <label>連接埠<input id="rdpPort" type="number" min="1" max="65535" value="3389"></label>
+          <label>使用者名稱<input id="rdpUsername" required maxlength="256" autocomplete="username"></label>
+          <label>網域（選填）<input id="rdpDomain" maxlength="256" autocomplete="off"></label>
+          <div id="rdpStatus" class="status-msg" role="status" aria-live="polite"></div>
+          <div class="remote-actions"><button class="btn btn-primary" type="submit">下載 RDP 檔案</button></div>
+        </form>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="/js/app.mjs"></script>
+  <script type="module" src="/js/remote.mjs"></script>
+</body>
+</html>

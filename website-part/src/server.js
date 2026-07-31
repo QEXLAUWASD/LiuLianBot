@@ -5,6 +5,7 @@ const { buildListenOptions } = require('./config/server');
 const { buildSessionOptions } = require('./config/session');
 const { getPool } = require('./db');
 const { MySqlSessionStore } = require('./session_store');
+const { attachSshServer } = require('./ssh_server');
 
 async function startServer() {
   await getPool();
@@ -15,6 +16,7 @@ async function startServer() {
   const connections = require('./routes/connections');
   const mobileConnections = require('./routes/mobile_connections');
   const events = require('./routes/events');
+  const rdp = require('./routes/rdp');
   const connectionProxy = require('./routes/connection_proxy');
   const sessionStore = new MySqlSessionStore();
   const sessionOptions = buildSessionOptions(process.env, sessionStore);
@@ -28,6 +30,7 @@ async function startServer() {
       connections,
       mobileConnections,
       events,
+      rdp,
       connectionProxy,
     },
   });
@@ -42,6 +45,11 @@ async function startServer() {
   );
 
   connectionProxy.attachWebSocketServer(server, {
+    sessionStore,
+    sessionCookieName: sessionOptions.name,
+    sessionSecret: sessionOptions.secret,
+  });
+  attachSshServer(server, {
     sessionStore,
     sessionCookieName: sessionOptions.name,
     sessionSecret: sessionOptions.secret,

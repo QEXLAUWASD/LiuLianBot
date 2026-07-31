@@ -35,6 +35,7 @@ function createApp({ sessionOptions, routers }) {
   if (routers.events) app.use('/api/events', routers.events);
   app.use('/api/admin', routers.admin);
   app.use('/api/connections', routers.connections);
+  if (routers.rdp) app.use('/api/rdp', routers.rdp);
   if (routers.mobileConnections) app.use('/api/mobile', routers.mobileConnections);
 
   app.get('/roller.html', (req, res) => {
@@ -48,6 +49,9 @@ function createApp({ sessionOptions, routers }) {
   });
   app.get('/events.html', requirePageAuth, (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'events.html'));
+  });
+  app.get('/remote.html', requirePageAuth, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'remote.html'));
   });
   app.get('/admin.html', requirePageAuth, requireAdmin, (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
