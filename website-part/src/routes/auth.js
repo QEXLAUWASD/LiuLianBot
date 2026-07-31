@@ -10,6 +10,7 @@ const {
 } = require('../services/account_validation');
 const { establishUserSession } = require('../services/session');
 const { termsRequired } = require('../services/terms_config');
+const { remoteFeatures } = require('../services/remote_features');
 
 const REMEMBER_LOGIN_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
@@ -132,6 +133,7 @@ router.get('/me', async (req, res) => {
         username: user.username,
         role: user.role_name || 'user',
         termsAccepted: !termsRequired() || Boolean(user.terms_accepted_at),
+        remoteAvailable: Object.values(remoteFeatures()).some(Boolean),
       },
     });
   } catch (err) {
@@ -143,6 +145,7 @@ router.get('/me', async (req, res) => {
         username: req.session.user.username,
         role: 'user',
         termsAccepted: false,
+        remoteAvailable: false,
       },
     });
   }

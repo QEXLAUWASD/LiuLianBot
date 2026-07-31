@@ -49,6 +49,7 @@ function setSignedOut(refs) {
   refs.username.hidden = true;
   refs.logout.hidden = true;
   refs.dropdown.hidden = true;
+  refs.remote.hidden = true;
   refs.admin.hidden = true;
   refs.login.hidden = false;
   refs.status.textContent = '';
@@ -89,6 +90,7 @@ export async function setupNavUser() {
   refs.logout.hidden = false;
   refs.dropdown.hidden = false;
   refs.admin.hidden = user.role !== 'admin';
+  refs.remote.hidden = user.remoteAvailable === false;
   refs.status.textContent = '';
   refs.status.className = 'nav-auth-status';
   refs.status.removeAttribute('title');
@@ -96,6 +98,8 @@ export async function setupNavUser() {
 
   const welcomeName = document.getElementById('welcomeName');
   if (welcomeName) welcomeName.textContent = user.username;
+  const remoteFeatureCard = document.getElementById('remoteFeatureCard');
+  if (remoteFeatureCard) remoteFeatureCard.hidden = user.remoteAvailable === false;
   return user;
 }
 
