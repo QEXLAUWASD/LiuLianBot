@@ -1,4 +1,5 @@
 const { findUserById, getUserRoleNames } = require('../db');
+const { termsRequired } = require('../services/terms_config');
 
 function allowedRemoteGroups(value = process.env.REMOTE_ALLOWED_GROUPS) {
   const configured = String(value || 'admin')
@@ -14,7 +15,7 @@ function hasRemoteAccess(groupNames, groups = allowedRemoteGroups()) {
 
 async function userHasRemoteAccess(userId) {
   const user = await findUserById(userId);
-  return Boolean(user?.terms_accepted_at) && hasRemoteAccess(await getUserRoleNames(userId));
+  return Boolean(user) && (!termsRequired() || Boolean(user.terms_accepted_at)) && hasRemoteAccess(await getUserRoleNames(userId));
 }
 
 async function requireRemoteAccess(req, res, next) {

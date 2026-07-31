@@ -7,6 +7,8 @@ const status = document.getElementById('termsStatus');
 
 async function setupConsent() {
   try {
+    const configuration = await requestJSON('/api/auth/terms-status');
+    if (!configuration.required) return;
     const account = await requestJSON('/api/auth/me');
     if (!account?.loggedIn || account.user?.termsAccepted) return;
     section.hidden = false;

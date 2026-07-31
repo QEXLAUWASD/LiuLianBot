@@ -13,7 +13,7 @@
     <h2>遠端連線</h2>
     <p class="remote-desc">可選擇只在此瀏覽器或以加密方式儲存於伺服器。SSH 密碼一律不會儲存。</p>
     <div class="remote-grid">
-      <section class="remote-panel" aria-labelledby="sshHeading">
+      <section id="sshPanel" class="remote-panel" aria-labelledby="sshHeading">
         <div class="remote-panel-heading"><h3 id="sshHeading">SSH 終端機</h3><span id="sshStatus" class="status-msg" role="status" aria-live="polite"></span></div>
         <form id="sshForm" class="remote-form">
           <label>主機<input id="sshHost" required maxlength="253" autocomplete="off" placeholder="server.example.com"></label>
@@ -29,7 +29,7 @@
         <pre id="sshTerminal" class="ssh-terminal" tabindex="0" aria-label="SSH terminal">尚未連線。</pre>
         <label class="terminal-input-label">輸入指令<input id="sshInput" disabled autocomplete="off" spellcheck="false"></label>
       </section>
-      <section class="remote-panel" aria-labelledby="rdpHeading">
+      <section id="rdpPanel" class="remote-panel" aria-labelledby="rdpHeading">
         <div class="remote-panel-heading"><h3 id="rdpHeading">RDP 用戶端</h3></div>
         <p class="remote-note">會下載 `.rdp` 檔案，請使用裝置上的 Microsoft Remote Desktop 或相容用戶端開啟。</p>
         <form id="rdpForm" class="remote-form">

@@ -49,8 +49,27 @@ function allowedSshHosts(value = process.env.SSH_ALLOWED_HOSTS) {
   return new Set(String(value || '').split(',').map(host => host.trim().toLowerCase()).filter(Boolean));
 }
 
+function ipv4Number(value) {
+  const parts = String(value).split('.');
+  if (parts.length !== 4 || parts.some(part => !/^\d{1,3}$/.test(part))) return null;
+  const numbers = parts.map(Number);
+  if (numbers.some(part => part > 255)) return null;
+  return (((numbers[0] * 256 + numbers[1]) * 256 + numbers[2]) * 256 + numbers[3]) >>> 0;
+}
+
+function cidrMatches(host, cidr) {
+  const [network, prefixText] = String(cidr).split('/');
+  const prefix = Number(prefixText);
+  const hostNumber = ipv4Number(host);
+  const networkNumber = ipv4Number(network);
+  if (hostNumber === null || networkNumber === null || !Number.isInteger(prefix) || prefix < 0 || prefix > 32) return false;
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  return (hostNumber & mask) === (networkNumber & mask);
+}
+
 function assertAllowedSshHost(host, allowedHosts = allowedSshHosts()) {
-  if (allowedHosts.size > 0 && !allowedHosts.has(host.toLowerCase())) {
+  const allowed = [...allowedHosts].some(entry => entry === host.toLowerCase() || cidrMatches(host, entry));
+  if (allowedHosts.size > 0 && !allowed) {
     throw new RemoteInputError('This SSH host is not permitted');
   }
 }
@@ -61,5 +80,6 @@ module.exports = {
   normalizePort,
   normalizeRdpInput,
   allowedSshHosts,
+  cidrMatches,
   assertAllowedSshHost,
 };

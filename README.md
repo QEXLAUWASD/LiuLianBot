@@ -1,6 +1,6 @@
 # LiuLianBot
 
-LiuLianBot is a Discord bot and companion website for gaming communities. It provides Rainbow Six Siege rolls, temporary private voice channels, server logging, configurable rollers, and a web dashboard for account and connection management.
+LiuLianBot is a Discord bot and companion website for gaming communities. It provides Rainbow Six Siege rolls, temporary private voice channels, server logging, configurable rollers, events, and a web dashboard for account and connection management.
 
 ## Features
 
@@ -12,6 +12,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - Guild event logging for messages, voice states, members, channels, roles, and guild changes
 - Per-guild language selection for English and Traditional Chinese (`zh_TW`)
 - Hierarchical permissions for bot owners, bot admins, guild owners, guild admins, and users
+- Prefix commands and automatically registered slash commands backed by the same handlers
 - Git-based updater for pulling a configured repository branch
 
 ### Website dashboard
@@ -159,13 +160,47 @@ npm ci
 npm start
 ```
 
+For local development, `npm run dev` uses the same server entry point. The website
+binds to `127.0.0.1:3000` by default.
+
+For a Linux production deployment managed by PM2:
+
+```bash
+cd website-part
+./start.sh init
+./start.sh start
+```
+
+Run `./start.sh init` again after changing production dependencies or the PM2
+definition. Put an HTTPS reverse proxy in front of the website for production.
+
+### Website environment variables
+
+The website reads MySQL settings from `shared/database/config.json`; the remaining
+runtime settings are read from `website-part/.env`.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `NODE_ENV` | `development` | Set to `production` for deployment; production requires `SESSION_SECRET` and secure cookies. |
+| `PORT` | `3000` | HTTP listen port. |
+| `BIND_IP` | `127.0.0.1` | Listen address. Keep the default behind a local reverse proxy. |
+| `SESSION_COOKIE_NAME` | `connect.sid` | Session cookie name. |
+| `SESSION_SECRET` | Development fallback only | Long, random secret used to sign sessions; mandatory in production. |
+| `TERMS_OF_SERVICE_REQUIRED` | `true` | Set to `false` only when the hoster does not require explicit Terms of Service and data-storage consent. |
+| `PROXY_ALLOW_SELF_SIGNED` | `false` | Set to `true` only when an upstream website intentionally uses a self-signed certificate. |
+| `REMOTE_ALLOWED_GROUPS` | `admin` | Website groups allowed to use the SSH/RDP page and APIs. |
+| `REMOTE_SSH_ENABLED` | `true` | Set to `false` to disable SSH for all users, including administrators. |
+| `REMOTE_RDP_ENABLED` | `true` | Set to `false` to disable RDP for all users, including administrators. |
+| `SSH_ALLOWED_HOSTS` | Empty | Optional comma-separated SSH hostnames, IPv4 addresses, or IPv4 CIDR ranges. Empty allows any reachable host. |
+| `REMOTE_CREDENTIAL_ENCRYPTION_KEY` | Empty | Base64-encoded 32-byte AES-256-GCM key for server-side SSH/RDP profile storage. |
+
 ### Remote client configuration
 
 The remote page is disabled for users outside `REMOTE_ALLOWED_GROUPS` (defaults to `admin`). Configure allowed website user groups and, on untrusted networks, restrict the SSH hosts that the server may reach:
 
 ```env
 REMOTE_ALLOWED_GROUPS=admin,server-operator
-SSH_ALLOWED_HOSTS=server.example.com,10.0.0.5
+SSH_ALLOWED_HOSTS=server.example.com,192.168.1.0/24
 ```
 
 To enable encrypted server-side storage for SSH host details/private keys and RDP connection details, generate and securely retain a 32-byte key. SSH passwords are never stored.
@@ -191,7 +226,7 @@ npm ci
 npm start
 ```
 
-The website listens on `http://localhost:3000` by default. Run its automated tests with:
+The website listens on `http://127.0.0.1:3000` by default. Run its automated tests with:
 
 ```bash
 npm test
@@ -199,11 +234,11 @@ npm test
 
 ## Discord commands
 
-The default prefix is `>`. The command list below reflects the currently registered command handlers; use `>help` in Discord for command-specific usage.
+The default prefix is `>`. Every registered prefix command is also exposed as a Discord slash command. Use `>help` or the Discord command picker for command-specific usage.
 
 | Access level | Commands |
 |---|---|
-| User | `>help`, `>getlang`, `>r6maproll`, `>r6opsroll`, `>getr6mapinfo`, `>roller`, `>mypermissions`, `>listguildadmins`, `>transfervoice`, `>link`, `>events`, `>eventjoin`, `>eventleave`, `>eventteams` |
+| User | `>help`, `>getlang`, `>r6maproll`, `>r6opsroll`, `>getr6mapinfo`, `>roller`, `>roles`, `>role`, `>mypermissions`, `>listguildadmins`, `>transfervoice`, `>link`, `>events`, `>eventjoin`, `>eventleave`, `>eventteams` |
 | Guild admin | `>setlang`, `>setlogchannel`, `>setprivatevoice`, `>setupvoice`, `>removeprivatevoice`, `>setrollerchannel`, `>setrollermode`, `>setselfrole`, `>removeselfrole`, `>announce` |
 | Guild owner | `>addguildadmin`, `>removeguildadmin`, `>guildpermissions` |
 | Bot owner | `>addadmin`, `>removeadmin`, `>getinfo`, `>getserverlist`, `>r6update`, `>update` |
@@ -218,13 +253,48 @@ The default prefix is `>`. The command list below reflects the currently registe
 
 Discord must be linked before creating an event. The website and bot share the same MySQL participant records. Members can use `>roles` and `>role <role_id>` for configured self-assignable roles; administrators can use the Admin Announcements tab for scheduled notices.
 
+## Website pages and routes
+
+The public pages are `login.html`, `terms.html`, `roller.html`, and `404.html`.
+Authenticated users can access `index.html`, `account.html`, `events.html`, and
+`remote.html`; administrators additionally have `admin.html`.
+
+The website exposes JSON APIs under `/api` for authentication, account and Discord
+link management, R6 rolls, events, website connections, administration, remote
+profiles, and RDP file generation. Authorized HTTP/WebSocket website connections are
+available under `/connect/<slug>/`. SSH uses the `/api/ssh` WebSocket endpoint.
+
+## Development checks
+
+Install the development dependencies, then run the same checks used by CI:
+
+```bash
+# Discord bot
+python -m pip install -r discord-part/requirements-dev.txt
+python -m pytest -q
+python -m ruff check discord-part shared
+python -m compileall -q discord-part shared
+
+# Website
+cd website-part
+npm ci
+npm run check
+```
+
+`npm run check` parses browser JavaScript and runs the complete Node.js test suite.
+The database-backed tests require access to a test MySQL database; they do not start
+the production server.
+
 ## Security notes
 
 - Do not commit `discord-part/config.json`, `shared/database/config.json`, or `website-part/.env`.
 - Use a dedicated MySQL user with only the permissions required by this application.
 - Use HTTPS and secure session cookies when deploying the website beyond a trusted local network.
 - Only configure connection proxy targets that you trust; authorized users can access their assigned connections through `/connect/<slug>/`.
-- Restrict `SSH_ALLOWED_HOSTS` in production. An empty value permits any host reachable from the website server.
+- Restrict `SSH_ALLOWED_HOSTS` in production. It accepts host names, IPv4 addresses, and IPv4 CIDR ranges such as `192.168.1.0/24`; an empty value permits any host reachable from the website server.
+- Set `REMOTE_SSH_ENABLED=false` or `REMOTE_RDP_ENABLED=false` to disable that remote feature globally, including for administrators.
+- Remote access requires both accepted website terms and membership in one of the groups listed in `REMOTE_ALLOWED_GROUPS`.
+- Browser-local remote profiles use `localStorage`; do not use browser storage on shared or untrusted devices.
 - Keep `REMOTE_CREDENTIAL_ENCRYPTION_KEY` outside source control and back it up securely; it protects stored SSH private keys and RDP connection details.
 
 ## Dependencies

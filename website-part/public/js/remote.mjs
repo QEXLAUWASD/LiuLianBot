@@ -6,10 +6,16 @@ const refs = Object.fromEntries([
   'sshKeyLabel', 'sshKey', 'sshConnect', 'sshDisconnect', 'sshStatus', 'sshTerminal', 'sshInput',
   'sshStorage', 'saveSsh', 'rdpForm', 'rdpHost', 'rdpPort', 'rdpUsername', 'rdpDomain', 'rdpStatus',
   'rdpStorage', 'saveRdp', 'deleteServerProfile',
+  'sshPanel', 'rdpPanel',
 ].map(id => [id, document.getElementById(id)]));
 let socket = null;
 let serverProfile = { ssh: null, rdp: null };
 let serverStorageAvailable = false;
+
+function setFeatureVisibility(features) {
+  refs.sshPanel.hidden = !features.ssh;
+  refs.rdpPanel.hidden = !features.rdp;
+}
 
 function profileFromFields(type) {
   if (type === 'ssh') {
@@ -53,8 +59,10 @@ async function loadSavedProfiles() {
     const data = await requestJSON('/api/remote-profile');
     serverStorageAvailable = Boolean(data.serverStorageAvailable);
     serverProfile = data.profile || serverProfile;
+    setFeatureVisibility(data.features || { ssh: true, rdp: true });
     setServerOptionEnabled(serverStorageAvailable);
   } catch (_) {
+    setFeatureVisibility({ ssh: false, rdp: false });
     setServerOptionEnabled(false);
   }
 }

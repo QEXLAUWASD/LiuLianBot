@@ -1,6 +1,6 @@
 # LiuLianBot（榴槤 Bot）
 
-LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。提供《彩虹六號：圍攻》抽選、臨時私人語音頻道、伺服器事件記錄、可設定抽選系統，以及帳戶同連線管理網站。
+LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。提供《彩虹六號：圍攻》抽選、臨時私人語音頻道、伺服器事件記錄、可設定抽選系統、活動，以及帳戶同連線管理網站。
 
 ## 功能
 
@@ -12,6 +12,7 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 記錄訊息、語音狀態、成員、頻道、身份組同伺服器事件
 - 每個伺服器可獨立揀英文或繁體中文（`zh_TW`）
 - Bot 擁有者、Bot 管理員、伺服器擁有者、伺服器管理員同一般用戶嘅分層權限
+- 前綴指令同自動註冊嘅 slash 指令共用同一套處理器
 - 可透過 Git 從已設定嘅儲存庫分支更新程式碼
 
 ### 網站儀表板
@@ -159,13 +160,47 @@ npm ci
 npm start
 ```
 
+本機開發時，`npm run dev` 會使用同一個伺服器入口。網站預設監聽
+`127.0.0.1:3000`。
+
+Linux 生產環境可以用 PM2 管理：
+
+```bash
+cd website-part
+./start.sh init
+./start.sh start
+```
+
+修改生產依賴或 PM2 設定後，需要再次執行 `./start.sh init`。正式部署時，請
+喺網站前面配置反向代理並提供 HTTPS。
+
+### 網站環境變數
+
+網站由 `shared/database/config.json` 讀取 MySQL 設定，其餘運行設定由
+`website-part/.env` 讀取。
+
+| 變數 | 預設值 | 用途 |
+|---|---|---|
+| `NODE_ENV` | `development` | 生產環境設為 `production`；此模式要求 `SESSION_SECRET` 並啟用安全 Cookie。 |
+| `PORT` | `3000` | HTTP 監聽連接埠。 |
+| `BIND_IP` | `127.0.0.1` | 監聽地址；配合本機反向代理時保留預設值。 |
+| `SESSION_COOKIE_NAME` | `connect.sid` | Session Cookie 名稱。 |
+| `SESSION_SECRET` | 只供開發 fallback | 用來簽署 Session 嘅長隨機密碼；生產環境必須設定。 |
+| `TERMS_OF_SERVICE_REQUIRED` | `true` | 只有主機管理者毋須強制明確同意服務條款及資料儲存時先設為 `false`。 |
+| `PROXY_ALLOW_SELF_SIGNED` | `false` | 只有上游網站刻意使用自簽憑證時先設為 `true`。 |
+| `REMOTE_ALLOWED_GROUPS` | `admin` | 可使用 SSH/RDP 頁面及 API 嘅網站用戶群組。 |
+| `REMOTE_SSH_ENABLED` | `true` | 設為 `false` 即對所有用戶停用 SSH，包括管理員。 |
+| `REMOTE_RDP_ENABLED` | `true` | 設為 `false` 即對所有用戶停用 RDP，包括管理員。 |
+| `SSH_ALLOWED_HOSTS` | 空白 | 可選嘅 SSH 主機名稱、IPv4 地址或 IPv4 CIDR 網段清單；空白代表容許所有可到達主機。 |
+| `REMOTE_CREDENTIAL_ENCRYPTION_KEY` | 空白 | 用於伺服器端加密保存 SSH/RDP 設定嘅 Base64 32-byte AES-256-GCM 金鑰。 |
+
 ### 遠端用戶端設定
 
 遠端頁面只開放畀 `REMOTE_ALLOWED_GROUPS` 內嘅網站用戶群組（預設係 `admin`）。請設定可用群組；喺非受信任網絡，亦應限制網站伺服器可連去嘅 SSH 主機：
 
 ```env
 REMOTE_ALLOWED_GROUPS=admin,server-operator
-SSH_ALLOWED_HOSTS=server.example.com,10.0.0.5
+SSH_ALLOWED_HOSTS=server.example.com,192.168.1.0/24
 ```
 
 如要啟用伺服器端加密保存 SSH 主機資訊／私密金鑰及 RDP 連線資訊，請產生並安全保存一個 32-byte 金鑰。SSH 密碼絕不會被保存。
@@ -191,7 +226,7 @@ npm ci
 npm start
 ```
 
-網站預設喺 `http://localhost:3000` 運行。執行自動化測試：
+網站預設喺 `http://127.0.0.1:3000` 運行。執行自動化測試：
 
 ```bash
 npm test
@@ -199,11 +234,12 @@ npm test
 
 ## Discord 指令
 
-預設前綴係 `>`。下表列出目前已註冊嘅指令處理器；請喺 Discord 使用 `>help` 查看個別指令用法。
+預設前綴係 `>`。每個前綴指令亦會自動註冊為 Discord slash 指令；請使用
+`>help` 或 Discord 指令選單查看個別用法。
 
 | 存取級別 | 指令 |
 |---|---|
-| 一般用戶 | `>help`, `>getlang`, `>r6maproll`, `>r6opsroll`, `>getr6mapinfo`, `>roller`, `>mypermissions`, `>listguildadmins`, `>transfervoice`, `>link`, `>events`, `>eventjoin`, `>eventleave`, `>eventteams` |
+| 一般用戶 | `>help`, `>getlang`, `>r6maproll`, `>r6opsroll`, `>getr6mapinfo`, `>roller`, `>roles`, `>role`, `>mypermissions`, `>listguildadmins`, `>transfervoice`, `>link`, `>events`, `>eventjoin`, `>eventleave`, `>eventteams` |
 | 伺服器管理員 | `>setlang`, `>setlogchannel`, `>setprivatevoice`, `>setupvoice`, `>removeprivatevoice`, `>setrollerchannel`, `>setrollermode`, `>setselfrole`, `>removeselfrole`, `>announce` |
 | 伺服器擁有者 | `>addguildadmin`, `>removeguildadmin`, `>guildpermissions` |
 | Bot 擁有者 | `>addadmin`, `>removeadmin`, `>getinfo`, `>getserverlist`, `>r6update`, `>update` |
@@ -218,13 +254,46 @@ npm test
 
 建立活動前必須先連結 Discord 身分；網站與 Bot 會使用同一份 MySQL 報名資料。成員可用 `>roles` 及 `>role <role_id>` 選擇已開放身份組，管理員可在 Admin 的 Announcements 分頁建立排程公告。
 
+## 網站頁面及路由
+
+公開頁面包括 `login.html`、`terms.html`、`roller.html` 同 `404.html`。登入後可
+使用 `index.html`、`account.html`、`events.html` 同 `remote.html`；管理員另外
+可以使用 `admin.html`。
+
+網站喺 `/api` 提供登入、帳戶及 Discord 連結、R6 抽選、活動、網站連線、管理員、
+遠端設定及 RDP 檔案 API。已授權嘅 HTTP/WebSocket 網站連線位於
+`/connect/<slug>/`；SSH 使用 `/api/ssh` WebSocket endpoint。
+
+## 開發檢查
+
+安裝開發依賴後，可以執行 CI 使用嘅相同檢查：
+
+```bash
+# Discord Bot
+python -m pip install -r discord-part/requirements-dev.txt
+python -m pytest -q
+python -m ruff check discord-part shared
+python -m compileall -q discord-part shared
+
+# 網站
+cd website-part
+npm ci
+npm run check
+```
+
+`npm run check` 會解析瀏覽器 JavaScript 並執行完整 Node.js 測試。資料庫相關
+測試需要連到測試 MySQL 資料庫，但唔會啟動正式網站伺服器。
+
 ## 安全注意事項
 
 - 唔好提交 `discord-part/config.json`、`shared/database/config.json` 或 `website-part/.env`。
 - 請使用只擁有本程式所需權限嘅專用 MySQL 帳戶。
 - 喺受信任嘅本機網絡以外部署網站時，請使用 HTTPS 同安全嘅 Session Cookie 設定。
 - 只好設定你信任嘅代理目標；已授權用戶可以經 `/connect/<slug>/` 存取獲分配嘅連線。
-- 生產環境應設定 `SSH_ALLOWED_HOSTS`。留空代表容許連去網站伺服器可到達嘅任何主機。
+- 生產環境應設定 `SSH_ALLOWED_HOSTS`。支援主機名稱、IPv4 位址及例如 `192.168.1.0/24` 嘅 IPv4 CIDR 網段；留空代表容許連去網站伺服器可到達嘅任何主機。
+- 可設定 `REMOTE_SSH_ENABLED=false` 或 `REMOTE_RDP_ENABLED=false`，全域停用相應遠端功能，包括管理員。
+- 遠端功能同時要求用戶已接受網站條款，並屬於 `REMOTE_ALLOWED_GROUPS` 其中一個群組。
+- 瀏覽器端遠端設定會保存喺 `localStorage`；共用或不受信任裝置唔應使用瀏覽器儲存。
 - 將 `REMOTE_CREDENTIAL_ENCRYPTION_KEY` 保留喺原始碼管理以外並安全備份；佢保護已保存嘅 SSH 私密金鑰及 RDP 連線資訊。
 
 ## 依賴套件

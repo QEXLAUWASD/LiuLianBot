@@ -4,6 +4,7 @@ const {
   RemoteInputError,
   normalizeRdpInput,
   assertAllowedSshHost,
+  cidrMatches,
 } = require('../src/services/remote_validation');
 const { rdpFile } = require('../src/routes/rdp');
 
@@ -23,6 +24,12 @@ test('SSH host allow list only permits configured hosts', () => {
   const allowed = new Set(['server.example.com']);
   assert.doesNotThrow(() => assertAllowedSshHost('SERVER.EXAMPLE.COM', allowed));
   assert.throws(() => assertAllowedSshHost('other.example.com', allowed), RemoteInputError);
+});
+
+test('SSH host allow list supports IPv4 CIDR ranges for server local networks', () => {
+  assert.equal(cidrMatches('192.168.50.24', '192.168.50.0/24'), true);
+  assert.equal(cidrMatches('192.168.51.24', '192.168.50.0/24'), false);
+  assert.doesNotThrow(() => assertAllowedSshHost('10.20.30.40', new Set(['10.0.0.0/8'])));
 });
 
 test('RDP files include only supplied safe connection values', () => {

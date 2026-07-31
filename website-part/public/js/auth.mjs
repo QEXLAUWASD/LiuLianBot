@@ -9,6 +9,17 @@ function postAuthDestination() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const termsRow = document.getElementById('termsAcceptanceRow');
+  const termsCheckbox = document.getElementById('termsAccepted');
+  fetch('/api/auth/terms-status')
+    .then(response => response.ok ? response.json() : null)
+    .then(data => {
+      if (data?.required === false) {
+        termsRow.hidden = true;
+        termsCheckbox.required = false;
+      }
+    })
+    .catch(() => {});
   document.querySelectorAll('[data-tabs]').forEach(root => setupTabs(root));
   document.addEventListener('tabs:change', () => {
     document.getElementById('loginError').textContent = '';

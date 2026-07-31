@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireRemoteAccess } = require('../middleware/remote_auth');
 const { RemoteInputError, normalizeRdpInput } = require('../services/remote_validation');
+const { remoteFeatures } = require('../services/remote_features');
 
 const router = express.Router();
 router.use(requireRemoteAccess);
@@ -21,6 +22,7 @@ function rdpFile({ host, port, username, domain }) {
 }
 
 router.post('/download', (req, res) => {
+  if (!remoteFeatures().rdp) return res.status(404).json({ error: 'RDP is disabled' });
   try {
     const data = normalizeRdpInput(req.body);
     res

@@ -2,6 +2,7 @@ const { Client } = require('ssh2');
 const { WebSocketServer } = require('ws');
 const { getSessionId, getStoredSession } = require('./websocket_session');
 const { userHasRemoteAccess } = require('./middleware/remote_auth');
+const { remoteFeatures } = require('./services/remote_features');
 const {
   RemoteInputError,
   normalizeHost,
@@ -42,6 +43,10 @@ function attachSshServer(server, options) {
   server.on('upgrade', async (req, socket, head) => {
     const requestUrl = new URL(req.url, 'http://localhost');
     if (requestUrl.pathname !== '/api/ssh') return;
+    if (!remoteFeatures().ssh) {
+      socket.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n');
+      return;
+    }
     try {
       const sessionId = getSessionId(req.headers.cookie, options.sessionCookieName, options.sessionSecret);
       const sessionData = sessionId && await getStoredSession(options.sessionStore, sessionId);

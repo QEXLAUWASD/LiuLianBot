@@ -9,6 +9,7 @@ const {
   validateNewPassword,
 } = require('../services/account_validation');
 const { establishUserSession } = require('../services/session');
+const { termsRequired } = require('../services/terms_config');
 
 const REMEMBER_LOGIN_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
@@ -23,7 +24,7 @@ router.post('/register', async (req, res, next) => {
   try {
     const username = normalizeUsername(req.body.username);
     const password = validateNewPassword(req.body.password);
-    if (req.body.termsAccepted !== true) {
+    if (termsRequired() && req.body.termsAccepted !== true) {
       return res.status(400).json({ error: 'You must accept the Terms of Service and Privacy Policy' });
     }
 
@@ -34,7 +35,7 @@ router.post('/register', async (req, res, next) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = generateId();
-    const user = await createUser(id, username, hashedPassword, TERMS_VERSION);
+    const user = await createUser(id, username, hashedPassword, termsRequired() ? TERMS_VERSION : null);
 
     await establishUserSession(req, user);
     res.json({ success: true, user: { id: user.id, username: user.username }, termsRequired: false });
@@ -77,7 +78,7 @@ router.post('/login', async (req, res, next) => {
       user,
       remember ? REMEMBER_LOGIN_MAX_AGE : null
     );
-    res.json({ success: true, user: { id: user.id, username: user.username }, termsRequired: !user.terms_accepted_at });
+    res.json({ success: true, user: { id: user.id, username: user.username }, termsRequired: termsRequired() && !user.terms_accepted_at });
   } catch (err) {
     if (err instanceof AccountInputError) {
       return res.status(400).json({ error: err.message });
@@ -108,6 +109,10 @@ router.post('/terms', async (req, res, next) => {
   }
 });
 
+router.get('/terms-status', (req, res) => {
+  res.json({ required: termsRequired(), version: TERMS_VERSION });
+});
+
 // Check current session (with role info)
 router.get('/me', async (req, res) => {
   if (!req.session.user) {
@@ -126,7 +131,7 @@ router.get('/me', async (req, res) => {
         id: user.id,
         username: user.username,
         role: user.role_name || 'user',
-        termsAccepted: Boolean(user.terms_accepted_at),
+        termsAccepted: !termsRequired() || Boolean(user.terms_accepted_at),
       },
     });
   } catch (err) {
