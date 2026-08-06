@@ -272,7 +272,7 @@ Administrators can open Admin > Page Visibility to control which website subpage
 
 ### Chromium workspace
 
-The Chromium page is included in the website and needs no separate Website Access connection or external browser service. Users can enter an `http://` or `https://` URL, browse it in the embedded workspace, or open it in a new browser tab. Administrators can still use Admin > Page Visibility to decide which users or groups can see the Chromium page.
+The Chromium page is included in the website and needs no separate Website Access connection or external browser service. Users can enter an `http://` or `https://` URL. Same-origin pages open in the embedded workspace; external websites such as Google that disallow iframe embedding are opened directly in a new browser tab. Administrators can still use Admin > Page Visibility to decide which users or groups can see the Chromium page.
 
 ## Development checks
 

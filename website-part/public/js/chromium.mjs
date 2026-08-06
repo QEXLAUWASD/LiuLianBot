@@ -44,13 +44,20 @@ export function initializeChromiumPage({ documentRef = document } = {}) {
   const openUrl = value => {
     const url = normalizeUrl(value);
     address.value = url;
-    frame.src = url;
-    framePanel.hidden = false;
     home.hidden = true;
     homeButton.hidden = false;
     openLink.href = url;
     openLink.hidden = false;
-    setStatus(status, '已開啟網站。', 'success');
+    const pageOrigin = documentRef.defaultView?.location?.origin || '';
+    if (new URL(url).origin === pageOrigin) {
+      frame.src = url;
+      framePanel.hidden = false;
+      setStatus(status, '已在內建工作區開啟網站。', 'success');
+    } else {
+      frame.removeAttribute('src');
+      framePanel.hidden = true;
+      setStatus(status, '外部網站不允許內嵌，請按「新分頁開啟」。', 'success');
+    }
     return url;
   };
 

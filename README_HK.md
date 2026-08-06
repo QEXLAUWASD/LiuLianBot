@@ -272,7 +272,7 @@ npm test
 
 ### Chromium 工作區
 
-Chromium 頁面已經內置喺網站，唔需要另外新增 Website Access 連線或者安裝外部瀏覽器服務。用戶可以輸入 `http://` 或 `https://` 網址，喺內嵌工作區瀏覽，亦可以喺新瀏覽器分頁開啟。管理員仍然可以喺 Admin > Page Visibility 設定邊啲用戶或群組可以見到 Chromium 頁面。
+Chromium 頁面已經內置喺網站，唔需要另外新增 Website Access 連線或者安裝外部瀏覽器服務。用戶可以輸入 `http://` 或 `https://` 網址；同源頁面會喺內嵌工作區開啟，而 Google 等禁止 iframe 內嵌嘅外部網站會直接喺新瀏覽器分頁開啟。管理員仍然可以喺 Admin > Page Visibility 設定邊啲用戶或群組可以見到 Chromium 頁面。
 
 ## 開發檢查
 
