@@ -8,4 +8,5 @@ module.exports = {
   ...require('./db/stats'),
   ...require('./db/announcements'),
   ...require('./db/remote_profiles'),
+  ...require('./db/page_visibility'),
 };

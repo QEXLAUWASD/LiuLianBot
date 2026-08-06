@@ -28,6 +28,8 @@
           aria-controls="guildsTab" aria-selected="false" tabindex="-1">🌐 Discord Guilds</button>
         <button id="connections-tab" class="tab" type="button" role="tab" data-tab="connections"
           aria-controls="connectionsTab" aria-selected="false" tabindex="-1">🔗 Website Access</button>
+        <button id="page-visibility-tab" class="tab" type="button" role="tab" data-tab="page-visibility"
+          aria-controls="pageVisibilityTab" aria-selected="false" tabindex="-1">👁️ Page Visibility</button>
         <button id="events-tab" class="tab" type="button" role="tab" data-tab="events"
           aria-controls="eventsTab" aria-selected="false" tabindex="-1">📅 Events</button>
         <button id="stats-tab" class="tab" type="button" role="tab" data-tab="stats"
@@ -95,6 +97,30 @@
             </thead>
             <tbody id="connectionsTableBody">
               <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ Page Visibility Tab ============ -->
+      <div id="pageVisibilityTab" class="tab-panel" role="tabpanel" aria-labelledby="page-visibility-tab" hidden>
+        <div class="admin-toolbar page-visibility-toolbar">
+          <p class="table-subtext">Choose who can see each website subpage in navigation and dashboard links.</p>
+        </div>
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Page</th>
+                <th>Guest</th>
+                <th>All signed-in users</th>
+                <th>Groups</th>
+                <th>Users</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="pageVisibilityTableBody">
+              <tr><td colspan="6" class="empty-state">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -263,6 +289,42 @@
       <div class="modal-footer">
         <button class="btn btn-outline" type="button" data-dialog-close>Cancel</button>
         <button class="btn btn-primary" type="button" id="saveConnectionBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Page Visibility Modal ===== -->
+  <div id="pageVisibilityEditModal" class="modal-overlay" role="dialog" aria-modal="true"
+    aria-labelledby="pageVisibilityModalTitle" hidden>
+    <div class="modal connection-modal">
+      <div class="modal-header">
+        <h3 id="pageVisibilityModalTitle">Edit Page Visibility</h3>
+        <button class="modal-close" type="button" title="Close" data-dialog-close>&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editPageVisibilityKey">
+        <p id="pageVisibilityPath" class="table-subtext"></p>
+        <label class="toggle-row" for="editPageVisibilityPublic">
+          <input type="checkbox" id="editPageVisibilityPublic">
+          <span>Show to non-logged-in visitors</span>
+        </label>
+        <label class="toggle-row" for="editPageVisibilityAuthenticated">
+          <input type="checkbox" id="editPageVisibilityAuthenticated">
+          <span>Show to all signed-in users</span>
+        </label>
+        <div class="form-group">
+          <label>Website groups</label>
+          <div id="pageVisibilityRoleOptions" class="access-option-list"></div>
+        </div>
+        <div class="form-group">
+          <label>Website users</label>
+          <div id="pageVisibilityUserOptions" class="access-option-list"></div>
+        </div>
+        <div class="error-msg" id="pageVisibilityEditError"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" type="button" data-dialog-close>Cancel</button>
+        <button class="btn btn-primary" type="button" id="savePageVisibilityBtn">Save</button>
       </div>
     </div>
   </div>

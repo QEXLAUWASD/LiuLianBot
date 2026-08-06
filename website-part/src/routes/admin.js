@@ -18,6 +18,8 @@ const {
   listAnnouncements,
   createAnnouncement,
   cancelAnnouncement,
+  getAllPageVisibility,
+  updatePageVisibility,
 } = require('../db');
 const {
   UserGroupInputError,
@@ -26,6 +28,7 @@ const {
 const { InputError, ConflictError } = require('../errors');
 const { normalizeGroupInput } = require('../services/group_validation');
 const { normalizeEventVisibility } = require('../services/event_visibility_validation');
+const { normalizePageVisibility, PageVisibilityInputError } = require('../services/page_visibility');
 
 function groupErrorStatus(err) {
   if (err instanceof InputError) return 400;
@@ -211,6 +214,35 @@ router.get('/announcements', async (_req, res, next) => {
 router.get('/announcement-targets', async (_req, res, next) => {
   try { res.json({ guilds: await listAnnouncementTargets() }); }
   catch (err) { next(err); }
+});
+
+router.get('/page-visibility', async (_req, res, next) => {
+  try {
+    const [pages, groups, users] = await Promise.all([
+      getAllPageVisibility(),
+      getAllRoles(),
+      getAllUsers(),
+    ]);
+    res.json({ pages, groups, users });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/page-visibility/:pageKey', async (req, res) => {
+  try {
+    const data = normalizePageVisibility(req.params.pageKey, req.body);
+    await updatePageVisibility(data.page_key, data);
+    res.json({ success: true, page_key: data.page_key });
+  } catch (err) {
+    if (err instanceof PageVisibilityInputError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
+    if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(400).json({ error: 'A selected group or user no longer exists' });
+    }
+    return res.status(500).json({ error: 'Failed to update page visibility' });
+  }
 });
 
 router.post('/announcements', async (req, res) => {

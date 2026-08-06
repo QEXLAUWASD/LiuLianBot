@@ -898,8 +898,15 @@ a:hover { color: var(--accent-hover); }
 .legal-page { max-width: 800px; line-height: 1.7; }
 .legal-page h1 { font-size: 1.8rem; margin-bottom: 8px; }
 .legal-page h2 { font-size: 1.2rem; margin: 28px 0 8px; }
+.chromium-page { max-width: 1400px; }
+.chromium-page .page-heading { margin-bottom: 12px; }
+.chromium-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.chromium-panel-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.chromium-panel-heading h2 { font-size: 1.15rem; }
+.chromium-frame { display: block; width: 100%; height: min(78vh, 900px); min-height: 520px; border: 1px solid var(--border); background: #fff; }
 @media (max-width: 800px) { .remote-grid { grid-template-columns: 1fr; } }
 @media (max-width: 500px) { .remote-form { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .chromium-frame { min-height: 420px; } }
 
 @media (max-width: 700px) {
   .account-grid { grid-template-columns: 1fr; }

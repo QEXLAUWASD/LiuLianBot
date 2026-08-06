@@ -27,6 +27,8 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 網站帳戶可產生一次性代碼，連結 Discord 身分後可共用活動報名資料
 - 記錄網站資料儲存同意；SSH/RDP 遠端功能可限制畀指定用戶群組
 - 提供 SSH 終端機及 RDP 連線檔，設定可選擇只保存喺瀏覽器或以 AES-256-GCM 加密保存喺伺服器
+- 提供 Chromium 工作區頁面，透過 slug 為 `chromium` 嘅已授權網站連線使用
+- Admin 提供頁面可見度設定，可按未登入訪客、全部登入用戶、指定網站群組或指定用戶控制顯示
 
 ## 專案結構
 
@@ -43,7 +45,7 @@ LiuLianBot/
 |   |-- updater/                  # Git 更新功能
 |   `-- utils/                    # 資料庫及日誌工具
 |-- website-part/                 # Node.js / Express 網站
-|   |-- public/                   # HTML、CSS 同瀏覽器端 JavaScript
+|   |-- public/                   # HTML、CSS 同瀏覽器端 JavaScript（包括 chromium.html）
 |   |-- src/                      # App、路由、中介層、資料庫 repository 及服務
 |   `-- test/                     # Node.js 測試
 |-- shared/
@@ -257,12 +259,26 @@ npm test
 ## 網站頁面及路由
 
 公開頁面包括 `login.html`、`terms.html`、`roller.html` 同 `404.html`。登入後可
-使用 `index.html`、`account.html`、`events.html` 同 `remote.html`；管理員另外
-可以使用 `admin.html`。
+使用 `index.html`、`account.html`、`events.html`、`remote.html` 同
+`chromium.html`；管理員另外可以使用 `admin.html`。
 
 網站喺 `/api` 提供登入、帳戶及 Discord 連結、R6 抽選、活動、網站連線、管理員、
 遠端設定及 RDP 檔案 API。已授權嘅 HTTP/WebSocket 網站連線位於
 `/connect/<slug>/`；SSH 使用 `/api/ssh` WebSocket endpoint。
+
+### 頁面可見度
+
+管理員可以開啟 Admin > Page Visibility，控制網站子頁面會唔會出現喺導覽列及儀表板連結。每個頁面可以設定畀未登入訪客、全部登入用戶、指定網站群組或指定用戶顯示。頁面路由亦會檢查設定；Remote 等功能原有嘅專屬權限要求仍然有效。
+
+### Chromium 工作區
+
+Chromium 頁面會使用現有網站代理及存取控制系統。啟用方法：
+
+1. 以管理員身分登入，開啟 Admin > Website Access。
+2. 新增網站連線，名稱填寫 `Chromium`，URL slug 填寫 `chromium`，Target URL 填入 Chromium 網頁服務地址（例如 `http://127.0.0.1:9222/`）。
+3. 選擇可以使用嘅群組或用戶，之後喺導覽列或儀表板開啟 Chromium。
+
+如果登入用戶未有 exact slug `chromium` 嘅可用連線，頁面會顯示設定提示。上游服務必須提供可以由瀏覽器開啟嘅網頁介面；單純安裝 Chromium 桌面程式唔會自動產生呢個介面。
 
 ## 開發檢查
 

@@ -289,6 +289,48 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: '012',
+    name: 'website page visibility controls',
+    async up(conn) {
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_page_visibility (
+          page_key VARCHAR(50) PRIMARY KEY,
+          public_access TINYINT(1) NOT NULL DEFAULT 0,
+          authenticated_access TINYINT(1) NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_page_visibility_roles (
+          page_key VARCHAR(50) NOT NULL,
+          role_id INT NOT NULL,
+          PRIMARY KEY (page_key, role_id),
+          FOREIGN KEY (page_key) REFERENCES website_page_visibility(page_key) ON DELETE CASCADE,
+          FOREIGN KEY (role_id) REFERENCES website_roles(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_page_visibility_users (
+          page_key VARCHAR(50) NOT NULL,
+          user_id VARCHAR(30) NOT NULL,
+          PRIMARY KEY (page_key, user_id),
+          FOREIGN KEY (page_key) REFERENCES website_page_visibility(page_key) ON DELETE CASCADE,
+          FOREIGN KEY (user_id) REFERENCES website_users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.execute(`
+        INSERT IGNORE INTO website_page_visibility
+          (page_key, public_access, authenticated_access) VALUES
+          ('roller', 1, 1),
+          ('events', 0, 1),
+          ('account', 0, 1),
+          ('remote', 0, 1),
+          ('chromium', 0, 1)
+      `);
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

@@ -10,6 +10,7 @@ let allGroups = [];
 let allGuilds = [];
 let allConnections = [];
 let allEvents = [];
+let allPageVisibility = [];
 let announcementTargets = [];
 let currentEditUserId = null;
 let confirmCallback = null;
@@ -468,6 +469,110 @@ async function loadConnections() {
   }
 }
 
+async function loadPageVisibility() {
+  try {
+    const data = await requestJSON('/api/admin/page-visibility');
+    allPageVisibility = data?.pages || [];
+    allGroups = data?.groups || allGroups;
+    allUsers = data?.users || allUsers;
+    renderPageVisibility();
+  } catch (error) {
+    if (!redirectForAuthError(error)) {
+      console.error('loadPageVisibility error:', error);
+      renderLoadError('pageVisibilityTableBody', 6, 'Failed to load page visibility');
+    }
+  }
+}
+
+function visibilityBadge(text, enabled) {
+  return element('span', {
+    className: `badge ${enabled ? 'badge-enabled' : 'badge-disabled'}`,
+    text,
+  });
+}
+
+function renderPageVisibility() {
+  const tbody = document.getElementById('pageVisibilityTableBody');
+  if (allPageVisibility.length === 0) {
+    replaceChildren(tbody, [tableMessage(6, 'No configurable pages found')]);
+    return;
+  }
+
+  replaceChildren(tbody, allPageVisibility.map(page => element('tr', {}, [
+    element('td', {}, [
+      element('strong', { text: page.name }),
+      element('div', { className: 'table-subtext mono', text: page.path }),
+    ]),
+    element('td', {}, [visibilityBadge(page.public_access ? 'Shown' : 'Hidden', page.public_access)]),
+    element('td', {}, [visibilityBadge(page.authenticated_access ? 'Shown' : 'Hidden', page.authenticated_access)]),
+    element('td', { text: page.roles?.map(role => role.name).join(', ') || '-' }),
+    element('td', { text: page.users?.map(user => user.username).join(', ') || '-' }),
+    element('td', { className: 'actions' }, [actionButton('Edit', 'edit-page-visibility', page.key)]),
+  ])));
+}
+
+function renderPageVisibilityOptions(page) {
+  const selectedRoleIds = new Set((page?.role_ids || []).map(Number));
+  const selectedUserIds = new Set((page?.user_ids || []).map(String));
+  const roleOptions = allGroups.length
+    ? allGroups.map(group => accessOption(
+      'pageVisibilityRole', group.id, group.name, selectedRoleIds.has(Number(group.id)),
+    ))
+    : [element('span', { className: 'text-muted', text: 'No groups available' })];
+  const userOptions = allUsers.length
+    ? allUsers.map(user => accessOption(
+      'pageVisibilityUser', user.id, user.username, selectedUserIds.has(String(user.id)),
+    ))
+    : [element('span', { className: 'text-muted', text: 'No users available' })];
+  replaceChildren(document.getElementById('pageVisibilityRoleOptions'), roleOptions);
+  replaceChildren(document.getElementById('pageVisibilityUserOptions'), userOptions);
+}
+
+function openPageVisibilityEdit(pageKey) {
+  const page = allPageVisibility.find(item => item.key === pageKey);
+  if (!page) return;
+  document.getElementById('editPageVisibilityKey').value = page.key;
+  document.getElementById('pageVisibilityPath').textContent = page.path;
+  document.getElementById('editPageVisibilityPublic').checked = Boolean(page.public_access);
+  document.getElementById('editPageVisibilityAuthenticated').checked = Boolean(page.authenticated_access);
+  document.getElementById('pageVisibilityEditError').textContent = '';
+  renderPageVisibilityOptions(page);
+  openModal('pageVisibilityEditModal');
+}
+
+document.getElementById('savePageVisibilityBtn').addEventListener('click', async event => {
+  const pageKey = document.getElementById('editPageVisibilityKey').value;
+  const errorElement = document.getElementById('pageVisibilityEditError');
+  const payload = {
+    public_access: document.getElementById('editPageVisibilityPublic').checked,
+    authenticated_access: document.getElementById('editPageVisibilityAuthenticated').checked,
+    role_ids: Array.from(
+      document.querySelectorAll('input[name="pageVisibilityRole"]:checked'),
+      input => Number(input.value),
+    ),
+    user_ids: Array.from(
+      document.querySelectorAll('input[name="pageVisibilityUser"]:checked'),
+      input => input.value,
+    ),
+  };
+  errorElement.textContent = '';
+
+  await withBusyControl(event.currentTarget, async () => {
+    try {
+      await requestJSON(`/api/admin/page-visibility/${encodeURIComponent(pageKey)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      closeModal('pageVisibilityEditModal');
+      showToast('Page visibility updated', 'success');
+      await loadPageVisibility();
+    } catch (error) {
+      errorElement.textContent = error.message || 'Failed to update page visibility';
+    }
+  });
+});
+
 async function loadEvents() {
   try {
     const data = await requestJSON('/api/admin/events');
@@ -763,6 +868,7 @@ const actions = {
   'guild-detail': control => openGuildDetail(control.dataset.id),
   'edit-connection': control => openConnectionEdit(Number(control.dataset.id)),
   'delete-connection': control => confirmDeleteConnection(Number(control.dataset.id)),
+  'edit-page-visibility': control => openPageVisibilityEdit(control.dataset.id),
   'toggle-event-visibility': control => toggleEventVisibility(Number(control.dataset.id)),
   'cancel-announcement': control => cancelAnnouncement(Number(control.dataset.id)),
 };
@@ -783,6 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
       groups: loadGroups,
       guilds: loadGuilds,
       connections: loadConnections,
+      'page-visibility': loadPageVisibility,
       events: loadEvents,
       stats: loadStats,
       announcements: () => Promise.all([loadAnnouncements(), loadAnnouncementTargets()]),

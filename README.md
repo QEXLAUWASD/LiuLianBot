@@ -27,6 +27,8 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - One-time account linking lets Discord commands and website signups use the same identity
 - Terms acceptance records consent for website data storage; remote SSH/RDP access can be limited to named user groups
 - SSH terminal and RDP file generation, with optional browser-local or AES-256-GCM encrypted server-side connection profiles
+- Chromium workspace page backed by an authorized website connection with the `chromium` slug
+- Admin page-visibility controls for guests, all signed-in users, selected website groups, and selected users
 
 ## Project structure
 
@@ -43,7 +45,7 @@ LiuLianBot/
 |   |-- updater/                  # Git-based updater
 |   `-- utils/                    # Database and logging utilities
 |-- website-part/                 # Node.js and Express website
-|   |-- public/                   # HTML, CSS, and browser JavaScript
+|   |-- public/                   # HTML, CSS, and browser JavaScript (including chromium.html)
 |   |-- src/                      # App, routes, middleware, repositories, and services
 |   `-- test/                     # Node.js test suite
 |-- shared/
@@ -256,13 +258,27 @@ Discord must be linked before creating an event. The website and bot share the s
 ## Website pages and routes
 
 The public pages are `login.html`, `terms.html`, `roller.html`, and `404.html`.
-Authenticated users can access `index.html`, `account.html`, `events.html`, and
-`remote.html`; administrators additionally have `admin.html`.
+Authenticated users can access `index.html`, `account.html`, `events.html`,
+`remote.html`, and `chromium.html`; administrators additionally have `admin.html`.
 
 The website exposes JSON APIs under `/api` for authentication, account and Discord
 link management, R6 rolls, events, website connections, administration, remote
 profiles, and RDP file generation. Authorized HTTP/WebSocket website connections are
 available under `/connect/<slug>/`. SSH uses the `/api/ssh` WebSocket endpoint.
+
+### Page visibility
+
+Administrators can open Admin > Page Visibility to control which website subpages appear in navigation and dashboard links. Each page can be shown to non-logged-in visitors, all signed-in users, selected website groups, or selected users. The settings are also checked by the page routes; existing feature-specific requirements such as Remote access permissions still apply.
+
+### Chromium workspace
+
+The Chromium page uses the existing website proxy and access-control system. To enable it:
+
+1. Sign in as an administrator and open Admin > Website Access.
+2. Add a website connection with the name `Chromium`, URL slug `chromium`, and the URL of the Chromium web service (for example, `http://127.0.0.1:9222/`).
+3. Select the groups or users that may use it, then open Chromium from the navigation bar or dashboard.
+
+The Chromium page shows a setup message until a connection with the exact `chromium` slug is available to the signed-in user. The upstream service must provide a browser-accessible web interface; installing the Chromium desktop application alone does not create one.
 
 ## Development checks
 

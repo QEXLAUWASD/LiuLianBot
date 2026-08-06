@@ -19,6 +19,7 @@ async function startServer() {
   const rdp = require('./routes/rdp');
   const remoteProfile = require('./routes/remote_profile');
   const connectionProxy = require('./routes/connection_proxy');
+  const pageVisibility = require('./routes/page_visibility');
   const sessionStore = new MySqlSessionStore();
   const sessionOptions = buildSessionOptions(process.env, sessionStore);
   const app = createApp({
@@ -34,6 +35,7 @@ async function startServer() {
       rdp,
       remoteProfile,
       connectionProxy,
+      pageVisibility,
     },
   });
   const listenOptions = buildListenOptions(process.env);

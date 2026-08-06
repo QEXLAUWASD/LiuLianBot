@@ -424,6 +424,7 @@ test('admin dialogs have native hidden state and complete dialog semantics', asy
     'userEditModal',
     'groupEditModal',
     'connectionEditModal',
+    'pageVisibilityEditModal',
     'guildDetailModal',
     'confirmDialog',
   ]);

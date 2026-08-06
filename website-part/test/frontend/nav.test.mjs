@@ -18,6 +18,8 @@ test('navbar renders stable navigation and authentication hooks', () => {
 
     assert.equal(document.querySelector('a[href="/index.html"]').textContent, 'Home');
     assert.equal(document.querySelector('a[href="/roller.html"]').classList.contains('active'), true);
+    assert.equal(document.querySelector('a[href="/roller.html"]').dataset.pageKey, 'roller');
+    assert.equal(document.querySelector('a[href="/chromium.html"]').textContent, 'Chromium');
     assert.ok(document.querySelector('[data-admin-only]'));
     assert.ok(document.querySelector('[data-logout]'));
     assert.ok(document.querySelector('#websiteDropdownMenu[role="menu"]'));
@@ -62,6 +64,9 @@ test('English pages share one empty navbar mount and safe app rendering', async 
     }
     dom.window.close();
   }
+
+  const chromiumHtml = await readFile(resolve(publicDir, 'chromium.html'), 'utf8');
+  assert.equal(new JSDOM(chromiumHtml).window.document.documentElement.lang, 'zh-Hant');
 
   const appSource = await readFile(resolve(publicDir, 'js/app.mjs'), 'utf8');
   assert.match(appSource, /renderNavbar/);

@@ -6,6 +6,20 @@ import { renderNavbar } from './nav.mjs';
 const navbarRefs = new WeakMap();
 const logoutControls = new WeakSet();
 const dropdowns = new WeakSet();
+const GUEST_PAGE_FALLBACK = Object.freeze({
+  roller: true,
+  events: false,
+  account: false,
+  remote: false,
+  chromium: false,
+});
+const USER_PAGE_FALLBACK = Object.freeze({
+  roller: true,
+  events: true,
+  account: true,
+  remote: true,
+  chromium: true,
+});
 
 function getNavbar() {
   const target = document.getElementById('siteNav');
@@ -23,6 +37,22 @@ function showLogoutError(error, refs = getNavbar()) {
   if (!refs) return;
   refs.status.textContent = error.message;
   refs.status.className = 'nav-auth-status status-error';
+}
+
+function applyPageVisibility(pages) {
+  if (!pages) return;
+  document.querySelectorAll('[data-page-key]').forEach(node => {
+    node.hidden = pages[node.dataset.pageKey] !== true;
+  });
+}
+
+async function loadPageVisibility() {
+  try {
+    const data = await requestJSON('/api/page-visibility');
+    return data?.pages || null;
+  } catch (_) {
+    return null;
+  }
 }
 
 export function setupLogout(refs = getNavbar()) {
@@ -45,13 +75,15 @@ export function setupLogout(refs = getNavbar()) {
   });
 }
 
-function setSignedOut(refs) {
+function setSignedOut(refs, pages = GUEST_PAGE_FALLBACK) {
   refs.username.hidden = true;
   refs.logout.hidden = true;
   refs.dropdown.hidden = true;
   refs.remote.hidden = true;
+  refs.chromium.hidden = true;
   refs.admin.hidden = true;
   refs.login.hidden = false;
+  applyPageVisibility(pages);
   refs.status.textContent = '';
   refs.status.className = 'nav-auth-status';
 }
@@ -60,8 +92,10 @@ function setAuthError(refs, error) {
   refs.username.hidden = true;
   refs.logout.hidden = true;
   refs.dropdown.hidden = true;
+  refs.chromium.hidden = true;
   refs.admin.hidden = true;
   refs.login.hidden = true;
+  applyPageVisibility(GUEST_PAGE_FALLBACK);
   refs.status.textContent = 'Unable to load account';
   refs.status.className = 'nav-auth-status status-error';
   refs.status.title = error.message;
@@ -80,7 +114,7 @@ export async function setupNavUser() {
   }
 
   if (!user) {
-    setSignedOut(refs);
+    setSignedOut(refs, await loadPageVisibility() || GUEST_PAGE_FALLBACK);
     return null;
   }
 
@@ -91,9 +125,14 @@ export async function setupNavUser() {
   refs.dropdown.hidden = false;
   refs.admin.hidden = user.role !== 'admin';
   refs.remote.hidden = user.remoteAvailable === false;
+  refs.chromium.hidden = false;
   refs.status.textContent = '';
   refs.status.className = 'nav-auth-status';
   refs.status.removeAttribute('title');
+  applyPageVisibility(await loadPageVisibility() || USER_PAGE_FALLBACK);
+  document.querySelectorAll('[data-page-key="remote"]').forEach(node => {
+    node.hidden = node.hidden || user.remoteAvailable === false;
+  });
   setupLogout(refs);
 
   const welcomeName = document.getElementById('welcomeName');

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1c6ba0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="LiuLianBot">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>LiuLianBot - Chromium</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="/css/style.css?v=20260806-chromium">
+</head>
+<body>
+  <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
+
+  <main class="main-content chromium-page">
+    <div class="page-heading">
+      <div>
+        <h1>Chromium</h1>
+        <p>在 LiuLianBot 內開啟已授權的 Chromium 工作區。</p>
+      </div>
+      <a id="chromiumOpenLink" class="btn btn-outline" href="#" target="_blank" rel="noopener" hidden>在新分頁開啟</a>
+    </div>
+
+    <div id="chromiumStatus" class="status-msg" role="status" aria-live="polite">正在檢查 Chromium 連線...</div>
+
+    <section id="chromiumFramePanel" class="chromium-panel" aria-labelledby="chromiumFrameHeading" hidden>
+      <div class="chromium-panel-heading">
+        <h2 id="chromiumFrameHeading">Chromium 工作區</h2>
+        <span id="chromiumConnectionName" class="table-subtext"></span>
+      </div>
+      <iframe id="chromiumFrame" class="chromium-frame" title="Chromium 工作區" allow="clipboard-read; clipboard-write; fullscreen; autoplay" allowfullscreen></iframe>
+    </section>
+
+    <section id="chromiumSetup" class="empty-state" aria-labelledby="chromiumSetupHeading" hidden>
+      <h2 id="chromiumSetupHeading">尚未設定 Chromium</h2>
+      <p>請管理員在 Admin &gt; Website Access 新增 slug 為 <code>chromium</code> 的網站連線，並設定允許存取的群組或用戶。</p>
+    </section>
+  </main>
+
+  <script type="module" src="/js/app.mjs"></script>
+  <script type="module" src="/js/chromium.mjs"></script>
+</body>
+</html>

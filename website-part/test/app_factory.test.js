@@ -61,11 +61,13 @@ test('app factory redirects protected HTML before static files are considered', 
 
   try {
     const { port } = server.address();
-    const response = await fetch(`http://127.0.0.1:${port}/account.html`, {
-      redirect: 'manual',
-    });
-    assert.equal(response.status, 302);
-    assert.equal(response.headers.get('location'), '/login.html');
+    for (const page of ['/account.html', '/chromium.html']) {
+      const response = await fetch(`http://127.0.0.1:${port}${page}`, {
+        redirect: 'manual',
+      });
+      assert.equal(response.status, 302);
+      assert.equal(response.headers.get('location'), '/login.html');
+    }
   } finally {
     await new Promise(resolve => server.close(resolve));
   }

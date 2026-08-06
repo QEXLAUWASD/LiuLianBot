@@ -8,7 +8,7 @@ import { JSDOM } from 'jsdom';
 const publicDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../public');
 
 test('pages expose install metadata for iPhone and iPad home screen shortcuts', async () => {
-  const pageNames = ['login.html', 'index.html', 'account.html', 'roller.html', 'admin.html', 'events.html', '404.html'];
+  const pageNames = ['login.html', 'index.html', 'account.html', 'roller.html', 'admin.html', 'events.html', 'chromium.html', '404.html'];
 
   for (const pageName of pageNames) {
     const html = await readFile(resolve(publicDir, pageName), 'utf8');

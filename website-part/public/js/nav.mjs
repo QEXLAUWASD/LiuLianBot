@@ -1,12 +1,13 @@
 import { element, replaceChildren } from './dom.mjs';
 
-function navLink(href, text, pathname) {
+function navLink(href, text, pathname, pageKey = null) {
   const active = pathname === href || (href === '/index.html' && pathname === '/');
   return element('a', {
     className: `nav-link${active ? ' active' : ''}`,
     text,
     attributes: {
       href,
+      ...(pageKey ? { 'data-page-key': pageKey } : {}),
       ...(active ? { 'aria-current': 'page' } : {}),
     },
   });
@@ -15,10 +16,11 @@ function navLink(href, text, pathname) {
 export function renderNavbar(target, location = globalThis.location) {
   const pathname = location?.pathname || '';
   const home = navLink('/index.html', 'Home', pathname);
-  const roller = navLink('/roller.html', 'R6 Roller', pathname);
-  const events = navLink('/events.html', 'Events', pathname);
-  const remote = navLink('/remote.html', 'Remote', pathname);
-  const account = navLink('/account.html', 'Account', pathname);
+  const roller = navLink('/roller.html', 'R6 Roller', pathname, 'roller');
+  const events = navLink('/events.html', 'Events', pathname, 'events');
+  const remote = navLink('/remote.html', 'Remote', pathname, 'remote');
+  const chromium = navLink('/chromium.html', 'Chromium', pathname, 'chromium');
+  const account = navLink('/account.html', 'Account', pathname, 'account');
   const admin = navLink('/admin.html', 'Admin', pathname);
   admin.classList.add('admin-only');
   admin.dataset.adminOnly = '';
@@ -83,13 +85,14 @@ export function renderNavbar(target, location = globalThis.location) {
 
   replaceChildren(target, [
     element('div', { className: 'nav-brand', text: '🎮 LiuLianBot' }),
-    element('div', { className: 'nav-links' }, [home, roller, events, remote, dropdown, account, admin]),
+    element('div', { className: 'nav-links' }, [home, roller, events, remote, chromium, dropdown, account, admin]),
     user,
   ]);
 
   return {
     account,
     admin,
+    chromium,
     dropdown,
     dropdownMenu,
     dropdownToggle,

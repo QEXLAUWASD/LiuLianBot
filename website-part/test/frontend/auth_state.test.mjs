@@ -144,8 +144,8 @@ test('logout rejects success false without redirecting', async () => {
   assert.equal(location.href, '/account.html');
 });
 
-test('four authenticated pages load app.mjs as a module and contain no stale app scripts', async () => {
-  for (const filename of ['index.html', 'account.html', 'admin.html', 'roller.html']) {
+test('authenticated pages load app.mjs as a module and contain no stale app scripts', async () => {
+  for (const filename of ['index.html', 'account.html', 'admin.html', 'roller.html', 'chromium.html']) {
     const html = await readFile(resolve(publicDir, filename), 'utf8');
     const document = new JSDOM(html).window.document;
     const appScripts = [...document.querySelectorAll('script')]
@@ -158,8 +158,8 @@ test('four authenticated pages load app.mjs as a module and contain no stale app
   }
 });
 
-test('four authenticated pages mount the shared navigation loading state', async () => {
-  for (const filename of ['index.html', 'account.html', 'admin.html', 'roller.html']) {
+test('authenticated pages mount the shared navigation loading state', async () => {
+  for (const filename of ['index.html', 'account.html', 'admin.html', 'roller.html', 'chromium.html']) {
     const html = await readFile(resolve(publicDir, filename), 'utf8');
     const dom = new JSDOM(html);
     const document = dom.window.document;
