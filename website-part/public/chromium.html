@@ -19,24 +19,38 @@
     <div class="page-heading">
       <div>
         <h1>Chromium</h1>
-        <p>在 LiuLianBot 內開啟已授權的 Chromium 工作區。</p>
+        <p>在 LiuLianBot 內瀏覽網站。</p>
       </div>
-      <a id="chromiumOpenLink" class="btn btn-outline" href="#" target="_blank" rel="noopener" hidden>在新分頁開啟</a>
+      <button id="chromiumHomeButton" class="btn btn-outline" type="button" title="回到首頁" hidden>首頁</button>
     </div>
 
-    <div id="chromiumStatus" class="status-msg" role="status" aria-live="polite">正在檢查 Chromium 連線...</div>
+    <form id="chromiumAddressForm" class="chromium-address-bar" novalidate>
+      <label class="sr-only" for="chromiumAddress">網址</label>
+      <input id="chromiumAddress" type="url" inputmode="url" autocomplete="url"
+        placeholder="輸入網址，例如 https://example.com" required>
+      <button class="btn btn-primary" type="submit">前往</button>
+      <a id="chromiumOpenLink" class="btn btn-outline" href="#" target="_blank" rel="noopener" hidden>新分頁開啟</a>
+    </form>
+
+    <div id="chromiumStatus" class="status-msg" role="status" aria-live="polite">Chromium 已就緒。</div>
+
+    <section id="chromiumHome" class="chromium-home" aria-labelledby="chromiumHomeHeading">
+      <h2 id="chromiumHomeHeading">開始瀏覽</h2>
+      <p>輸入完整網址即可在此工作區開啟網站。</p>
+      <div class="chromium-quick-links" aria-label="快速連結">
+        <a href="https://www.google.com/" target="_blank" rel="noopener">Google</a>
+        <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://developer.mozilla.org/" target="_blank" rel="noopener">MDN</a>
+      </div>
+    </section>
 
     <section id="chromiumFramePanel" class="chromium-panel" aria-labelledby="chromiumFrameHeading" hidden>
       <div class="chromium-panel-heading">
-        <h2 id="chromiumFrameHeading">Chromium 工作區</h2>
-        <span id="chromiumConnectionName" class="table-subtext"></span>
+        <h2 id="chromiumFrameHeading">瀏覽工作區</h2>
+        <span id="chromiumConnectionName" class="table-subtext">內建工作區</span>
       </div>
-      <iframe id="chromiumFrame" class="chromium-frame" title="Chromium 工作區" allow="clipboard-read; clipboard-write; fullscreen; autoplay" allowfullscreen></iframe>
-    </section>
-
-    <section id="chromiumSetup" class="empty-state" aria-labelledby="chromiumSetupHeading" hidden>
-      <h2 id="chromiumSetupHeading">尚未設定 Chromium</h2>
-      <p>請管理員在 Admin &gt; Website Access 新增 slug 為 <code>chromium</code> 的網站連線，並設定允許存取的群組或用戶。</p>
+      <iframe id="chromiumFrame" class="chromium-frame" title="Chromium 瀏覽工作區"
+        allow="clipboard-read; clipboard-write; fullscreen; autoplay" allowfullscreen></iframe>
     </section>
   </main>
 

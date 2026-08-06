@@ -1,40 +1,82 @@
-import { requestJSON } from './api_client.mjs';
-
 function setStatus(statusElement, message, type = '') {
   statusElement.textContent = message;
   statusElement.className = `status-msg${type ? ` status-${type}` : ''}`;
 }
 
-export async function initializeChromiumPage({ request = requestJSON, documentRef = document } = {}) {
+function normalizeUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) throw new Error('請輸入網址。');
+
+  let url;
+  try {
+    url = new URL(raw);
+  } catch (_) {
+    throw new Error('網址格式不正確，請使用 http:// 或 https://。');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('只支援 http:// 或 https:// 網址。');
+  }
+  return url.toString();
+}
+
+export function initializeChromiumPage({ documentRef = document } = {}) {
+  const form = documentRef.getElementById('chromiumAddressForm');
+  const address = documentRef.getElementById('chromiumAddress');
   const status = documentRef.getElementById('chromiumStatus');
+  const home = documentRef.getElementById('chromiumHome');
+  const homeButton = documentRef.getElementById('chromiumHomeButton');
   const framePanel = documentRef.getElementById('chromiumFramePanel');
-  const setup = documentRef.getElementById('chromiumSetup');
   const frame = documentRef.getElementById('chromiumFrame');
   const openLink = documentRef.getElementById('chromiumOpenLink');
-  const connectionName = documentRef.getElementById('chromiumConnectionName');
-  if (!status || !framePanel || !setup || !frame || !openLink || !connectionName) return null;
+  if (!form || !address || !status || !home || !homeButton || !framePanel || !frame || !openLink) return null;
 
-  try {
-    const data = await request('/api/connections');
-    const connection = (data?.connections || []).find(item => item.slug?.toLowerCase() === 'chromium');
-    if (!connection) {
-      setStatus(status, 'Chromium 尚未設定。');
-      setup.hidden = false;
-      return null;
-    }
+  setStatus(status, 'Chromium 已就緒。');
 
-    const proxyUrl = `/connect/${encodeURIComponent(connection.slug)}/`;
-    frame.src = proxyUrl;
-    openLink.href = proxyUrl;
-    openLink.hidden = false;
-    connectionName.textContent = connection.description || connection.name;
+  const showHome = () => {
+    frame.removeAttribute('src');
+    framePanel.hidden = true;
+    home.hidden = false;
+    homeButton.hidden = true;
+    openLink.hidden = true;
+    setStatus(status, 'Chromium 已就緒。');
+  };
+
+  const openUrl = value => {
+    const url = normalizeUrl(value);
+    address.value = url;
+    frame.src = url;
     framePanel.hidden = false;
-    setStatus(status, 'Chromium 已連線。', 'success');
-    return connection;
-  } catch (error) {
-    setStatus(status, error?.message || '無法載入 Chromium 連線。', 'error');
-    return null;
-  }
+    home.hidden = true;
+    homeButton.hidden = false;
+    openLink.href = url;
+    openLink.hidden = false;
+    setStatus(status, '已開啟網站。', 'success');
+    return url;
+  };
+
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    try {
+      openUrl(address.value);
+    } catch (error) {
+      setStatus(status, error.message, 'error');
+    }
+  });
+  homeButton.addEventListener('click', showHome);
+  documentRef.querySelectorAll('[data-chromium-url], .chromium-quick-links a').forEach(link => {
+    link.addEventListener('click', event => {
+      if (link.dataset.chromiumUrl) {
+        event.preventDefault();
+        try {
+          openUrl(link.dataset.chromiumUrl);
+        } catch (error) {
+          setStatus(status, error.message, 'error');
+        }
+      }
+    });
+  });
+
+  return { openUrl, showHome };
 }
 
 if (typeof document !== 'undefined') {

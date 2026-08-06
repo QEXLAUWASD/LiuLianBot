@@ -5,36 +5,53 @@ import { initializeChromiumPage } from '../../public/js/chromium.mjs';
 
 function setupDocument() {
   return new JSDOM(`
+    <form id="chromiumAddressForm">
+      <input id="chromiumAddress">
+      <button type="submit">Go</button>
+    </form>
     <div id="chromiumStatus"></div>
+    <section id="chromiumHome"></section>
+    <button id="chromiumHomeButton" hidden>Home</button>
     <section id="chromiumFramePanel" hidden></section>
-    <section id="chromiumSetup" hidden></section>
     <iframe id="chromiumFrame"></iframe>
     <a id="chromiumOpenLink" hidden></a>
-    <span id="chromiumConnectionName"></span>
+    <div class="chromium-quick-links"><a href="https://example.com/">Example</a></div>
   `).window.document;
 }
 
-test('Chromium page opens only the authorized chromium connection', async () => {
+test('Chromium page is ready without a website connection', () => {
   const documentRef = setupDocument();
-  const connection = { slug: 'chromium', name: 'Chromium', description: 'Browser service' };
+  const controls = initializeChromiumPage({ documentRef });
 
-  assert.equal(await initializeChromiumPage({
-    documentRef,
-    request: async () => ({ connections: [connection] }),
-  }), connection);
-  assert.equal(documentRef.getElementById('chromiumFrame').getAttribute('src'), '/connect/chromium/');
-  assert.equal(documentRef.getElementById('chromiumOpenLink').getAttribute('href'), '/connect/chromium/');
-  assert.equal(documentRef.getElementById('chromiumFramePanel').hidden, false);
-  assert.equal(documentRef.getElementById('chromiumSetup').hidden, true);
+  assert.equal(typeof controls.openUrl, 'function');
+  assert.equal(documentRef.getElementById('chromiumStatus').textContent, 'Chromium 已就緒。');
+  assert.equal(documentRef.getElementById('chromiumHome').hidden, false);
+  assert.equal(documentRef.getElementById('chromiumFramePanel').hidden, true);
 });
 
-test('Chromium page shows setup state when the connection is missing', async () => {
+test('Chromium page opens a valid URL in the built-in workspace', () => {
   const documentRef = setupDocument();
+  initializeChromiumPage({ documentRef });
+  const address = documentRef.getElementById('chromiumAddress');
+  address.value = 'https://example.com/path';
+  documentRef.getElementById('chromiumAddressForm').dispatchEvent(
+    new documentRef.defaultView.Event('submit', { bubbles: true, cancelable: true })
+  );
 
-  assert.equal(await initializeChromiumPage({
-    documentRef,
-    request: async () => ({ connections: [] }),
-  }), null);
-  assert.equal(documentRef.getElementById('chromiumSetup').hidden, false);
+  assert.equal(documentRef.getElementById('chromiumFrame').getAttribute('src'), 'https://example.com/path');
+  assert.equal(documentRef.getElementById('chromiumOpenLink').getAttribute('href'), 'https://example.com/path');
+  assert.equal(documentRef.getElementById('chromiumHome').hidden, true);
+  assert.equal(documentRef.getElementById('chromiumFramePanel').hidden, false);
+});
+
+test('Chromium page rejects non-web URLs', () => {
+  const documentRef = setupDocument();
+  initializeChromiumPage({ documentRef });
+  documentRef.getElementById('chromiumAddress').value = 'javascript:alert(1)';
+  documentRef.getElementById('chromiumAddressForm').dispatchEvent(
+    new documentRef.defaultView.Event('submit', { bubbles: true, cancelable: true })
+  );
+
+  assert.match(documentRef.getElementById('chromiumStatus').textContent, /只支援/);
   assert.equal(documentRef.getElementById('chromiumFramePanel').hidden, true);
 });

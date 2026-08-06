@@ -27,7 +27,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - One-time account linking lets Discord commands and website signups use the same identity
 - Terms acceptance records consent for website data storage; remote SSH/RDP access can be limited to named user groups
 - SSH terminal and RDP file generation, with optional browser-local or AES-256-GCM encrypted server-side connection profiles
-- Chromium workspace page backed by an authorized website connection with the `chromium` slug
+- Built-in Chromium workspace page with URL navigation and embedded browsing
 - Admin page-visibility controls for guests, all signed-in users, selected website groups, and selected users
 
 ## Project structure
@@ -272,13 +272,7 @@ Administrators can open Admin > Page Visibility to control which website subpage
 
 ### Chromium workspace
 
-The Chromium page uses the existing website proxy and access-control system. To enable it:
-
-1. Sign in as an administrator and open Admin > Website Access.
-2. Add a website connection with the name `Chromium`, URL slug `chromium`, and the URL of the Chromium web service (for example, `http://127.0.0.1:9222/`).
-3. Select the groups or users that may use it, then open Chromium from the navigation bar or dashboard.
-
-The Chromium page shows a setup message until a connection with the exact `chromium` slug is available to the signed-in user. The upstream service must provide a browser-accessible web interface; installing the Chromium desktop application alone does not create one.
+The Chromium page is included in the website and needs no separate Website Access connection or external browser service. Users can enter an `http://` or `https://` URL, browse it in the embedded workspace, or open it in a new browser tab. Administrators can still use Admin > Page Visibility to decide which users or groups can see the Chromium page.
 
 ## Development checks
 

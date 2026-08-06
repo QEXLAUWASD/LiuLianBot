@@ -27,7 +27,7 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 網站帳戶可產生一次性代碼，連結 Discord 身分後可共用活動報名資料
 - 記錄網站資料儲存同意；SSH/RDP 遠端功能可限制畀指定用戶群組
 - 提供 SSH 終端機及 RDP 連線檔，設定可選擇只保存喺瀏覽器或以 AES-256-GCM 加密保存喺伺服器
-- 提供 Chromium 工作區頁面，透過 slug 為 `chromium` 嘅已授權網站連線使用
+- 提供內建 Chromium 工作區頁面，可直接輸入網址並喺網站內瀏覽
 - Admin 提供頁面可見度設定，可按未登入訪客、全部登入用戶、指定網站群組或指定用戶控制顯示
 
 ## 專案結構
@@ -272,13 +272,7 @@ npm test
 
 ### Chromium 工作區
 
-Chromium 頁面會使用現有網站代理及存取控制系統。啟用方法：
-
-1. 以管理員身分登入，開啟 Admin > Website Access。
-2. 新增網站連線，名稱填寫 `Chromium`，URL slug 填寫 `chromium`，Target URL 填入 Chromium 網頁服務地址（例如 `http://127.0.0.1:9222/`）。
-3. 選擇可以使用嘅群組或用戶，之後喺導覽列或儀表板開啟 Chromium。
-
-如果登入用戶未有 exact slug `chromium` 嘅可用連線，頁面會顯示設定提示。上游服務必須提供可以由瀏覽器開啟嘅網頁介面；單純安裝 Chromium 桌面程式唔會自動產生呢個介面。
+Chromium 頁面已經內置喺網站，唔需要另外新增 Website Access 連線或者安裝外部瀏覽器服務。用戶可以輸入 `http://` 或 `https://` 網址，喺內嵌工作區瀏覽，亦可以喺新瀏覽器分頁開啟。管理員仍然可以喺 Admin > Page Visibility 設定邊啲用戶或群組可以見到 Chromium 頁面。
 
 ## 開發檢查
 
