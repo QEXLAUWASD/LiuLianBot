@@ -175,6 +175,8 @@ cd website-part
 
 修改生產依賴或 PM2 設定後，需要再次執行 `./start.sh init`。正式部署時，請
 喺網站前面配置反向代理並提供 HTTPS。
+MySQL Session 背景清理遇到暫時性錯誤時只會記錄錯誤，唔會停用新登入
+Session。部署 Session Store 修正後，請執行 `./start.sh restart` 重啟 PM2 程式。
 
 ### 網站環境變數
 

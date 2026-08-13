@@ -175,6 +175,9 @@ cd website-part
 
 Run `./start.sh init` again after changing production dependencies or the PM2
 definition. Put an HTTPS reverse proxy in front of the website for production.
+The MySQL session cleanup job logs transient cleanup failures without disabling
+new login sessions. After deploying session-store changes, restart the PM2 app
+with `./start.sh restart`.
 
 ### Website environment variables
 

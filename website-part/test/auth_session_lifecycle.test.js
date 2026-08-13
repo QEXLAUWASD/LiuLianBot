@@ -28,6 +28,13 @@ test('establishUserSession regenerates before saving the user', async () => {
   assert.equal(req.session.cookie.maxAge, 1234);
 });
 
+test('establishUserSession reports missing session middleware clearly', async () => {
+  await assert.rejects(
+    establishUserSession({}, { id: 'u1', username: 'name' }),
+    /Session middleware is unavailable/
+  );
+});
+
 test('password change revokes every other session for the user', async () => {
   const calls = [];
   const req = {

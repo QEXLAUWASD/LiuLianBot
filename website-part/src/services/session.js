@@ -3,6 +3,9 @@ const callbackPromise = fn => new Promise((resolve, reject) => {
 });
 
 async function establishUserSession(req, user, maxAge = null) {
+  if (!req.session) {
+    throw new Error('Session middleware is unavailable');
+  }
   await callbackPromise(callback => req.session.regenerate(callback));
   req.session.cookie.maxAge = maxAge;
   req.session.user = { id: user.id, username: user.username };

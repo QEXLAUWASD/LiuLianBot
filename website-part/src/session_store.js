@@ -89,7 +89,9 @@ class MySqlSessionStore extends session.Store {
   startCleanup(intervalMs = 60 * 60 * 1000) {
     if (this.cleanupTimer) return;
     this.cleanupTimer = setInterval(() => {
-      this.cleanupExpired().catch(err => this.emit('disconnect', err));
+      this.cleanupExpired().catch(err => {
+        console.error('[SessionStore] Expired-session cleanup failed:', err);
+      });
     }, intervalMs);
     this.cleanupTimer.unref?.();
   }
