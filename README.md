@@ -28,7 +28,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - Terms acceptance records consent for website data storage; remote SSH/RDP access can be limited to named user groups
 - Browser-based WebRDP desktop sessions powered by mstsc.js and HTML5 Canvas, plus RDP file generation
 - SSH terminal and remote profiles, with optional browser-local or AES-256-GCM encrypted server-side connection profiles; WebRDP passwords are session-only
-- Native Chromium-compatible WebView workspace powered by `@webviewjs/webview`
+- Built-in Hyperbeam Chromium workspace page with URL navigation
 - Admin page-visibility controls for guests, all signed-in users, selected website groups, and selected users
 
 ## Project structure
@@ -47,7 +47,7 @@ LiuLianBot/
 |   `-- utils/                    # Database and logging utilities
 |-- website-part/                 # Node.js and Express website
 |   |-- public/                   # HTML, CSS, and browser JavaScript (including chromium.html)
-|   |-- src/                      # App, routes, middleware, repositories, services, and native WebView launcher
+|   |-- src/                      # App, routes, middleware, repositories, and services
 |   `-- test/                     # Node.js test suite
 |-- shared/
 |   |-- database/                 # Shared MySQL configuration and template
@@ -84,7 +84,7 @@ normal deployment today.
 ## Requirements
 
 - Python 3.10 or later
-- Node.js 24 or later with npm (required by `@webviewjs/webview`)
+- Node.js 18 or later with npm
 - MySQL or MariaDB
 - A Discord bot token from the [Discord Developer Portal](https://discord.com/developers/applications)
 
@@ -189,17 +189,6 @@ npm start
 For local development, `npm run dev` uses the same server entry point. The website
 binds to `127.0.0.1:3000` by default.
 
-To open a native Chromium-compatible WebView window on the local machine:
-
-```bash
-npm run chromium -- https://example.com/
-```
-
-On Windows, install the WebView2 Runtime if it is not already available. On
-Linux, install the WebKitGTK and `libxdo` packages required by WebviewJS. The
-website `chromium.html` page validates URLs and generates this command; the
-actual page is rendered by the native WebviewJS window instead of an iframe.
-
 When updating an existing PM2 deployment after a dependency change, reinstall the
 production dependencies before restarting the process:
 
@@ -256,6 +245,9 @@ runtime settings are read from `website-part/.env`.
 | `REMOTE_RDP_ENABLED` | `true` | Set to `false` to disable RDP for all users, including administrators. |
 | `SSH_ALLOWED_HOSTS` | Empty | Optional comma-separated SSH hostnames, IPv4 addresses, or IPv4 CIDR ranges. Empty allows any reachable host. |
 | `REMOTE_CREDENTIAL_ENCRYPTION_KEY` | Empty | Base64-encoded 32-byte AES-256-GCM key for server-side SSH/RDP profile storage. |
+| `HYPERBEAM_API_KEY` | Empty | Server-side Hyperbeam API key required by the Chromium workspace. |
+| `HYPERBEAM_API_URL` | `https://engine.hyperbeam.com/v0/vm` | Hyperbeam VM session endpoint. |
+| `HYPERBEAM_REGION` | `AS` | Hyperbeam region used for new Chromium sessions. |
 
 ### Remote client configuration
 
@@ -336,13 +328,7 @@ Administrators can open Admin > Page Visibility to control which website subpage
 
 ### Chromium workspace
 
-The authenticated `chromium.html` page is the URL launcher for the native
-WebviewJS workspace and does not embed arbitrary sites in an iframe. Enter an
-`http://` or `https://` URL, copy the generated command, and run it from the
-`website-part` directory. The native window uses the operating system webview
-engine, keeps navigation limited to HTTP(S), and supports `--devtools` for
-local debugging. Administrators can still use Admin > Page Visibility to decide
-which users or groups can see the Chromium launcher page.
+The Chromium page uses Hyperbeam to create a cloud browser session server-side, so it does not require a local Chromium binary, WebView2, or a Website Access connection. Set `HYPERBEAM_API_KEY` in `website-part/.env`; the key is only used by the server and is never sent to the browser. `HYPERBEAM_API_URL` defaults to `https://engine.hyperbeam.com/v0/vm`, and `HYPERBEAM_REGION` defaults to `AS`. Each navigation creates a Hyperbeam session and may incur provider usage charges; configure Hyperbeam timeouts and account limits accordingly. Administrators can still use Admin > Page Visibility to decide which users or groups can see the Chromium page.
 
 ## Development checks
 
@@ -385,7 +371,7 @@ graceful `SIGINT` or `SIGTERM` shutdown.
 
 The Discord bot dependencies are pinned in `discord-part/requirements.txt`. The website dependencies and lockfile are in `website-part/package.json` and `website-part/package-lock.json`.
 
-Key runtime packages include `discord.py`, `PyMySQL`, `Express`, `express-session`, `express-rate-limit`, `bcryptjs`, `mysql2`, `http-proxy-middleware`, `ssh2`, `ws`, `socket.io`, `@electerm/rdpjs`, and `@webviewjs/webview`.
+Key runtime packages include `discord.py`, `PyMySQL`, `Express`, `express-session`, `express-rate-limit`, `bcryptjs`, `mysql2`, `http-proxy-middleware`, `ssh2`, `ws`, `socket.io`, and `@electerm/rdpjs`.
 
 ## License
 

@@ -27,7 +27,7 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 網站帳戶可產生一次性代碼，連結 Discord 身分後可共用活動報名資料
 - 記錄網站資料儲存同意；SSH/RDP 遠端功能可限制畀指定用戶群組
 - 提供 SSH 終端機及 RDP 連線檔，設定可選擇只保存喺瀏覽器或以 AES-256-GCM 加密保存喺伺服器
-- 提供由 `@webviewjs/webview` 驅動嘅原生 Chromium-compatible WebView 工作區
+- 提供使用 Hyperbeam 嘅內建 Chromium 工作區頁面，可直接輸入網址並喺網站內瀏覽
 - Admin 提供頁面可見度設定，可按未登入訪客、全部登入用戶、指定網站群組或指定用戶控制顯示
 
 ## 專案結構
@@ -46,7 +46,7 @@ LiuLianBot/
 |   `-- utils/                    # 資料庫及日誌工具
 |-- website-part/                 # Node.js / Express 網站
 |   |-- public/                   # HTML、CSS 同瀏覽器端 JavaScript（包括 chromium.html）
-|   |-- src/                      # App、路由、中介層、資料庫 repository、服務及原生 WebView launcher
+|   |-- src/                      # App、路由、中介層、資料庫 repository 及服務
 |   `-- test/                     # Node.js 測試
 |-- shared/
 |   |-- database/                 # 共用 MySQL 設定與範本
@@ -60,7 +60,7 @@ LiuLianBot/
 ## 環境要求
 
 - Python 3.10 或以上
-- Node.js 24 或以上，以及 npm（`@webviewjs/webview` 要求）
+- Node.js 18 或以上，以及 npm
 - MySQL 或 MariaDB
 - [Discord 開發者平台](https://discord.com/developers/applications)建立嘅 Bot Token
 
@@ -165,16 +165,6 @@ npm start
 本機開發時，`npm run dev` 會使用同一個伺服器入口。網站預設監聽
 `127.0.0.1:3000`。
 
-如要喺本機開啟原生 Chromium-compatible WebView 視窗：
-
-```bash
-npm run chromium -- https://example.com/
-```
-
-Windows 如果未有 WebView2 Runtime，請先安裝；Linux 就要安裝 WebviewJS
-要求嘅 WebKitGTK 同 `libxdo`。網站嘅 `chromium.html` 會驗證網址同產生呢條
-指令，實際頁面由原生 WebviewJS 視窗顯示，唔再使用 iframe。
-
 Linux 生產環境可以用 PM2 管理：
 
 ```bash
@@ -207,6 +197,9 @@ Session。部署 Session Store 修正後，請執行 `./start.sh restart` 重啟
 | `REMOTE_RDP_ENABLED` | `true` | 設為 `false` 即對所有用戶停用 RDP，包括管理員。 |
 | `SSH_ALLOWED_HOSTS` | 空白 | 可選嘅 SSH 主機名稱、IPv4 地址或 IPv4 CIDR 網段清單；空白代表容許所有可到達主機。 |
 | `REMOTE_CREDENTIAL_ENCRYPTION_KEY` | 空白 | 用於伺服器端加密保存 SSH/RDP 設定嘅 Base64 32-byte AES-256-GCM 金鑰。 |
+| `HYPERBEAM_API_KEY` | 空白 | Chromium 工作區使用嘅伺服器端 Hyperbeam API 金鑰。 |
+| `HYPERBEAM_API_URL` | `https://engine.hyperbeam.com/v0/vm` | Hyperbeam VM 工作階段 API endpoint。 |
+| `HYPERBEAM_REGION` | `AS` | 新 Chromium 工作階段使用嘅 Hyperbeam 地區。 |
 
 ### 遠端用戶端設定
 
@@ -284,11 +277,7 @@ npm test
 
 ### Chromium 工作區
 
-登入後嘅 `chromium.html` 係原生 WebviewJS 工作區嘅啟動頁，唔會用 iframe
-嵌入任意網站。輸入 `http://` 或 `https://` 網址、複製頁面產生嘅指令，然後喺
-`website-part` 目錄執行。原生視窗使用作業系統提供嘅 WebView engine，導覽只
-接受 HTTP(S)，本機除錯時可以加 `--devtools`。管理員仍然可以喺 Admin > Page
-Visibility 設定邊啲用戶或群組可以見到 Chromium 啟動頁。
+Chromium 頁面使用 Hyperbeam 喺伺服器端建立雲端瀏覽器工作階段，唔需要本機 Chromium、WebView2 或 Website Access 連線。請喺 `website-part/.env` 設定 `HYPERBEAM_API_KEY`；金鑰只會由伺服器使用，唔會傳到瀏覽器。`HYPERBEAM_API_URL` 預設係 `https://engine.hyperbeam.com/v0/vm`，`HYPERBEAM_REGION` 預設係 `AS`。每次導覽都會建立 Hyperbeam 工作階段，可能產生服務商用量費用，請按需要設定 Hyperbeam 時限及帳戶限制。管理員仍然可以喺 Admin > Page Visibility 設定邊啲用戶或群組可以見到 Chromium 頁面。
 
 ## 開發檢查
 

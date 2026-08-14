@@ -7,10 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="LiuLianBot">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>LiuLianBot - Chromium WebView</title>
+  <title>LiuLianBot - Chromium</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-  <link rel="stylesheet" href="/css/style.css?v=20260814-webviewjs">
+  <link rel="stylesheet" href="/css/style.css?v=20260814-hyperbeam">
 </head>
 <body>
   <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
@@ -18,35 +18,41 @@
   <main class="main-content chromium-page">
     <div class="page-heading">
       <div>
-        <h1>Chromium WebView</h1>
-        <p>使用 WebviewJS 開啟原生桌面瀏覽器視窗。</p>
+        <h1>Chromium</h1>
+        <p>在 Hyperbeam 雲端瀏覽器內瀏覽網站。</p>
       </div>
-      <button id="chromiumHomeButton" class="btn btn-outline" type="button" title="清除網址" hidden>清除</button>
+      <button id="chromiumHomeButton" class="btn btn-outline" type="button" title="結束瀏覽工作階段" hidden>結束</button>
     </div>
 
     <form id="chromiumAddressForm" class="chromium-address-bar" novalidate>
       <label class="sr-only" for="chromiumAddress">網址</label>
       <input id="chromiumAddress" type="url" inputmode="url" autocomplete="url"
         placeholder="輸入網址，例如 https://example.com" required>
-      <button class="btn btn-primary" type="submit">準備啟動</button>
-      <button id="chromiumCopyCommand" class="btn btn-outline" type="button">複製指令</button>
+      <button class="btn btn-primary" type="submit">前往</button>
     </form>
 
-    <div id="chromiumStatus" class="status-msg" role="status" aria-live="polite">WebView 已就緒。</div>
+    <div id="chromiumStatus" class="status-msg" role="status" aria-live="polite">Chromium 已就緒。</div>
 
     <section id="chromiumHome" class="chromium-home" aria-labelledby="chromiumHomeHeading">
-      <h2 id="chromiumHomeHeading">原生 WebView</h2>
-      <p>請在 <code>website-part</code> 目錄執行以下指令，使用 WebviewJS 開啟瀏覽器視窗。</p>
-      <code id="chromiumLaunchCommand" class="chromium-command">npm run chromium -- https://www.google.com/</code>
+      <h2 id="chromiumHomeHeading">開始瀏覽</h2>
+      <p>輸入網址後，系統會建立你的 Hyperbeam 雲端 Chromium 工作階段。</p>
       <div class="chromium-quick-links" aria-label="快速連結">
         <a href="https://www.google.com/" data-chromium-url>Google</a>
         <a href="https://github.com/" data-chromium-url>GitHub</a>
         <a href="https://developer.mozilla.org/" data-chromium-url>MDN</a>
       </div>
     </section>
+
+    <section id="chromiumFramePanel" class="chromium-panel" aria-labelledby="chromiumFrameHeading" hidden>
+      <div class="chromium-panel-heading">
+        <h2 id="chromiumFrameHeading">瀏覽工作區</h2>
+        <span id="chromiumConnectionName" class="table-subtext">Hyperbeam</span>
+      </div>
+      <div id="chromiumFrame" class="chromium-frame" role="application" aria-label="Hyperbeam Chromium 工作區"></div>
+    </section>
   </main>
 
   <script type="module" src="/js/app.mjs"></script>
-  <script type="module" src="/js/chromium.mjs?v=20260814-webviewjs"></script>
+  <script type="module" src="/js/chromium.mjs?v=20260814-hyperbeam"></script>
 </body>
 </html>

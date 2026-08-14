@@ -16,6 +16,7 @@ async function startServer() {
   const admin = require('./routes/admin');
   const adminConnections = require('./routes/admin_connections');
   const connections = require('./routes/connections');
+  const chromium = require('./routes/chromium');
   const mobileConnections = require('./routes/mobile_connections');
   const events = require('./routes/events');
   const rdp = require('./routes/rdp');
@@ -34,6 +35,7 @@ async function startServer() {
       admin,
       adminConnections,
       connections,
+      chromium,
       mobileConnections,
       events,
       rdp,
