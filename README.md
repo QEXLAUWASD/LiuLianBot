@@ -246,6 +246,7 @@ runtime settings are read from `website-part/.env`.
 | `SSH_ALLOWED_HOSTS` | Empty | Optional comma-separated SSH hostnames, IPv4 addresses, or IPv4 CIDR ranges. Empty allows any reachable host. |
 | `REMOTE_CREDENTIAL_ENCRYPTION_KEY` | Empty | Base64-encoded 32-byte AES-256-GCM key for server-side SSH/RDP profile storage. |
 | `CHROME_EXECUTABLE_PATH` | Empty | Optional path to the Chrome/Chromium executable when it is not available on `PATH`. |
+| `CHROME_CDP_URL` | Empty | Optional remote Chrome DevTools endpoint, such as `http://192.168.1.10:9222`; when set, the website connects to that Chrome instead of launching one locally. |
 | `CHROMIUM_SESSION_TIMEOUT_MS` | `1800000` | Maximum lifetime of one Chromium WebSocket session in milliseconds. |
 
 ### Remote client configuration
@@ -327,7 +328,7 @@ Administrators can open Admin > Page Visibility to control which website subpage
 
 ### Chromium workspace
 
-The Chromium page uses Puppeteer with Chrome DevTools Protocol (CDP) screencasting. The website server launches a headless Chrome/Chromium process, sends JPEG screencast frames over an authenticated WebSocket, and forwards browser input events back through CDP. Install Chrome or Chromium on the server; set `CHROME_EXECUTABLE_PATH` when the executable is not on `PATH`. Each connected user owns a browser process that is closed when the WebSocket ends or its timeout is reached. Administrators can still use Admin > Page Visibility to decide which users or groups can see the Chromium page.
+The Chromium page uses Puppeteer with Chrome DevTools Protocol (CDP) screencasting. The website server launches a headless Chrome/Chromium process, sends JPEG screencast frames over an authenticated WebSocket, and forwards browser input events back through CDP. Install Chrome or Chromium on the server; set `CHROME_EXECUTABLE_PATH` when the executable is not on `PATH`. On OpenWrt, where Chromium may not be available in the configured feed, set `CHROME_CDP_URL` to a Chrome DevTools endpoint on another machine instead. Each connected user owns a browser page that is closed when the WebSocket ends or its timeout is reached. Administrators can still use Admin > Page Visibility to decide which users or groups can see the Chromium page.
 
 ## Development checks
 

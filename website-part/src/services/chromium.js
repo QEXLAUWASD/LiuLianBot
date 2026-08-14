@@ -45,6 +45,7 @@ function chromiumConfig(env = process.env) {
   const detectedPath = candidates.find(candidate => candidate && fs.existsSync(candidate));
   return {
     executablePath: String(env.CHROME_EXECUTABLE_PATH || '').trim() || detectedPath,
+    cdpUrl: String(env.CHROME_CDP_URL || '').trim() || undefined,
     sessionTimeoutMs: Math.max(60000, Number(env.CHROMIUM_SESSION_TIMEOUT_MS) || 1800000),
   };
 }
@@ -74,7 +75,10 @@ async function launchChromiumPage({
   const viewport = screenSize(size);
   const puppeteer = puppeteerImpl || require('puppeteer-core');
   const config = chromiumConfig(env);
-  const browser = await puppeteer.launch(launchOptions(config));
+  const ownsBrowser = !config.cdpUrl;
+  const browser = ownsBrowser
+    ? await puppeteer.launch(launchOptions(config))
+    : await puppeteer.connect({ browserURL: config.cdpUrl });
   try {
     const page = await browser.newPage();
     await page.setViewport(viewport);
@@ -99,11 +103,13 @@ async function launchChromiumPage({
       if (closed) return;
       closed = true;
       try { await cdp.send('Page.stopScreencast'); } catch (_) { /* browser may already be gone */ }
-      await browser.close().catch(() => {});
+      await page.close().catch(() => {});
+      if (ownsBrowser) await browser.close().catch(() => {});
     };
     return { browser, page, cdp, close, size: viewport, timeoutMs: config.sessionTimeoutMs };
   } catch (error) {
-    await browser.close().catch(() => {});
+    if (ownsBrowser) await browser.close().catch(() => {});
+    else await browser.disconnect().catch(() => {});
     throw error;
   }
 }
