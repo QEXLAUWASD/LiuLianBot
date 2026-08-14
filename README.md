@@ -189,6 +189,20 @@ npm start
 For local development, `npm run dev` uses the same server entry point. The website
 binds to `127.0.0.1:3000` by default.
 
+When updating an existing PM2 deployment after a dependency change, reinstall the
+production dependencies before restarting the process:
+
+```bash
+cd /opt/website/LiuLianBot/website-part
+npm ci --omit=dev
+npm ls socket.io @electerm/rdpjs --depth=0
+pm2 restart liulianb --update-env
+```
+
+The `npm ls` command should show both packages. A `MODULE_NOT_FOUND` error from
+`src/rdp_socket.js` means this dependency installation step has not completed on
+the deployment host.
+
 For a Linux production deployment managed by PM2:
 
 ```bash
