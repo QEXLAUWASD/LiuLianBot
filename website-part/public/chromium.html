@@ -7,10 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="LiuLianBot">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>LiuLianBot - Chromium</title>
+  <title>LiuLianBot - Chromium WebView</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-  <link rel="stylesheet" href="/css/style.css?v=20260806-chromium">
+  <link rel="stylesheet" href="/css/style.css?v=20260814-webviewjs">
 </head>
 <body>
   <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
@@ -18,43 +18,35 @@
   <main class="main-content chromium-page">
     <div class="page-heading">
       <div>
-        <h1>Chromium</h1>
-        <p>在 LiuLianBot 內瀏覽網站。</p>
+        <h1>Chromium WebView</h1>
+        <p>使用 WebviewJS 開啟原生桌面瀏覽器視窗。</p>
       </div>
-      <button id="chromiumHomeButton" class="btn btn-outline" type="button" title="回到首頁" hidden>首頁</button>
+      <button id="chromiumHomeButton" class="btn btn-outline" type="button" title="清除網址" hidden>清除</button>
     </div>
 
     <form id="chromiumAddressForm" class="chromium-address-bar" novalidate>
       <label class="sr-only" for="chromiumAddress">網址</label>
       <input id="chromiumAddress" type="url" inputmode="url" autocomplete="url"
         placeholder="輸入網址，例如 https://example.com" required>
-      <button class="btn btn-primary" type="submit">前往</button>
-      <a id="chromiumOpenLink" class="btn btn-outline" href="#" target="_blank" rel="noopener" hidden>新分頁開啟</a>
+      <button class="btn btn-primary" type="submit">準備啟動</button>
+      <button id="chromiumCopyCommand" class="btn btn-outline" type="button">複製指令</button>
     </form>
 
-    <div id="chromiumStatus" class="status-msg" role="status" aria-live="polite">Chromium 已就緒。</div>
+    <div id="chromiumStatus" class="status-msg" role="status" aria-live="polite">WebView 已就緒。</div>
 
     <section id="chromiumHome" class="chromium-home" aria-labelledby="chromiumHomeHeading">
-      <h2 id="chromiumHomeHeading">開始瀏覽</h2>
-      <p>輸入完整網址即可在此工作區開啟網站。</p>
+      <h2 id="chromiumHomeHeading">原生 WebView</h2>
+      <p>請在 <code>website-part</code> 目錄執行以下指令，使用 WebviewJS 開啟瀏覽器視窗。</p>
+      <code id="chromiumLaunchCommand" class="chromium-command">npm run chromium -- https://www.google.com/</code>
       <div class="chromium-quick-links" aria-label="快速連結">
-        <a href="https://www.google.com/" target="_blank" rel="noopener">Google</a>
-        <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://developer.mozilla.org/" target="_blank" rel="noopener">MDN</a>
+        <a href="https://www.google.com/" data-chromium-url>Google</a>
+        <a href="https://github.com/" data-chromium-url>GitHub</a>
+        <a href="https://developer.mozilla.org/" data-chromium-url>MDN</a>
       </div>
-    </section>
-
-    <section id="chromiumFramePanel" class="chromium-panel" aria-labelledby="chromiumFrameHeading" hidden>
-      <div class="chromium-panel-heading">
-        <h2 id="chromiumFrameHeading">瀏覽工作區</h2>
-        <span id="chromiumConnectionName" class="table-subtext">內建工作區</span>
-      </div>
-      <iframe id="chromiumFrame" class="chromium-frame" title="Chromium 瀏覽工作區"
-        allow="clipboard-read; clipboard-write; fullscreen; autoplay" allowfullscreen></iframe>
     </section>
   </main>
 
   <script type="module" src="/js/app.mjs"></script>
-  <script type="module" src="/js/chromium.mjs?v=20260806-external-sites"></script>
+  <script type="module" src="/js/chromium.mjs?v=20260814-webviewjs"></script>
 </body>
 </html>

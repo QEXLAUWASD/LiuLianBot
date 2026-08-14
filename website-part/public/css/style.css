@@ -950,20 +950,16 @@ a:hover { color: var(--accent-hover); }
 .chromium-page .page-heading { margin-bottom: 12px; }
 .chromium-address-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; margin-bottom: 8px; }
 .chromium-address-bar input { min-width: 0; width: 100%; }
-.chromium-home { min-height: 420px; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 32px; text-align: center; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); }
+.chromium-home { min-height: 420px; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 32px; text-align: center; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); }
 .chromium-home h2 { font-size: 1.35rem; }
 .chromium-home p { color: var(--text-muted); }
+.chromium-command { display: block; width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: auto; padding: 10px 12px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; white-space: nowrap; }
 .chromium-quick-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 8px; }
 .chromium-quick-links a { color: var(--accent); text-decoration: none; }
 .chromium-quick-links a:hover, .chromium-quick-links a:focus-visible { text-decoration: underline; }
-.chromium-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-.chromium-panel-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
-.chromium-panel-heading h2 { font-size: 1.15rem; }
-.chromium-frame { display: block; width: 100%; height: min(78vh, 900px); min-height: 520px; border: 1px solid var(--border); background: #fff; }
 @media (max-width: 800px) { .remote-grid { grid-template-columns: 1fr; } }
 @media (max-width: 500px) { .remote-form { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .chromium-address-bar { grid-template-columns: 1fr auto; } .chromium-address-bar .btn-outline { grid-column: 1 / -1; text-align: center; } }
-@media (max-width: 600px) { .chromium-frame { min-height: 420px; } }
 
 @media (max-width: 700px) {
   .remote-hero { align-items: flex-start; flex-direction: column; gap: 12px; }

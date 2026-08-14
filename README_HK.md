@@ -27,7 +27,7 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 網站帳戶可產生一次性代碼，連結 Discord 身分後可共用活動報名資料
 - 記錄網站資料儲存同意；SSH/RDP 遠端功能可限制畀指定用戶群組
 - 提供 SSH 終端機及 RDP 連線檔，設定可選擇只保存喺瀏覽器或以 AES-256-GCM 加密保存喺伺服器
-- 提供內建 Chromium 工作區頁面，可直接輸入網址並喺網站內瀏覽
+- 提供由 `@webviewjs/webview` 驅動嘅原生 Chromium-compatible WebView 工作區
 - Admin 提供頁面可見度設定，可按未登入訪客、全部登入用戶、指定網站群組或指定用戶控制顯示
 
 ## 專案結構
@@ -46,7 +46,7 @@ LiuLianBot/
 |   `-- utils/                    # 資料庫及日誌工具
 |-- website-part/                 # Node.js / Express 網站
 |   |-- public/                   # HTML、CSS 同瀏覽器端 JavaScript（包括 chromium.html）
-|   |-- src/                      # App、路由、中介層、資料庫 repository 及服務
+|   |-- src/                      # App、路由、中介層、資料庫 repository、服務及原生 WebView launcher
 |   `-- test/                     # Node.js 測試
 |-- shared/
 |   |-- database/                 # 共用 MySQL 設定與範本
@@ -60,7 +60,7 @@ LiuLianBot/
 ## 環境要求
 
 - Python 3.10 或以上
-- Node.js 18 或以上，以及 npm
+- Node.js 24 或以上，以及 npm（`@webviewjs/webview` 要求）
 - MySQL 或 MariaDB
 - [Discord 開發者平台](https://discord.com/developers/applications)建立嘅 Bot Token
 
@@ -164,6 +164,16 @@ npm start
 
 本機開發時，`npm run dev` 會使用同一個伺服器入口。網站預設監聽
 `127.0.0.1:3000`。
+
+如要喺本機開啟原生 Chromium-compatible WebView 視窗：
+
+```bash
+npm run chromium -- https://example.com/
+```
+
+Windows 如果未有 WebView2 Runtime，請先安裝；Linux 就要安裝 WebviewJS
+要求嘅 WebKitGTK 同 `libxdo`。網站嘅 `chromium.html` 會驗證網址同產生呢條
+指令，實際頁面由原生 WebviewJS 視窗顯示，唔再使用 iframe。
 
 Linux 生產環境可以用 PM2 管理：
 
@@ -274,7 +284,11 @@ npm test
 
 ### Chromium 工作區
 
-Chromium 頁面已經內置喺網站，唔需要另外新增 Website Access 連線或者安裝外部瀏覽器服務。用戶可以輸入 `http://` 或 `https://` 網址；同源頁面會喺內嵌工作區開啟，而 Google 等禁止 iframe 內嵌嘅外部網站會直接喺新瀏覽器分頁開啟。管理員仍然可以喺 Admin > Page Visibility 設定邊啲用戶或群組可以見到 Chromium 頁面。
+登入後嘅 `chromium.html` 係原生 WebviewJS 工作區嘅啟動頁，唔會用 iframe
+嵌入任意網站。輸入 `http://` 或 `https://` 網址、複製頁面產生嘅指令，然後喺
+`website-part` 目錄執行。原生視窗使用作業系統提供嘅 WebView engine，導覽只
+接受 HTTP(S)，本機除錯時可以加 `--devtools`。管理員仍然可以喺 Admin > Page
+Visibility 設定邊啲用戶或群組可以見到 Chromium 啟動頁。
 
 ## 開發檢查
 

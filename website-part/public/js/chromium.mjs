@@ -3,7 +3,7 @@ function setStatus(statusElement, message, type = '') {
   statusElement.className = `status-msg${type ? ` status-${type}` : ''}`;
 }
 
-function normalizeUrl(value) {
+export function normalizeUrl(value) {
   const raw = String(value || '').trim();
   if (!raw) throw new Error('請輸入網址。');
 
@@ -19,71 +19,69 @@ function normalizeUrl(value) {
   return url.toString();
 }
 
-export function initializeChromiumPage({ documentRef = document } = {}) {
+function commandFor(url) {
+  return `npm run chromium -- '${url.replaceAll("'", '%27')}'`;
+}
+
+export function initializeChromiumPage({ documentRef = document, navigatorRef = globalThis.navigator } = {}) {
   const form = documentRef.getElementById('chromiumAddressForm');
   const address = documentRef.getElementById('chromiumAddress');
   const status = documentRef.getElementById('chromiumStatus');
   const home = documentRef.getElementById('chromiumHome');
   const homeButton = documentRef.getElementById('chromiumHomeButton');
-  const framePanel = documentRef.getElementById('chromiumFramePanel');
-  const frame = documentRef.getElementById('chromiumFrame');
-  const openLink = documentRef.getElementById('chromiumOpenLink');
-  if (!form || !address || !status || !home || !homeButton || !framePanel || !frame || !openLink) return null;
+  const copyCommand = documentRef.getElementById('chromiumCopyCommand');
+  const launchCommand = documentRef.getElementById('chromiumLaunchCommand');
+  if (!form || !address || !status || !home || !homeButton || !copyCommand || !launchCommand) return null;
 
-  setStatus(status, 'Chromium 已就緒。');
+  setStatus(status, 'WebView 已就緒。');
 
   const showHome = () => {
-    frame.removeAttribute('src');
-    framePanel.hidden = true;
-    home.hidden = false;
+    address.value = '';
+    launchCommand.textContent = commandFor('https://www.google.com/');
     homeButton.hidden = true;
-    openLink.hidden = true;
-    setStatus(status, 'Chromium 已就緒。');
+    setStatus(status, 'WebView 已就緒。');
   };
 
-  const openUrl = value => {
+  const prepareUrl = value => {
     const url = normalizeUrl(value);
     address.value = url;
-    home.hidden = true;
+    launchCommand.textContent = commandFor(url);
     homeButton.hidden = false;
-    openLink.href = url;
-    openLink.hidden = false;
-    const pageOrigin = documentRef.defaultView?.location?.origin || '';
-    if (new URL(url).origin === pageOrigin) {
-      frame.src = url;
-      framePanel.hidden = false;
-      setStatus(status, '已在內建工作區開啟網站。', 'success');
-    } else {
-      frame.removeAttribute('src');
-      framePanel.hidden = true;
-      setStatus(status, '外部網站不允許內嵌，請按「新分頁開啟」。', 'success');
-    }
+    setStatus(status, '網址已驗證，請執行啟動指令。', 'success');
     return url;
   };
 
   form.addEventListener('submit', event => {
     event.preventDefault();
     try {
-      openUrl(address.value);
+      prepareUrl(address.value);
     } catch (error) {
       setStatus(status, error.message, 'error');
     }
   });
+
   homeButton.addEventListener('click', showHome);
-  documentRef.querySelectorAll('[data-chromium-url], .chromium-quick-links a').forEach(link => {
+  copyCommand.addEventListener('click', async () => {
+    try {
+      await navigatorRef.clipboard.writeText(launchCommand.textContent);
+      setStatus(status, '啟動指令已複製。', 'success');
+    } catch (_) {
+      setStatus(status, '無法自動複製，請選取啟動指令。', 'error');
+    }
+  });
+
+  documentRef.querySelectorAll('[data-chromium-url]').forEach(link => {
     link.addEventListener('click', event => {
-      if (link.dataset.chromiumUrl) {
-        event.preventDefault();
-        try {
-          openUrl(link.dataset.chromiumUrl);
-        } catch (error) {
-          setStatus(status, error.message, 'error');
-        }
+      event.preventDefault();
+      try {
+        prepareUrl(link.dataset.chromiumUrl || link.href);
+      } catch (error) {
+        setStatus(status, error.message, 'error');
       }
     });
   });
 
-  return { openUrl, showHome };
+  return { prepareUrl, showHome };
 }
 
 if (typeof document !== 'undefined') {
