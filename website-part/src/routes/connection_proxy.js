@@ -222,10 +222,10 @@ function attachWebSocketServer(server, options) {
   server.on('upgrade', async (req, socket, head) => {
     if (isSocketIoRequest(req)) return;
     const request = websocketRequest(req);
-    if (!request) {
-      rejectUpgrade(socket, 404, 'Not Found');
-      return;
-    }
+    // Other WebSocket handlers (SSH, Chromium CDP, and Socket.IO) share this
+    // HTTP server. Leave unrelated upgrade paths untouched so their listeners
+    // can authenticate and handle them.
+    if (!request) return;
 
     try {
       const sessionId = getSessionId(req.headers.cookie, sessionCookieName, sessionSecret);
