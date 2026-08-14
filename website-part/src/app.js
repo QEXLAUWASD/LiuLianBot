@@ -37,7 +37,6 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   if (routers.events) app.use('/api/events', routers.events);
   app.use('/api/admin', routers.admin);
   app.use('/api/connections', routers.connections);
-  if (routers.chromium) app.use('/api/chromium', routers.chromium);
   if (routers.pageVisibility) app.use('/api/page-visibility', routers.pageVisibility);
   if (routers.rdp) app.use('/api/rdp', routers.rdp);
   if (routers.remoteProfile) app.use('/api/remote-profile', routers.remoteProfile);

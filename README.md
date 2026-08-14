@@ -28,7 +28,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - Terms acceptance records consent for website data storage; remote SSH/RDP access can be limited to named user groups
 - Browser-based WebRDP desktop sessions powered by mstsc.js and HTML5 Canvas, plus RDP file generation
 - SSH terminal and remote profiles, with optional browser-local or AES-256-GCM encrypted server-side connection profiles; WebRDP passwords are session-only
-- Built-in Hyperbeam Chromium workspace page with URL navigation
+- Built-in Chromium workspace using Puppeteer and Chrome DevTools Protocol screencast
 - Admin page-visibility controls for guests, all signed-in users, selected website groups, and selected users
 
 ## Project structure
@@ -245,9 +245,8 @@ runtime settings are read from `website-part/.env`.
 | `REMOTE_RDP_ENABLED` | `true` | Set to `false` to disable RDP for all users, including administrators. |
 | `SSH_ALLOWED_HOSTS` | Empty | Optional comma-separated SSH hostnames, IPv4 addresses, or IPv4 CIDR ranges. Empty allows any reachable host. |
 | `REMOTE_CREDENTIAL_ENCRYPTION_KEY` | Empty | Base64-encoded 32-byte AES-256-GCM key for server-side SSH/RDP profile storage. |
-| `HYPERBEAM_API_KEY` | Empty | Server-side Hyperbeam API key required by the Chromium workspace. |
-| `HYPERBEAM_API_URL` | `https://engine.hyperbeam.com/v0/vm` | Hyperbeam VM session endpoint. |
-| `HYPERBEAM_REGION` | `AS` | Hyperbeam region used for new Chromium sessions. |
+| `CHROME_EXECUTABLE_PATH` | Empty | Optional path to the Chrome/Chromium executable when it is not available on `PATH`. |
+| `CHROMIUM_SESSION_TIMEOUT_MS` | `1800000` | Maximum lifetime of one Chromium WebSocket session in milliseconds. |
 
 ### Remote client configuration
 
@@ -328,7 +327,7 @@ Administrators can open Admin > Page Visibility to control which website subpage
 
 ### Chromium workspace
 
-The Chromium page uses Hyperbeam to create a cloud browser session server-side, so it does not require a local Chromium binary, WebView2, or a Website Access connection. Set `HYPERBEAM_API_KEY` in `website-part/.env`; the key is only used by the server and is never sent to the browser. `HYPERBEAM_API_URL` defaults to `https://engine.hyperbeam.com/v0/vm`, and `HYPERBEAM_REGION` defaults to `AS`. Each navigation creates a Hyperbeam session and may incur provider usage charges; configure Hyperbeam timeouts and account limits accordingly. Administrators can still use Admin > Page Visibility to decide which users or groups can see the Chromium page.
+The Chromium page uses Puppeteer with Chrome DevTools Protocol (CDP) screencasting. The website server launches a headless Chrome/Chromium process, sends JPEG screencast frames over an authenticated WebSocket, and forwards browser input events back through CDP. Install Chrome or Chromium on the server; set `CHROME_EXECUTABLE_PATH` when the executable is not on `PATH`. Each connected user owns a browser process that is closed when the WebSocket ends or its timeout is reached. Administrators can still use Admin > Page Visibility to decide which users or groups can see the Chromium page.
 
 ## Development checks
 

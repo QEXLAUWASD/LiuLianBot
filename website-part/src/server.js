@@ -8,6 +8,7 @@ const { getPool, closePool } = require('./db');
 const { MySqlSessionStore } = require('./session_store');
 const { attachSshServer } = require('./ssh_server');
 const { attachRdpServer } = require('./rdp_socket');
+const { attachChromiumServer } = require('./chromium_server');
 
 async function startServer() {
   await getPool();
@@ -16,7 +17,6 @@ async function startServer() {
   const admin = require('./routes/admin');
   const adminConnections = require('./routes/admin_connections');
   const connections = require('./routes/connections');
-  const chromium = require('./routes/chromium');
   const mobileConnections = require('./routes/mobile_connections');
   const events = require('./routes/events');
   const rdp = require('./routes/rdp');
@@ -35,7 +35,6 @@ async function startServer() {
       admin,
       adminConnections,
       connections,
-      chromium,
       mobileConnections,
       events,
       rdp,
@@ -65,9 +64,16 @@ async function startServer() {
     sessionSecret: sessionOptions.secret,
   });
   attachRdpServer(server, { sessionMiddleware });
+  const chromiumServer = attachChromiumServer(server, {
+    sessionStore,
+    sessionCookieName: sessionOptions.name,
+    sessionSecret: sessionOptions.secret,
+  });
+  server.chromiumServer = chromiumServer;
   sessionStore.startCleanup();
   const closeResources = () => {
     sessionStore.stopCleanup();
+    chromiumServer.closeAll();
   };
   server.once('close', closeResources);
   server.once('error', err => {
@@ -82,6 +88,7 @@ async function startServer() {
 }
 
 async function stopServer(server) {
+  server?.chromiumServer?.closeAll();
   if (server?.listening) {
     await new Promise((resolve, reject) => {
       server.close(err => (err ? reject(err) : resolve()));

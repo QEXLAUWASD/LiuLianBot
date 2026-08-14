@@ -27,7 +27,7 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 網站帳戶可產生一次性代碼，連結 Discord 身分後可共用活動報名資料
 - 記錄網站資料儲存同意；SSH/RDP 遠端功能可限制畀指定用戶群組
 - 提供 SSH 終端機及 RDP 連線檔，設定可選擇只保存喺瀏覽器或以 AES-256-GCM 加密保存喺伺服器
-- 提供使用 Hyperbeam 嘅內建 Chromium 工作區頁面，可直接輸入網址並喺網站內瀏覽
+- 提供使用 Puppeteer 同 Chrome DevTools Protocol screencast 嘅內建 Chromium 工作區頁面
 - Admin 提供頁面可見度設定，可按未登入訪客、全部登入用戶、指定網站群組或指定用戶控制顯示
 
 ## 專案結構
@@ -197,9 +197,8 @@ Session。部署 Session Store 修正後，請執行 `./start.sh restart` 重啟
 | `REMOTE_RDP_ENABLED` | `true` | 設為 `false` 即對所有用戶停用 RDP，包括管理員。 |
 | `SSH_ALLOWED_HOSTS` | 空白 | 可選嘅 SSH 主機名稱、IPv4 地址或 IPv4 CIDR 網段清單；空白代表容許所有可到達主機。 |
 | `REMOTE_CREDENTIAL_ENCRYPTION_KEY` | 空白 | 用於伺服器端加密保存 SSH/RDP 設定嘅 Base64 32-byte AES-256-GCM 金鑰。 |
-| `HYPERBEAM_API_KEY` | 空白 | Chromium 工作區使用嘅伺服器端 Hyperbeam API 金鑰。 |
-| `HYPERBEAM_API_URL` | `https://engine.hyperbeam.com/v0/vm` | Hyperbeam VM 工作階段 API endpoint。 |
-| `HYPERBEAM_REGION` | `AS` | 新 Chromium 工作階段使用嘅 Hyperbeam 地區。 |
+| `CHROME_EXECUTABLE_PATH` | 空白 | 如果 Chrome/Chromium 唔喺 `PATH`，請填入執行檔路徑。 |
+| `CHROMIUM_SESSION_TIMEOUT_MS` | `1800000` | 每個 Chromium WebSocket 工作階段最長存活時間，單位係毫秒。 |
 
 ### 遠端用戶端設定
 
@@ -277,7 +276,7 @@ npm test
 
 ### Chromium 工作區
 
-Chromium 頁面使用 Hyperbeam 喺伺服器端建立雲端瀏覽器工作階段，唔需要本機 Chromium、WebView2 或 Website Access 連線。請喺 `website-part/.env` 設定 `HYPERBEAM_API_KEY`；金鑰只會由伺服器使用，唔會傳到瀏覽器。`HYPERBEAM_API_URL` 預設係 `https://engine.hyperbeam.com/v0/vm`，`HYPERBEAM_REGION` 預設係 `AS`。每次導覽都會建立 Hyperbeam 工作階段，可能產生服務商用量費用，請按需要設定 Hyperbeam 時限及帳戶限制。管理員仍然可以喺 Admin > Page Visibility 設定邊啲用戶或群組可以見到 Chromium 頁面。
+Chromium 頁面使用 Puppeteer 同 Chrome DevTools Protocol（CDP）screencast。網站伺服器會啟動 headless Chrome/Chromium，經已驗證嘅 WebSocket 傳送 JPEG 畫面，再經 CDP 將用戶輸入事件傳返瀏覽器。請喺伺服器安裝 Chrome 或 Chromium；如果執行檔唔喺 `PATH`，就設定 `CHROME_EXECUTABLE_PATH`。每個登入用戶會有自己嘅瀏覽器程序，WebSocket 中斷或者逾時後會自動關閉。管理員仍然可以喺 Admin > Page Visibility 設定邊啲用戶或群組可以見到 Chromium 頁面。
 
 ## 開發檢查
 

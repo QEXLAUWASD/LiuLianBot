@@ -10,7 +10,7 @@
   <title>LiuLianBot - Chromium</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-  <link rel="stylesheet" href="/css/style.css?v=20260814-hyperbeam">
+  <link rel="stylesheet" href="/css/style.css?v=20260814-cdp">
 </head>
 <body>
   <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
@@ -19,7 +19,7 @@
     <div class="page-heading">
       <div>
         <h1>Chromium</h1>
-        <p>在 Hyperbeam 雲端瀏覽器內瀏覽網站。</p>
+        <p>在伺服器端 Chrome 瀏覽器內瀏覽網站。</p>
       </div>
       <button id="chromiumHomeButton" class="btn btn-outline" type="button" title="結束瀏覽工作階段" hidden>結束</button>
     </div>
@@ -35,7 +35,7 @@
 
     <section id="chromiumHome" class="chromium-home" aria-labelledby="chromiumHomeHeading">
       <h2 id="chromiumHomeHeading">開始瀏覽</h2>
-      <p>輸入網址後，系統會建立你的 Hyperbeam 雲端 Chromium 工作階段。</p>
+      <p>輸入網址後，系統會建立你的伺服器端 Chromium 工作階段。</p>
       <div class="chromium-quick-links" aria-label="快速連結">
         <a href="https://www.google.com/" data-chromium-url>Google</a>
         <a href="https://github.com/" data-chromium-url>GitHub</a>
@@ -46,13 +46,13 @@
     <section id="chromiumFramePanel" class="chromium-panel" aria-labelledby="chromiumFrameHeading" hidden>
       <div class="chromium-panel-heading">
         <h2 id="chromiumFrameHeading">瀏覽工作區</h2>
-        <span id="chromiumConnectionName" class="table-subtext">Hyperbeam</span>
+        <span id="chromiumConnectionName" class="table-subtext">CDP Screencast</span>
       </div>
-      <div id="chromiumFrame" class="chromium-frame" role="application" aria-label="Hyperbeam Chromium 工作區"></div>
+      <canvas id="chromiumFrame" class="chromium-frame" role="application" aria-label="Chromium 工作區"></canvas>
     </section>
   </main>
 
   <script type="module" src="/js/app.mjs"></script>
-  <script type="module" src="/js/chromium.mjs?v=20260814-hyperbeam"></script>
+  <script type="module" src="/js/chromium.mjs?v=20260814-cdp"></script>
 </body>
 </html>

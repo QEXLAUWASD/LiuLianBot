@@ -959,7 +959,7 @@ a:hover { color: var(--accent-hover); }
 .chromium-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
 .chromium-panel-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
 .chromium-panel-heading h2 { font-size: 1.15rem; }
-.chromium-frame { display: block; width: 100%; height: min(78vh, 900px); min-height: 520px; border: 1px solid var(--border); background: #111; overflow: hidden; }
+.chromium-frame { display: block; width: 100%; height: min(78vh, 900px); min-height: 520px; border: 1px solid var(--border); background: #111; overflow: hidden; object-fit: contain; cursor: default; }
 @media (max-width: 800px) { .remote-grid { grid-template-columns: 1fr; } }
 @media (max-width: 500px) { .remote-form { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .chromium-address-bar { grid-template-columns: 1fr auto; } .chromium-address-bar .btn-outline { grid-column: 1 / -1; text-align: center; } }

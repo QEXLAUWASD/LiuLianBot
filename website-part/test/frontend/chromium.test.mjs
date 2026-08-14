@@ -3,14 +3,29 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { initializeChromiumPage, normalizeUrl } from '../../public/js/chromium.mjs';
 
+class FakeWebSocket {
+  static instances = [];
+  constructor(url) {
+    this.url = url;
+    this.readyState = 0;
+    this.sent = [];
+    FakeWebSocket.instances.push(this);
+  }
+  send(value) { this.sent.push(JSON.parse(value)); }
+  open() { this.readyState = 1; this.onopen?.(); }
+  message(value) { this.onmessage?.({ data: JSON.stringify(value) }); }
+  close() { this.readyState = 3; this.onclose?.(); }
+}
+
 function setupDocument() {
-  return new JSDOM(`
+  const windowRef = new JSDOM(`
     <form id="chromiumAddressForm"><input id="chromiumAddress"><button type="submit">Go</button></form>
     <div id="chromiumStatus"></div><section id="chromiumHome"></section>
     <button id="chromiumHomeButton" hidden>Home</button><section id="chromiumFramePanel" hidden></section>
-    <div id="chromiumFrame"></div><a id="chromiumOpenLink" hidden></a>
-    <div class="chromium-quick-links"><a href="https://example.com/">Example</a></div>
-  `, { url: 'https://www.liulian.dev/chromium.html' }).window.document;
+    <canvas id="chromiumFrame"></canvas><div class="chromium-quick-links"><a href="https://example.com/">Example</a></div>
+  `, { url: 'https://www.liulian.dev/chromium.html' }).window;
+  windowRef.HTMLCanvasElement.prototype.getContext = () => null;
+  return windowRef.document;
 }
 
 test('normalizes only http and https URLs', () => {
@@ -19,52 +34,44 @@ test('normalizes only http and https URLs', () => {
   assert.throws(() => normalizeUrl(''), /請輸入網址/);
 });
 
-test('creates a Hyperbeam session and mounts the client', async () => {
+test('opens a CDP screencast WebSocket and sends the requested URL', async () => {
+  FakeWebSocket.instances = [];
   const documentRef = setupDocument();
-  const requests = [];
-  const destroyed = [];
-  const client = async (container, embedUrl, options) => {
-    assert.equal(container.id, 'chromiumFrame');
-    assert.equal(embedUrl, 'https://embed.hyperbeam.example/session');
-    assert.equal(options.adminToken, 'admin-token');
-    return { destroy: () => destroyed.push(true) };
-  };
   const controls = initializeChromiumPage({
-    documentRef,
-    HyperbeamClient: client,
-    request: async (path, options) => {
-      requests.push({ path, options });
-      return { embedUrl: 'https://embed.hyperbeam.example/session', adminToken: 'admin-token' };
-    },
+    documentRef, WebSocketImpl: FakeWebSocket, locationRef: documentRef.defaultView.location,
   });
-
-  const result = await controls.openUrl('https://example.com/');
-  assert.equal(result, 'https://example.com/');
-  assert.deepEqual(requests[0], {
-    path: '/api/chromium/session',
-    options: {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ start_url: 'https://example.com/' }),
-    },
+  const opened = controls.openUrl('https://example.com/');
+  const socket = FakeWebSocket.instances[0];
+  assert.equal(socket.url, 'wss://www.liulian.dev/api/chromium/ws');
+  socket.open();
+  assert.deepEqual(socket.sent[0], {
+    type: 'open', url: 'https://example.com/', size: { width: 1280, height: 720 },
   });
-  assert.equal(documentRef.getElementById('chromiumFramePanel').hidden, false);
+  socket.message({ type: 'ready', url: 'https://example.com/', size: { width: 1280, height: 720 } });
+  assert.equal(await opened, 'https://example.com/');
   assert.match(documentRef.getElementById('chromiumStatus').textContent, /已連線/);
 
+  const canvas = documentRef.getElementById('chromiumFrame');
+  canvas.dispatchEvent(new documentRef.defaultView.MouseEvent('mousedown', {
+    bubbles: true, clientX: 40, clientY: 30, button: 0,
+  }));
+  assert.equal(socket.sent.at(-1).type, 'input');
+  assert.equal(socket.sent.at(-1).input.eventType, 'mousePressed');
+
   controls.destroySession();
-  assert.deepEqual(destroyed, [true]);
+  assert.equal(socket.readyState, 3);
   assert.equal(documentRef.getElementById('chromiumFramePanel').hidden, true);
 });
 
-test('shows API errors and does not leave the workspace open', async () => {
+test('reports WebSocket errors and rejects unsafe URLs', async () => {
   const documentRef = setupDocument();
   const controls = initializeChromiumPage({
-    documentRef,
-    request: async () => { throw new Error('Hyperbeam is not configured'); },
-    HyperbeamClient: async () => ({ destroy() {} }),
+    documentRef, WebSocketImpl: FakeWebSocket, locationRef: documentRef.defaultView.location,
   });
-
-  assert.equal(await controls.openUrl('https://example.com/'), null);
-  assert.match(documentRef.getElementById('chromiumStatus').textContent, /not configured/);
-  assert.equal(documentRef.getElementById('chromiumFramePanel').hidden, true);
+  assert.throws(() => controls.openUrl('javascript:alert(1)'), /只支援/);
+  const opened = controls.openUrl('https://example.com/');
+  const socket = FakeWebSocket.instances.at(-1);
+  socket.onerror?.();
+  await assert.rejects(opened, /無法連線/);
+  assert.match(documentRef.getElementById('chromiumStatus').textContent, /無法連線/);
 });
