@@ -91,9 +91,12 @@ function attachChromiumServer(server, options) {
         }
       } catch (error) {
         console.error('[Chromium] Session request failed:', error);
+        const detail = typeof error?.message === 'string' ? error.message.slice(0, 300) : '';
         send(socket, {
           type: 'error',
-          message: error instanceof ChromiumInputError ? error.message : 'Chromium session failed',
+          message: error instanceof ChromiumInputError
+            ? error.message
+            : detail ? `Chromium session failed: ${detail}` : 'Chromium session failed',
         });
       }
     });
