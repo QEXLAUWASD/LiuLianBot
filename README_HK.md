@@ -48,6 +48,8 @@ LiuLianBot/
 |   |-- public/                   # HTML、CSS 同瀏覽器端 JavaScript（包括 chromium.html）
 |   |-- src/                      # App、路由、中介層、資料庫 repository 及服務
 |   `-- test/                     # Node.js 測試
+|-- docs/
+|   `-- API.md                    # 網站 HTTP、WebSocket 同 Socket.IO API 參考
 |-- shared/
 |   |-- database/                 # 共用 MySQL 設定與範本
 |   `-- r6/                       # R6 資料及爬蟲
@@ -129,6 +131,9 @@ Copy-Item shared\database\config.example.json shared\database\config.json
 ```
 
 只要 MySQL 帳戶有相關權限，Bot 會建立指定資料庫；網站首次連線時會建立並 migration 所需資料表。
+如果係全新資料庫，請先啟動一次網站再啟動 Bot：Bot 嘅公告 migration 會更新
+由網站 migration 建立嘅 `website_announcements`。已有兩套 migration ledger 嘅
+資料庫就可以按任意次序啟動。
 
 ### 3. 安裝及執行 Discord 機械人
 
@@ -241,8 +246,9 @@ npm test
 
 ## Discord 指令
 
-預設前綴係 `>`。每個前綴指令亦會自動註冊為 Discord slash 指令；請使用
-`>help` 或 Discord 指令選單查看個別用法。
+預設前綴係 `>`。前綴指令同 slash 指令共用同一套 handler。Slash 指令選項由
+`discord-part/tools/interaction_args.json` 產生；新增帶參數指令時亦要同步更新
+呢份 metadata。請使用 `>help` 或 Discord 指令選單查看個別用法。
 
 | 存取級別 | 指令 |
 |---|---|
@@ -270,6 +276,9 @@ npm test
 網站喺 `/api` 提供登入、帳戶及 Discord 連結、R6 抽選、活動、網站連線、管理員、
 遠端設定及 RDP 檔案 API。已授權嘅 HTTP/WebSocket 網站連線位於
 `/connect/<slug>/`；SSH 使用 `/api/ssh` WebSocket endpoint。
+
+完整 endpoint、請求欄位、權限、錯誤回應同 WebSocket/Socket.IO 訊息協定，請參考
+[`docs/API.md`](docs/API.md)。
 
 ### 頁面可見度
 

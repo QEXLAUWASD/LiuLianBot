@@ -49,6 +49,8 @@ LiuLianBot/
 |   |-- public/                   # HTML, CSS, and browser JavaScript (including chromium.html)
 |   |-- src/                      # App, routes, middleware, repositories, and services
 |   `-- test/                     # Node.js test suite
+|-- docs/
+|   `-- API.md                    # Website HTTP, WebSocket, and Socket.IO API reference
 |-- shared/
 |   |-- database/                 # Shared MySQL configuration and template
 |   `-- r6/                       # Rainbow Six Siege data and scrapers
@@ -153,6 +155,10 @@ The template contains this structure:
 ```
 
 The bot creates the configured database when its MySQL account has permission. The website creates and migrates its required tables when it first connects.
+On a fresh database, start the website once before starting the bot: the bot's
+announcement migration updates `website_announcements`, which is created by the
+website migration. Existing databases with both migration ledgers can start in either
+order.
 
 ### 3. Install and run the Discord bot
 
@@ -289,7 +295,10 @@ npm test
 
 ## Discord commands
 
-The default prefix is `>`. Every registered prefix command is also exposed as a Discord slash command. Use `>help` or the Discord command picker for command-specific usage.
+The default prefix is `>`. Prefix commands and slash commands share the same handlers.
+Slash command options are generated from `discord-part/tools/interaction_args.json`;
+when adding a command with arguments, update that metadata as well. Use `>help` or the
+Discord command picker for command-specific usage.
 
 | Access level | Commands |
 |---|---|
@@ -321,6 +330,9 @@ provides an in-browser WebRDP workspace using the mstsc.js Canvas/RLE client and
 Socket.IO bridge backed by `@electerm/rdpjs`. Authorized HTTP/WebSocket website
 connections are available under `/connect/<slug>/`. SSH uses the `/api/ssh`
 WebSocket endpoint.
+
+See [`docs/API.md`](docs/API.md) for the endpoint inventory, request fields,
+authorization rules, error behavior, and WebSocket/Socket.IO message protocols.
 
 ### Page visibility
 
