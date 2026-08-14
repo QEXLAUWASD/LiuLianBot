@@ -104,8 +104,11 @@ function disconnectRdp(message = '已中斷連線。') {
 }
 
 function connectRdp() {
-  if (!window.Mstsc?.client || !window.io) {
-    setRdpState('error', 'WebRDP 用戶端資產載入失敗。');
+  const missingAssets = [];
+  if (!window.io) missingAssets.push('Socket.IO');
+  if (!window.WebRDP?.createClient) missingAssets.push('mstsc.js/WebRDP');
+  if (missingAssets.length > 0) {
+    setRdpState('error', `用戶端資產載入失敗：${missingAssets.join('、')}。`);
     return;
   }
   if (rdpSocket) disconnectRdp('正在重新連線...');
@@ -126,7 +129,7 @@ function connectRdp() {
     password: refs.rdpPassword.value,
     domain: refs.rdpDomain.value.trim(),
   };
-  rdpClient = window.Mstsc.client.create(refs.rdpCanvas);
+  rdpClient = window.WebRDP.createClient(refs.rdpCanvas);
   rdpClient.connect(error => {
     if (error) {
       refs.rdpLoadingState.hidden = true;

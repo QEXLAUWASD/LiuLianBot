@@ -203,6 +203,15 @@ The `npm ls` command should show both packages. A `MODULE_NOT_FOUND` error from
 `src/rdp_socket.js` means this dependency installation step has not completed on
 the deployment host.
 
+If the remote page reports that WebRDP client assets failed to load, verify the
+three static files from the deployed site. Each request must return `200`:
+
+```bash
+curl -I https://your-domain.example/vendor/socket.io.min.js
+curl -I https://your-domain.example/vendor/webrdp/rle.js
+curl -I https://your-domain.example/vendor/webrdp/webrdp.js
+```
+
 For a Linux production deployment managed by PM2:
 
 ```bash
