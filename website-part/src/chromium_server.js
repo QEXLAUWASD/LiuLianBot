@@ -90,6 +90,7 @@ function attachChromiumServer(server, options) {
           throw new ChromiumInputError('Unsupported Chromium message');
         }
       } catch (error) {
+        console.error('[Chromium] Session request failed:', error);
         send(socket, {
           type: 'error',
           message: error instanceof ChromiumInputError ? error.message : 'Chromium session failed',
