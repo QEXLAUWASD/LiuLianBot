@@ -26,7 +26,8 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - R6 events page for creating events and managing shared signups
 - One-time account linking lets Discord commands and website signups use the same identity
 - Terms acceptance records consent for website data storage; remote SSH/RDP access can be limited to named user groups
-- SSH terminal and RDP file generation, with optional browser-local or AES-256-GCM encrypted server-side connection profiles
+- Browser-based WebRDP desktop sessions powered by mstsc.js and HTML5 Canvas, plus RDP file generation
+- SSH terminal and remote profiles, with optional browser-local or AES-256-GCM encrypted server-side connection profiles; WebRDP passwords are session-only
 - Built-in Chromium workspace page with URL navigation and embedded browsing
 - Admin page-visibility controls for guests, all signed-in users, selected website groups, and selected users
 
@@ -56,6 +57,29 @@ LiuLianBot/
 |-- PRIVACY_POLICY.md
 `-- TERMS_OF_SERVICE.md
 ```
+
+## Architecture and refactoring boundaries
+
+The repository keeps the Discord bot and website as separate runtimes while
+sharing only the MySQL schema and data contract:
+
+- `discord-part/main.py` owns startup ordering: configuration, database
+  creation/migrations, then Discord client construction.
+- `website-part/src/server.js` owns runtime composition: pool/migrations,
+  Express app assembly, WebSocket/SSH attachment, and graceful shutdown.
+- `website-part/src/db/` contains domain repositories. `src/db.js` remains a
+  compatibility facade for existing imports while new code should import the
+  relevant repository directly.
+- Discord configuration reads return snapshots; persistent changes go through
+  the atomic `update_config` API so handlers cannot silently mutate runtime
+  state without writing the configuration file.
+
+The ongoing refactoring direction is compatibility-first: preserve Discord
+commands and website URLs/API fields, keep database access behind repositories,
+and add tests at each boundary before changing implementation details. The next
+larger candidates are dependency injection for repository construction and a
+shared service-level error/observability contract; neither is required for
+normal deployment today.
 
 ## Requirements
 
@@ -266,8 +290,11 @@ Authenticated users can access `index.html`, `account.html`, `events.html`,
 
 The website exposes JSON APIs under `/api` for authentication, account and Discord
 link management, R6 rolls, events, website connections, administration, remote
-profiles, and RDP file generation. Authorized HTTP/WebSocket website connections are
-available under `/connect/<slug>/`. SSH uses the `/api/ssh` WebSocket endpoint.
+profiles, and RDP file generation. The authenticated `remote.html` page also
+provides an in-browser WebRDP workspace using the mstsc.js Canvas/RLE client and a
+Socket.IO bridge backed by `@electerm/rdpjs`. Authorized HTTP/WebSocket website
+connections are available under `/connect/<slug>/`. SSH uses the `/api/ssh`
+WebSocket endpoint.
 
 ### Page visibility
 
@@ -295,8 +322,11 @@ npm run check
 ```
 
 `npm run check` parses browser JavaScript and runs the complete Node.js test suite.
-The database-backed tests require access to a test MySQL database; they do not start
-the production server.
+The Node.js tests inject database fakes where needed, so they do not require a
+live MySQL server or start the production server.
+
+The website validates `PORT` before binding and closes its MySQL pool during a
+graceful `SIGINT` or `SIGTERM` shutdown.
 
 ## Security notes
 
@@ -308,13 +338,14 @@ the production server.
 - Set `REMOTE_SSH_ENABLED=false` or `REMOTE_RDP_ENABLED=false` to disable that remote feature globally, including for administrators.
 - Remote access requires both accepted website terms and membership in one of the groups listed in `REMOTE_ALLOWED_GROUPS`.
 - Browser-local remote profiles use `localStorage`; do not use browser storage on shared or untrusted devices.
+- WebRDP passwords are sent only for the active Socket.IO connection and are not included in saved profiles.
 - Keep `REMOTE_CREDENTIAL_ENCRYPTION_KEY` outside source control and back it up securely; it protects stored SSH private keys and RDP connection details.
 
 ## Dependencies
 
 The Discord bot dependencies are pinned in `discord-part/requirements.txt`. The website dependencies and lockfile are in `website-part/package.json` and `website-part/package-lock.json`.
 
-Key runtime packages include `discord.py`, `PyMySQL`, `Express`, `express-session`, `express-rate-limit`, `bcryptjs`, `mysql2`, `http-proxy-middleware`, `ssh2`, and `ws`.
+Key runtime packages include `discord.py`, `PyMySQL`, `Express`, `express-session`, `express-rate-limit`, `bcryptjs`, `mysql2`, `http-proxy-middleware`, `ssh2`, `ws`, `socket.io`, and `@electerm/rdpjs`.
 
 ## License
 

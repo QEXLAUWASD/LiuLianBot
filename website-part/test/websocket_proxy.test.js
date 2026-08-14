@@ -13,6 +13,8 @@ test('extracts the connection slug and upstream WebSocket path', () => {
     }
   );
   assert.equal(connectionProxy.websocketRequest({ url: '/socket.io/' }), null);
+  assert.equal(connectionProxy.isSocketIoRequest({ url: '/socket.io/?EIO=4&transport=websocket' }), true);
+  assert.equal(connectionProxy.isSocketIoRequest({ url: '/connect/reports/socket.io/' }), false);
 });
 
 test('maps upstream-root markers without mutating the configured connection', () => {

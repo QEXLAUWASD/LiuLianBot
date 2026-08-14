@@ -200,6 +200,11 @@ function websocketRequest(req) {
   };
 }
 
+function isSocketIoRequest(req) {
+  const parsed = new URL(req.url, 'http://localhost');
+  return parsed.pathname === '/socket.io/' || parsed.pathname === '/socket.io';
+}
+
 function rejectUpgrade(socket, statusCode, statusText) {
   if (socket.destroyed) return;
   const body = `${statusCode} ${statusText}`;
@@ -215,6 +220,7 @@ function attachWebSocketServer(server, options) {
   const { sessionStore, sessionCookieName, sessionSecret } = options;
 
   server.on('upgrade', async (req, socket, head) => {
+    if (isSocketIoRequest(req)) return;
     const request = websocketRequest(req);
     if (!request) {
       rejectUpgrade(socket, 404, 'Not Found');
@@ -260,6 +266,7 @@ function attachWebSocketServer(server, options) {
 
 router.attachWebSocketServer = attachWebSocketServer;
 router.websocketRequest = websocketRequest;
+router.isSocketIoRequest = isSocketIoRequest;
 router.applyUpstreamRootPath = applyUpstreamRootPath;
 router.createRedirectRootRelativeRequest = createRedirectRootRelativeRequest;
 router.redirectRootRelativeRequest = redirectRootRelativeRequest;

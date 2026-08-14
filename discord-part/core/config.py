@@ -39,16 +39,20 @@ def load_config() -> dict:
     """載入 config.json 並回傳設定字典（帶快取）。"""
     global _config
     if _config:
-        return _config
+        return copy.deepcopy(_config)
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        _config = json.load(f)
-    return _config
+        loaded = json.load(f)
+    if not isinstance(loaded, dict):
+        raise ValueError("config.json root must be a JSON object")
+    _config = loaded
+    return copy.deepcopy(_config)
 
 
 def reload_config() -> dict:
     """強制重新載入 config.json。"""
-    global _config
+    global _config, _logger
     _config = {}
+    _logger = None
     return load_config()
 
 
@@ -56,13 +60,13 @@ def get_config() -> dict:
     """取得已載入的設定（若尚未載入則自動載入）。"""
     if not _config:
         return load_config()
-    return _config
+    return copy.deepcopy(_config)
 
 
 def update_config(mutator: Callable[[dict], None]) -> dict:
     """Atomically mutate config.json and replace the in-memory cache."""
     global _config
-    current = copy.deepcopy(get_config())
+    current = get_config()
     mutator(current)
     directory = os.path.dirname(CONFIG_PATH)
     fd, temp_path = tempfile.mkstemp(

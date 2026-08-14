@@ -1,11 +1,13 @@
 require('dotenv').config();
+const session = require('express-session');
 
 const { createApp } = require('./app');
 const { buildListenOptions } = require('./config/server');
 const { buildSessionOptions } = require('./config/session');
-const { getPool } = require('./db');
+const { getPool, closePool } = require('./db');
 const { MySqlSessionStore } = require('./session_store');
 const { attachSshServer } = require('./ssh_server');
+const { attachRdpServer } = require('./rdp_socket');
 
 async function startServer() {
   await getPool();
@@ -22,8 +24,10 @@ async function startServer() {
   const pageVisibility = require('./routes/page_visibility');
   const sessionStore = new MySqlSessionStore();
   const sessionOptions = buildSessionOptions(process.env, sessionStore);
+  const sessionMiddleware = session(sessionOptions);
   const app = createApp({
     sessionOptions,
+    sessionMiddleware,
     routers: {
       auth,
       roller,
@@ -58,18 +62,53 @@ async function startServer() {
     sessionCookieName: sessionOptions.name,
     sessionSecret: sessionOptions.secret,
   });
+  attachRdpServer(server, { sessionMiddleware });
   sessionStore.startCleanup();
-  server.once('close', () => sessionStore.stopCleanup());
-  server.once('error', () => sessionStore.stopCleanup());
+  const closeResources = () => {
+    sessionStore.stopCleanup();
+  };
+  server.once('close', closeResources);
+  server.once('error', err => {
+    closeResources();
+    closePool().catch(closeErr => {
+      console.error('[Server] Database pool shutdown failed:', closeErr);
+    });
+    console.error('[Server] HTTP server error:', err);
+  });
 
   return server;
 }
 
-if (require.main === module) {
-  startServer().catch(err => {
-    console.error('[Server] Startup failed:', err);
-    process.exitCode = 1;
-  });
+async function stopServer(server) {
+  if (server?.listening) {
+    await new Promise((resolve, reject) => {
+      server.close(err => (err ? reject(err) : resolve()));
+    });
+  }
+  await closePool();
 }
 
-module.exports = { startServer };
+if (require.main === module) {
+  let server = null;
+  let shuttingDown = false;
+  const shutdown = signal => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[Server] Received ${signal}; shutting down`);
+    stopServer(server).catch(err => {
+      console.error('[Server] Shutdown failed:', err);
+      process.exitCode = 1;
+    });
+  };
+  process.once('SIGINT', () => shutdown('SIGINT'));
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+
+  startServer()
+    .then(startedServer => { server = startedServer; })
+    .catch(err => {
+      console.error('[Server] Startup failed:', err);
+      process.exitCode = 1;
+    });
+}
+
+module.exports = { startServer, stopServer };

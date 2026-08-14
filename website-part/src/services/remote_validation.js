@@ -45,6 +45,17 @@ function normalizeRdpInput(input) {
   };
 }
 
+function normalizeWebRdpInput(input) {
+  const connection = normalizeRdpInput(input);
+  if (!input || typeof input.password !== 'string' || !input.password.trim()) {
+    throw new RemoteInputError('Password is required');
+  }
+  if (input.password.length > 512 || /[\r\n\0]/.test(input.password)) {
+    throw new RemoteInputError('Password contains invalid characters');
+  }
+  return { ...connection, password: input.password };
+}
+
 function allowedSshHosts(value = process.env.SSH_ALLOWED_HOSTS) {
   return new Set(String(value || '').split(',').map(host => host.trim().toLowerCase()).filter(Boolean));
 }
@@ -79,6 +90,7 @@ module.exports = {
   normalizeHost,
   normalizePort,
   normalizeRdpInput,
+  normalizeWebRdpInput,
   allowedSshHosts,
   cidrMatches,
   assertAllowedSshHost,

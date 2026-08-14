@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const {
   RemoteInputError,
   normalizeRdpInput,
+  normalizeWebRdpInput,
   assertAllowedSshHost,
   cidrMatches,
 } = require('../src/services/remote_validation');
@@ -18,6 +19,16 @@ test('normalizes RDP connection details and rejects line injection', () => {
     () => normalizeRdpInput({ host: 'server\r\nusername:s:attacker', username: 'admin' }),
     RemoteInputError
   );
+});
+
+test('WebRDP input requires a transient password and preserves it without trimming', () => {
+  assert.deepEqual(normalizeWebRdpInput({
+    host: 'server.example.com', port: 3389, username: 'admin', password: ' pass ', domain: '',
+  }), {
+    host: 'server.example.com', port: 3389, username: 'admin', password: ' pass ', domain: '',
+  });
+  assert.throws(() => normalizeWebRdpInput({ host: 'server.example.com', username: 'admin' }), RemoteInputError);
+  assert.throws(() => normalizeWebRdpInput({ host: 'server.example.com', username: 'admin', password: 'x\r\n' }), RemoteInputError);
 });
 
 test('SSH host allow list only permits configured hosts', () => {

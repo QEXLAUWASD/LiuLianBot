@@ -17,11 +17,11 @@ function homeRedirectPath(session) {
   return session?.user ? '/index.html' : '/login.html';
 }
 
-function createApp({ sessionOptions, routers }) {
+function createApp({ sessionOptions, sessionMiddleware, routers }) {
   const app = express();
 
   if (sessionOptions.cookie.secure) app.set('trust proxy', 1);
-  app.use(session(sessionOptions));
+  app.use(sessionMiddleware || session(sessionOptions));
   if (routers.connectionProxy.redirectRootRelativeRequest) {
     app.use(routers.connectionProxy.redirectRootRelativeRequest);
   }

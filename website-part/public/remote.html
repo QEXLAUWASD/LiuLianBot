@@ -4,47 +4,94 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1c6ba0">
-  <title>LiuLianBot - Remote</title>
-  <link rel="stylesheet" href="/css/style.css?v=20260731-remote">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="LiuLianBot">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <title>LiuLianBot - WebRDP</title>
+  <link rel="stylesheet" href="/css/style.css?v=20260814-webrdp">
 </head>
 <body>
-  <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
+  <nav id="siteNav" class="navbar" aria-label="主要導覽"></nav>
   <main class="main-content remote-page">
-    <h2>遠端連線</h2>
-    <p class="remote-desc">可選擇只在此瀏覽器或以加密方式儲存於伺服器。SSH 密碼一律不會儲存。</p>
-    <div class="remote-grid">
-      <section id="sshPanel" class="remote-panel" aria-labelledby="sshHeading">
-        <div class="remote-panel-heading"><h3 id="sshHeading">SSH 終端機</h3><span id="sshStatus" class="status-msg" role="status" aria-live="polite"></span></div>
-        <form id="sshForm" class="remote-form">
-          <label>主機<input id="sshHost" required maxlength="253" autocomplete="off" placeholder="server.example.com"></label>
-          <label>連接埠<input id="sshPort" type="number" min="1" max="65535" value="22"></label>
-          <label>使用者名稱<input id="sshUsername" required maxlength="256" autocomplete="username"></label>
-          <label>驗證方式<select id="sshAuthType"><option value="password">密碼</option><option value="key">私密金鑰</option></select></label>
-          <label id="sshPasswordLabel">密碼<input id="sshPassword" type="password" maxlength="512" autocomplete="current-password"></label>
-          <label id="sshKeyLabel" hidden>私密金鑰<textarea id="sshKey" rows="4" maxlength="16384" spellcheck="false"></textarea></label>
-          <label>設定儲存位置<select id="sshStorage"><option value="browser">此瀏覽器</option><option value="server">伺服器（加密）</option></select></label>
-          <div class="remote-actions"><button class="btn btn-outline" id="saveSsh" type="button">儲存 SSH 設定</button></div>
-          <div class="remote-actions"><button class="btn btn-primary" id="sshConnect" type="submit">連線</button><button class="btn btn-outline" id="sshDisconnect" type="button" disabled>中斷</button></div>
-        </form>
-        <pre id="sshTerminal" class="ssh-terminal" tabindex="0" aria-label="SSH terminal">尚未連線。</pre>
-        <label class="terminal-input-label">輸入指令<input id="sshInput" disabled autocomplete="off" spellcheck="false"></label>
-      </section>
-      <section id="rdpPanel" class="remote-panel" aria-labelledby="rdpHeading">
-        <div class="remote-panel-heading"><h3 id="rdpHeading">RDP 用戶端</h3></div>
-        <p class="remote-note">會下載 `.rdp` 檔案，請使用裝置上的 Microsoft Remote Desktop 或相容用戶端開啟。</p>
+    <header class="remote-hero">
+      <div>
+        <p class="remote-eyebrow">REMOTE WORKSPACE / WEBRDP</p>
+        <h1>遠端工作區</h1>
+        <p class="remote-desc">在瀏覽器內連線至 Windows 桌面。畫面與輸入會透過受保護的 Socket.IO 工作階段傳送。</p>
+      </div>
+      <div id="rdpStatusBadge" class="remote-status-badge" data-state="idle"><span class="remote-status-dot" aria-hidden="true"></span><span id="rdpStatusBadgeText">未連線</span></div>
+    </header>
+
+    <section id="rdpPanel" class="webrdp-shell" aria-labelledby="rdpHeading">
+      <div class="webrdp-toolbar">
+        <div class="remote-panel-heading"><div><p class="panel-kicker">BROWSER RDP</p><h2 id="rdpHeading">WebRDP 桌面</h2></div><span id="rdpHostLabel" class="rdp-host-label">尚未選擇主機</span></div>
+        <div class="webrdp-toolbar-actions">
+          <button class="btn btn-sm btn-outline" id="rdpFit" type="button" title="將桌面縮放至工作區">適合畫面</button>
+          <button class="btn btn-sm btn-outline" id="rdpFullscreen" type="button" title="切換全螢幕">全螢幕</button>
+          <button class="btn btn-sm btn-danger" id="rdpDisconnect" type="button" disabled>結束連線</button>
+        </div>
+      </div>
+      <div id="rdpViewport" class="rdp-viewport" tabindex="0" aria-label="RDP 遠端桌面">
+        <canvas id="rdpCanvas" class="rdp-canvas" aria-label="Windows 遠端桌面畫面"></canvas>
+        <div id="rdpEmptyState" class="rdp-empty-state">
+          <div class="rdp-empty-icon" aria-hidden="true">▣</div>
+          <h3>準備好連線</h3>
+          <p>在右側輸入主機與登入資訊，然後按下「連線至桌面」。</p>
+        </div>
+        <div id="rdpLoadingState" class="rdp-loading-state" hidden><span class="rdp-spinner" aria-hidden="true"></span><span id="rdpLoadingText">正在建立安全連線...</span></div>
+      </div>
+      <div id="rdpStatus" class="status-msg remote-inline-status" role="status" aria-live="polite"></div>
+    </section>
+
+    <div class="remote-grid remote-grid-lower">
+      <section id="rdpConnectPanel" class="remote-panel rdp-connect-panel" aria-labelledby="rdpConnectHeading">
+        <div class="remote-panel-heading"><div><p class="panel-kicker">CONNECTION</p><h2 id="rdpConnectHeading">連線設定</h2></div><span class="protocol-chip">mstsc.js</span></div>
+        <p class="remote-note">密碼只用於目前工作階段，不會儲存至瀏覽器或伺服器。</p>
         <form id="rdpForm" class="remote-form">
-          <label>主機<input id="rdpHost" required maxlength="253" autocomplete="off" placeholder="windows.example.com"></label>
+          <label class="field-span-2">主機<input id="rdpHost" required maxlength="253" autocomplete="off" placeholder="windows.example.com"></label>
           <label>連接埠<input id="rdpPort" type="number" min="1" max="65535" value="3389"></label>
           <label>使用者名稱<input id="rdpUsername" required maxlength="256" autocomplete="username"></label>
-          <label>網域（選填）<input id="rdpDomain" maxlength="256" autocomplete="off"></label>
-          <label>設定儲存位置<select id="rdpStorage"><option value="browser">此瀏覽器</option><option value="server">伺服器（加密）</option></select></label>
-          <div id="rdpStatus" class="status-msg" role="status" aria-live="polite"></div>
-          <div class="remote-actions"><button class="btn btn-outline" id="saveRdp" type="button">儲存 RDP 設定</button><button class="btn btn-primary" type="submit">下載 RDP 檔案</button></div>
-          <div class="remote-actions"><button class="btn btn-danger" id="deleteServerProfile" type="button">刪除伺服器儲存資料</button></div>
+          <label>網域（選填）<input id="rdpDomain" maxlength="256" autocomplete="off" placeholder="CONTOSO"></label>
+          <label>密碼<input id="rdpPassword" type="password" required maxlength="512" autocomplete="current-password"></label>
+          <label class="field-span-2">設定儲存位置<select id="rdpStorage"><option value="browser">此瀏覽器（不含密碼）</option><option value="server">伺服器（加密）</option></select></label>
+          <div class="remote-actions"><button class="btn btn-primary" id="rdpConnect" type="submit">連線至桌面</button><button class="btn btn-outline" id="saveRdp" type="button">儲存設定</button><button class="btn btn-outline" id="deleteServerProfile" type="button">刪除伺服器設定</button></div>
         </form>
       </section>
+
+      <aside class="remote-side-stack">
+        <section class="remote-panel remote-info-panel" aria-labelledby="rdpInfoHeading">
+          <div class="remote-panel-heading"><div><p class="panel-kicker">SESSION</p><h2 id="rdpInfoHeading">工作階段資訊</h2></div></div>
+          <dl class="remote-facts"><div><dt>引擎</dt><dd>WebRDP + mstsc.js</dd></div><div><dt>畫面</dt><dd>HTML5 Canvas / RLE</dd></div><div><dt>輸入</dt><dd>鍵盤、滑鼠、滾輪</dd></div></dl>
+          <p class="remote-security-note"><span aria-hidden="true">●</span> 連線需要已授權的 Remote Access 群組。</p>
+        </section>
+        <section class="remote-panel" aria-labelledby="rdpDownloadHeading">
+          <div class="remote-panel-heading"><div><p class="panel-kicker">ALTERNATIVE</p><h2 id="rdpDownloadHeading">下載連線檔</h2></div></div>
+          <p class="remote-note">使用 Microsoft Remote Desktop 或相容用戶端開啟 `.rdp` 檔案。</p>
+          <form id="rdpDownloadForm" class="remote-form remote-download-form"><div class="remote-actions"><button class="btn btn-outline" type="submit">下載 `.rdp` 檔案</button></div></form>
+        </section>
+      </aside>
     </div>
+
+    <section id="sshPanel" class="remote-panel ssh-section" aria-labelledby="sshHeading">
+      <div class="remote-panel-heading"><div><p class="panel-kicker">SECURE SHELL</p><h2 id="sshHeading">SSH 終端機</h2></div><span id="sshStatus" class="status-msg" role="status" aria-live="polite"></span></div>
+      <form id="sshForm" class="remote-form">
+        <label>主機<input id="sshHost" required maxlength="253" autocomplete="off" placeholder="server.example.com"></label>
+        <label>連接埠<input id="sshPort" type="number" min="1" max="65535" value="22"></label>
+        <label>使用者名稱<input id="sshUsername" required maxlength="256" autocomplete="username"></label>
+        <label>驗證方式<select id="sshAuthType"><option value="password">密碼</option><option value="key">私密金鑰</option></select></label>
+        <label id="sshPasswordLabel">密碼<input id="sshPassword" type="password" maxlength="512" autocomplete="current-password"></label>
+        <label id="sshKeyLabel" hidden>私密金鑰<textarea id="sshKey" rows="4" maxlength="16384" spellcheck="false"></textarea></label>
+        <label>設定儲存位置<select id="sshStorage"><option value="browser">此瀏覽器</option><option value="server">伺服器（加密）</option></select></label>
+        <div class="remote-actions"><button class="btn btn-outline" id="saveSsh" type="button">儲存 SSH 設定</button><button class="btn btn-primary" id="sshConnect" type="submit">連線</button><button class="btn btn-outline" id="sshDisconnect" type="button" disabled>中斷</button></div>
+      </form>
+      <pre id="sshTerminal" class="ssh-terminal" tabindex="0" aria-label="SSH 終端機">尚未連線。</pre>
+      <label class="terminal-input-label">輸入指令<input id="sshInput" disabled autocomplete="off" spellcheck="false"></label>
+    </section>
   </main>
+  <script src="/vendor/socket.io.min.js"></script>
+  <script src="/vendor/webrdp/rle.js"></script>
+  <script src="/vendor/webrdp/webrdp.js"></script>
   <script type="module" src="/js/app.mjs"></script>
   <script type="module" src="/js/remote.mjs"></script>
 </body>

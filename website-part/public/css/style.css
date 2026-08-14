@@ -880,21 +880,69 @@ a:hover { color: var(--accent-hover); }
 .status-error { color: var(--error); }
 .status-success { color: var(--success); }
 
-/* ===== Remote clients ===== */
-.remote-page { max-width: 1200px; }
-.remote-page > h2 { font-size: 1.8rem; margin-bottom: 8px; }
-.remote-desc, .remote-note { color: var(--text-muted); margin-bottom: 20px; }
-.remote-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr); gap: 20px; align-items: start; }
+/* ===== Remote workspace ===== */
+.remote-page { max-width: 1400px; }
+.remote-hero { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 22px; }
+.remote-hero h1 { font-size: 2rem; margin-bottom: 4px; }
+.remote-eyebrow, .panel-kicker { color: #66d9c5; font-size: .72rem; font-weight: 700; letter-spacing: .12em; }
+.remote-desc, .remote-note { color: var(--text-muted); margin-bottom: 16px; }
+.remote-desc { max-width: 720px; }
+.remote-status-badge { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; padding: 8px 12px; border: 1px solid var(--border); border-radius: 20px; color: var(--text-muted); font-size: .82rem; white-space: nowrap; }
+.remote-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #687582; }
+.remote-status-badge[data-state="connecting"] { color: #f1c40f; border-color: rgba(241, 196, 15, .4); }
+.remote-status-badge[data-state="connecting"] .remote-status-dot { background: #f1c40f; animation: remotePulse 1.2s ease-in-out infinite; }
+.remote-status-badge[data-state="connected"] { color: var(--success); border-color: rgba(46, 204, 113, .4); }
+.remote-status-badge[data-state="connected"] .remote-status-dot { background: var(--success); }
+.remote-status-badge[data-state="error"] { color: var(--error); border-color: rgba(231, 76, 60, .45); }
+.remote-status-badge[data-state="error"] .remote-status-dot { background: var(--error); }
+@keyframes remotePulse { 50% { opacity: .35; } }
+.webrdp-shell { background: #0b1217; border: 1px solid #263d44; border-radius: 8px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 16px 32px rgba(0, 0, 0, .2); }
+.webrdp-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; background: #111c23; border-bottom: 1px solid #263d44; }
+.webrdp-toolbar h2, .remote-panel h2 { font-size: 1.08rem; margin-top: 2px; }
+.webrdp-toolbar .panel-kicker { color: #8bc9ff; }
+.webrdp-toolbar-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; }
+.rdp-host-label { max-width: 280px; overflow: hidden; color: #8dabb7; font: .78rem ui-monospace, SFMono-Regular, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.rdp-viewport { position: relative; display: grid; place-items: center; width: 100%; min-height: 480px; height: min(68vh, 760px); overflow: auto; background: #05090c; outline: none; }
+.rdp-viewport:focus-visible { box-shadow: inset 0 0 0 2px #66d9c5; }
+.rdp-viewport:fullscreen { height: 100vh; }
+.rdp-canvas { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: auto; }
+.rdp-empty-state, .rdp-loading-state { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 28px; text-align: center; }
+.rdp-empty-state { color: #a8bac2; }
+.rdp-empty-state h3 { color: #eff8fb; font-size: 1.1rem; }
+.rdp-empty-state p { max-width: 380px; color: #71858e; font-size: .86rem; }
+.rdp-empty-icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 6px; border: 1px solid #32515a; border-radius: 8px; color: #66d9c5; font-size: 1.7rem; }
+.rdp-loading-state { grid-auto-flow: column; align-content: center; color: #c8dce2; background: rgba(5, 9, 12, .72); }
+.rdp-spinner { width: 18px; height: 18px; border: 2px solid #35505b; border-top-color: #66d9c5; border-radius: 50%; animation: remoteSpin .8s linear infinite; }
+@keyframes remoteSpin { to { transform: rotate(360deg); } }
+.remote-inline-status { margin: 0; padding: 7px 18px 10px; min-height: 28px; }
+.remote-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 20px; align-items: start; }
 .remote-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
 .remote-panel-heading { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
-.remote-panel-heading h3 { font-size: 1.15rem; margin-bottom: 18px; }
-.remote-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.remote-form label, .terminal-input-label { display: grid; gap: 6px; color: var(--text-muted); font-size: 0.85rem; }
-.remote-form input, .remote-form select, .remote-form textarea, .terminal-input-label input { width: 100%; }
+.remote-panel-heading h2 { margin-bottom: 14px; }
+.remote-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 14px; }
+.remote-form label, .terminal-input-label { display: grid; gap: 6px; color: var(--text-muted); font-size: 0.82rem; }
+.remote-form input, .remote-form select, .remote-form textarea, .terminal-input-label input { width: 100%; padding: 10px 11px; border: 1px solid var(--border); border-radius: 5px; background: #11111f; color: var(--text); font: inherit; }
+.remote-form input:focus, .remote-form select:focus, .remote-form textarea:focus, .terminal-input-label input:focus { outline: none; border-color: #66d9c5; box-shadow: 0 0 0 2px rgba(102, 217, 197, .14); }
 .remote-form textarea { resize: vertical; }
-.remote-actions { grid-column: 1 / -1; display: flex; gap: 10px; }
+.field-span-2 { grid-column: 1 / -1; }
+.remote-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 9px; }
+.remote-actions .btn { flex: 0 0 auto; }
+.protocol-chip { padding: 4px 8px; border: 1px solid #365b68; border-radius: 4px; color: #8bc9ff; font: .7rem ui-monospace, SFMono-Regular, Consolas, monospace; }
+.remote-side-stack { display: grid; gap: 20px; }
+.remote-info-panel { background: #151b2a; }
+.remote-facts { display: grid; gap: 10px; margin: 3px 0 18px; }
+.remote-facts div { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 9px; border-bottom: 1px solid #2a3045; }
+.remote-facts dt { color: var(--text-muted); font-size: .8rem; }
+.remote-facts dd { color: #d8e1ec; font-size: .8rem; text-align: right; }
+.remote-security-note { color: #8b9ba8; font-size: .78rem; }
+.remote-security-note span { margin-right: 6px; color: #66d9c5; }
+.remote-download-form { display: block; }
+.remote-download-form .remote-actions { margin-top: 4px; }
+.ssh-section { margin-top: 20px; }
+.ssh-section .remote-panel-heading { align-items: center; }
 .ssh-terminal { height: 380px; overflow: auto; margin: 18px 0 10px; padding: 14px; background: #101719; border: 1px solid #263d3d; color: #d7f5dd; font-family: Consolas, "Courier New", monospace; font-size: 0.85rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .ssh-terminal:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ssh-section .terminal-input-label { max-width: 680px; }
 .legal-page { max-width: 800px; line-height: 1.7; }
 .legal-page h1 { font-size: 1.8rem; margin-bottom: 8px; }
 .legal-page h2 { font-size: 1.2rem; margin: 28px 0 8px; }
@@ -916,6 +964,14 @@ a:hover { color: var(--accent-hover); }
 @media (max-width: 500px) { .remote-form { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .chromium-address-bar { grid-template-columns: 1fr auto; } .chromium-address-bar .btn-outline { grid-column: 1 / -1; text-align: center; } }
 @media (max-width: 600px) { .chromium-frame { min-height: 420px; } }
+
+@media (max-width: 700px) {
+  .remote-hero { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .remote-hero h1 { font-size: 1.7rem; }
+  .webrdp-toolbar { align-items: flex-start; flex-direction: column; }
+  .webrdp-toolbar-actions { justify-content: start; width: 100%; }
+  .rdp-viewport { min-height: 420px; height: 62vh; }
+}
 
 @media (max-width: 700px) {
   .account-grid { grid-template-columns: 1fr; }

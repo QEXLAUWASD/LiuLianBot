@@ -6,15 +6,20 @@ const refs = Object.fromEntries([
   'sshKeyLabel', 'sshKey', 'sshConnect', 'sshDisconnect', 'sshStatus', 'sshTerminal', 'sshInput',
   'sshStorage', 'saveSsh', 'rdpForm', 'rdpHost', 'rdpPort', 'rdpUsername', 'rdpDomain', 'rdpStatus',
   'rdpStorage', 'saveRdp', 'deleteServerProfile',
-  'sshPanel', 'rdpPanel',
+  'sshPanel', 'rdpPanel', 'rdpConnectPanel', 'rdpPassword', 'rdpDownloadForm', 'rdpDisconnect', 'rdpConnect',
+  'rdpCanvas', 'rdpViewport', 'rdpEmptyState', 'rdpLoadingState', 'rdpLoadingText', 'rdpStatusBadge',
+  'rdpStatusBadgeText', 'rdpHostLabel', 'rdpFullscreen', 'rdpFit',
 ].map(id => [id, document.getElementById(id)]));
 let socket = null;
+let rdpClient = null;
+let rdpSocket = null;
 let serverProfile = { ssh: null, rdp: null };
 let serverStorageAvailable = false;
 
 function setFeatureVisibility(features) {
   refs.sshPanel.hidden = !features.ssh;
   refs.rdpPanel.hidden = !features.rdp;
+  refs.rdpConnectPanel.hidden = !features.rdp;
 }
 
 function profileFromFields(type) {
@@ -65,6 +70,90 @@ async function loadSavedProfiles() {
     setFeatureVisibility({ ssh: false, rdp: false });
     setServerOptionEnabled(false);
   }
+}
+
+function setRdpState(state, message) {
+  refs.rdpStatusBadge.dataset.state = state;
+  refs.rdpStatusBadgeText.textContent = message;
+  refs.rdpStatus.textContent = message;
+  refs.rdpStatus.className = `status-msg remote-inline-status ${state === 'error' ? 'status-error' : state === 'connected' ? 'status-success' : ''}`;
+}
+
+function resizeRdpCanvas() {
+  const width = Math.min(4096, Math.max(800, refs.rdpViewport.clientWidth || 1280));
+  const height = Math.min(2160, Math.max(480, refs.rdpViewport.clientHeight || 720));
+  refs.rdpCanvas.width = Math.floor(width);
+  refs.rdpCanvas.height = Math.floor(height);
+}
+
+function resetRdpView() {
+  refs.rdpCanvas.width = 1280;
+  refs.rdpCanvas.height = 720;
+  refs.rdpEmptyState.hidden = false;
+  refs.rdpLoadingState.hidden = true;
+  refs.rdpDisconnect.disabled = true;
+  refs.rdpConnect.disabled = false;
+}
+
+function disconnectRdp(message = '已中斷連線。') {
+  if (rdpSocket) rdpSocket.disconnect();
+  rdpSocket = null;
+  rdpClient = null;
+  resetRdpView();
+  setRdpState('idle', message);
+}
+
+function connectRdp() {
+  if (!window.Mstsc?.client || !window.io) {
+    setRdpState('error', 'WebRDP 用戶端資產載入失敗。');
+    return;
+  }
+  if (rdpSocket) disconnectRdp('正在重新連線...');
+
+  resizeRdpCanvas();
+  refs.rdpEmptyState.hidden = true;
+  refs.rdpLoadingState.hidden = false;
+  refs.rdpLoadingText.textContent = '正在建立安全連線...';
+  refs.rdpConnect.disabled = true;
+  refs.rdpDisconnect.disabled = false;
+  refs.rdpHostLabel.textContent = `${refs.rdpHost.value.trim()}:${refs.rdpPort.value}`;
+  setRdpState('connecting', '正在連線');
+
+  const connection = {
+    host: refs.rdpHost.value.trim(),
+    port: refs.rdpPort.value,
+    username: refs.rdpUsername.value.trim(),
+    password: refs.rdpPassword.value,
+    domain: refs.rdpDomain.value.trim(),
+  };
+  rdpClient = window.Mstsc.client.create(refs.rdpCanvas);
+  rdpClient.connect(error => {
+    if (error) {
+      refs.rdpLoadingState.hidden = true;
+      refs.rdpConnect.disabled = false;
+      setRdpState('error', error.message || 'RDP 連線失敗。');
+    } else {
+      disconnectRdp('遠端工作階段已結束。');
+    }
+  }, connection);
+  rdpSocket = rdpClient.socket;
+  rdpSocket.on('rdp-connect', () => {
+    refs.rdpLoadingState.hidden = true;
+    setRdpState('connected', '已連線');
+  });
+  rdpSocket.on('rdp-error', error => {
+    refs.rdpLoadingState.hidden = true;
+    refs.rdpConnect.disabled = false;
+    setRdpState('error', error?.message || 'RDP 連線失敗。');
+  });
+  rdpSocket.on('connect_error', error => {
+    refs.rdpLoadingState.hidden = true;
+    refs.rdpConnect.disabled = false;
+    setRdpState('error', error.message || '無法建立 WebRDP 工作階段。');
+  });
+  rdpSocket.on('disconnect', reason => {
+    if (rdpSocket) setRdpState('idle', reason === 'io server disconnect' ? '工作階段已被伺服器結束。' : '已中斷連線。');
+  });
 }
 
 async function saveProfile(type) {
@@ -157,9 +246,15 @@ refs.sshInput.addEventListener('keydown', event => {
   refs.sshInput.value = '';
 });
 
-refs.rdpForm.addEventListener('submit', async event => {
+refs.rdpForm.addEventListener('submit', event => {
   event.preventDefault();
-  refs.rdpStatus.textContent = '';
+  connectRdp();
+});
+
+refs.saveRdp.addEventListener('click', () => saveProfile('rdp'));
+refs.rdpDisconnect.addEventListener('click', () => disconnectRdp());
+refs.rdpDownloadForm.addEventListener('submit', async event => {
+  event.preventDefault();
   try {
     const response = await fetch('/api/rdp/download', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -171,15 +266,18 @@ refs.rdpForm.addEventListener('submit', async event => {
     link.download = 'liulianbot-remote.rdp';
     link.click();
     URL.revokeObjectURL(link.href);
-    refs.rdpStatus.textContent = 'RDP 檔案已下載。';
-    refs.rdpStatus.className = 'status-msg status-success';
+    setRdpState('idle', 'RDP 檔案已下載。');
   } catch (error) {
-    refs.rdpStatus.textContent = error.message;
-    refs.rdpStatus.className = 'status-msg status-error';
+    setRdpState('error', error.message || '無法建立 RDP 檔案。');
   }
 });
-
-refs.saveRdp.addEventListener('click', () => saveProfile('rdp'));
+refs.rdpFullscreen.addEventListener('click', async () => {
+  if (document.fullscreenElement) await document.exitFullscreen();
+  else await refs.rdpViewport.requestFullscreen();
+});
+refs.rdpFit.addEventListener('click', () => {
+  refs.rdpCanvas.classList.toggle('rdp-canvas-fit');
+});
 refs.deleteServerProfile.addEventListener('click', async () => {
   try {
     await requestJSON('/api/remote-profile', { method: 'DELETE' });
@@ -193,3 +291,4 @@ refs.deleteServerProfile.addEventListener('click', async () => {
 });
 
 loadSavedProfiles();
+resetRdpView();
