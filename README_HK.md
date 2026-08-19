@@ -183,6 +183,53 @@ cd website-part
 MySQL Session 背景清理遇到暫時性錯誤時只會記錄錯誤，唔會停用新登入
 Session。部署 Session Store 修正後，請執行 `./start.sh restart` 重啟 PM2 程式。
 
+### 用 Docker CLI 執行網站
+
+以下映像只包含 `website-part/` 同其 production Node.js 依賴，唔會建立或啟動
+`discord-part/`。共用資料庫設定會喺容器啟動時用唯讀掛載提供。
+
+先依照上方步驟建立 `website-part/.env` 同
+`shared/database/config.json`，並喺 `.env` 設定夠長而且唯一嘅
+`SESSION_SECRET`。喺 repository 根目錄建立映像：
+
+```bash
+docker build --file website-part/Dockerfile --tag liulianbot-website:latest .
+```
+
+執行網站容器。`BIND_IP=0.0.0.0` 會令 Docker port forwarding 可以連到網站；
+正式環境請喺前面配置 HTTPS 反向代理。
+
+```bash
+docker run --detach --name liulianbot-website \
+  --restart unless-stopped \
+  --publish 3000:3000 \
+  --env-file website-part/.env \
+  --env BIND_IP=0.0.0.0 \
+  --volume "$(pwd)/shared/database/config.json:/app/shared/database/config.json:ro" \
+  liulianbot-website:latest
+```
+
+Windows PowerShell 請用 `${PWD}` 掛載資料庫設定：
+
+```powershell
+docker run --detach --name liulianbot-website `
+  --restart unless-stopped `
+  --publish 3000:3000 `
+  --env-file website-part/.env `
+  --env BIND_IP=0.0.0.0 `
+  --volume "${PWD}/shared/database/config.json:/app/shared/database/config.json:ro" `
+  liulianbot-website:latest
+```
+
+用 `docker logs --follow liulianbot-website` 查看容器日誌。網站程式碼或依賴更新後，
+重新建立映像並取代容器：
+
+```bash
+docker build --file website-part/Dockerfile --tag liulianbot-website:latest .
+docker rm --force liulianbot-website
+# 再執行上面嘅 docker run 指令。
+```
+
 ### 網站環境變數
 
 網站由 `shared/database/config.json` 讀取 MySQL 設定，其餘運行設定由

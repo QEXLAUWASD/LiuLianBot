@@ -232,6 +232,55 @@ The MySQL session cleanup job logs transient cleanup failures without disabling
 new login sessions. After deploying session-store changes, restart the PM2 app
 with `./start.sh restart`.
 
+### Run the website with Docker CLI
+
+The following image contains only `website-part/` and its production Node.js
+dependencies. It does not build or run `discord-part/`, and it reads the shared
+database configuration from a read-only runtime mount.
+
+First create `website-part/.env` and `shared/database/config.json` as described
+above. Set `SESSION_SECRET` in `.env` to a strong, unique value. Build from the
+repository root so Docker can include the website and the shared database mount
+path:
+
+```bash
+docker build --file website-part/Dockerfile --tag liulianbot-website:latest .
+```
+
+Run the website container. `BIND_IP=0.0.0.0` exposes the application to Docker's
+port forwarding; put an HTTPS reverse proxy in front of it for production.
+
+```bash
+docker run --detach --name liulianbot-website \
+  --restart unless-stopped \
+  --publish 3000:3000 \
+  --env-file website-part/.env \
+  --env BIND_IP=0.0.0.0 \
+  --volume "$(pwd)/shared/database/config.json:/app/shared/database/config.json:ro" \
+  liulianbot-website:latest
+```
+
+On Windows PowerShell, use `${PWD}` for the database configuration mount:
+
+```powershell
+docker run --detach --name liulianbot-website `
+  --restart unless-stopped `
+  --publish 3000:3000 `
+  --env-file website-part/.env `
+  --env BIND_IP=0.0.0.0 `
+  --volume "${PWD}/shared/database/config.json:/app/shared/database/config.json:ro" `
+  liulianbot-website:latest
+```
+
+View container logs with `docker logs --follow liulianbot-website`. After a
+website code or dependency update, rebuild the image and replace the container:
+
+```bash
+docker build --file website-part/Dockerfile --tag liulianbot-website:latest .
+docker rm --force liulianbot-website
+# Run the docker run command above again.
+```
+
 ### Website environment variables
 
 The website reads MySQL settings from `shared/database/config.json`; the remaining

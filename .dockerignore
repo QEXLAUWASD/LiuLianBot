@@ -1,0 +1,15 @@
+.git
+.github
+.pytest_cache
+.ruff_cache
+.worktrees
+**/__pycache__
+**/node_modules
+website-part/.env
+shared/database/config.json
+discord-part
+docs
+logs
+README_HK.md
+start.sh
+*.log
