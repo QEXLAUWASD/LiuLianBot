@@ -430,6 +430,13 @@ npm run check
 The Node.js tests inject database fakes where needed, so they do not require a
 live MySQL server or start the production server.
 
+Run the Ruff command from the repository root so both the Discord bot and shared
+Python modules are checked together:
+
+```bash
+python -m ruff check discord-part shared
+```
+
 The website validates `PORT` before binding and closes its MySQL pool during a
 graceful `SIGINT` or `SIGTERM` shutdown.
 

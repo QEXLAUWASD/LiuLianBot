@@ -177,7 +177,7 @@ async def on_guild_update(before: discord.Guild, after: discord.Guild) -> None:
     )
     embed.set_footer(text=f"Guild ID: {after.id}")
 
-    actor = await get_audit_actor(guild, discord.AuditLogAction.guild_update, guild_id)
+    actor = await get_audit_actor(after, discord.AuditLogAction.guild_update, guild_id)
     add_audit_actor_field(embed, actor, guild_id)
 
     await _send_log_embed(after, embed, sender_name="guild_update")
