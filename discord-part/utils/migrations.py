@@ -178,6 +178,25 @@ def create_guild_channel_metadata_table(conn) -> None:
         )
 
 
+def create_guild_manager_tables(conn) -> None:
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("ALTER TABLE discord_guild_metadata ADD COLUMN owner_id BIGINT NULL")
+    except Exception as exc:
+        if getattr(exc, "args", [None])[0] != 1060:
+            raise
+
+
+def create_categorized_log_channels(conn) -> None:
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS guild_log_channel_settings ("
+            "guild_id BIGINT NOT NULL, log_type VARCHAR(30) NOT NULL, channel_id BIGINT NOT NULL, "
+            "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, "
+            "PRIMARY KEY (guild_id, log_type))"
+        )
+
+
 DEFAULT_MIGRATIONS = (
     Migration("001", "create guild_log_channels table", create_log_channel_table),
     Migration("002", "create guild_roller_channels table", create_roller_channel_table),
@@ -192,6 +211,8 @@ DEFAULT_MIGRATIONS = (
     Migration("007", "create Discord guild metadata table", create_guild_metadata_table),
     Migration("008", "enable scheduled announcement dispatch", enable_announcement_dispatch),
     Migration("009", "create Discord guild channel metadata table", create_guild_channel_metadata_table),
+    Migration("010", "add Discord guild owner metadata", create_guild_manager_tables),
+    Migration("011", "create categorized log channel settings", create_categorized_log_channels),
 )
 
 

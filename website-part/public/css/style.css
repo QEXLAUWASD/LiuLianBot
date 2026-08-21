@@ -849,6 +849,19 @@ a:hover { color: var(--accent-hover); }
 
 .account-container > h2 { font-size: 1.8rem; margin-bottom: 8px; }
 .account-desc { color: var(--text-muted); margin-bottom: 28px; }
+.page-heading { margin-bottom: 22px; }
+.page-heading h1 { font-size: 1.8rem; margin-bottom: 6px; }
+.page-heading p { color: var(--text-muted); }
+.guild-manager-layout { display: grid; grid-template-columns: minmax(210px, .35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.guild-list-panel, .guild-settings-panel { padding: 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); }
+.guild-list-panel h2, .guild-settings-panel h2 { font-size: 1.15rem; margin-bottom: 16px; }
+.guild-settings-panel h3 { font-size: 1rem; margin: 24px 0 12px; }
+.guild-list { display: grid; gap: 6px; }
+.guild-list-item { width: 100%; padding: 10px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.guild-list-item:hover, .guild-list-item.active { background: var(--bg-hover); border-color: var(--accent); }
+.log-channel-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin-bottom: 20px; }
+.log-channel-field span { text-transform: capitalize; }
+@media (max-width: 700px) { .guild-manager-layout { grid-template-columns: 1fr; } .log-channel-fields { grid-template-columns: 1fr; } }
 
 .account-grid {
   display: grid;

@@ -13,6 +13,13 @@
     "source": "override",
     "options": [
       {
+        "name": "log_type",
+        "type": "str",
+        "required": true,
+        "description": "記錄類別",
+        "choices": ["all", "useraction", "voiceaction", "groupaction", "messageaction", "channelaction", "roleaction"]
+      },
+      {
         "name": "lang",
         "type": "str",
         "required": true,

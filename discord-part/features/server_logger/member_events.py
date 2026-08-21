@@ -12,6 +12,8 @@ from .base import (
     _set_footer_id,
     _now,
     logger,
+    get_audit_actor,
+    add_audit_actor_field,
 )
 from commands.language_manager import get_translation
 
@@ -100,6 +102,13 @@ async def on_member_remove(member: discord.Member) -> None:
     )
     _set_footer_id(embed, member)
 
+    actor = await get_audit_actor(
+        guild,
+        (discord.AuditLogAction.kick, discord.AuditLogAction.member_prune),
+        member.id,
+    )
+    add_audit_actor_field(embed, actor, guild_id)
+
     await _send_log_embed(guild, embed, sender_name="member_leave")
 
 
@@ -163,6 +172,13 @@ async def on_member_update(before: discord.Member, after: discord.Member) -> Non
     )
     _set_footer_id(embed, after)
 
+    actor = await get_audit_actor(
+        guild,
+        (discord.AuditLogAction.member_role_update, discord.AuditLogAction.member_update),
+        after.id,
+    )
+    add_audit_actor_field(embed, actor, guild_id)
+
     await _send_log_embed(guild, embed, sender_name="member_update")
 
 
@@ -189,6 +205,9 @@ async def on_member_ban(guild: discord.Guild, user: discord.User | discord.Membe
     )
     _set_footer_id(embed, user)
 
+    actor = await get_audit_actor(guild, discord.AuditLogAction.ban, user.id)
+    add_audit_actor_field(embed, actor, guild_id)
+
     await _send_log_embed(guild, embed, sender_name="member_ban")
 
 
@@ -214,6 +233,9 @@ async def on_member_unban(guild: discord.Guild, user: discord.User) -> None:
         inline=True,
     )
     _set_footer_id(embed, user)
+
+    actor = await get_audit_actor(guild, discord.AuditLogAction.unban, user.id)
+    add_audit_actor_field(embed, actor, guild_id)
 
     await _send_log_embed(guild, embed, sender_name="member_unban")
 

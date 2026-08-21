@@ -12,7 +12,7 @@ import asyncio
 import discord
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from commands.language_manager import get_translation
@@ -36,6 +36,15 @@ def init_log_channel_table() -> None:
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 )
             ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS guild_log_channel_settings (
+                    guild_id BIGINT NOT NULL,
+                    log_type VARCHAR(30) NOT NULL,
+                    channel_id BIGINT NOT NULL,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    PRIMARY KEY (guild_id, log_type)
+                )
+            ''')
         conn.commit()
     finally:
         conn.close()
@@ -47,11 +56,55 @@ def init_log_channel_table() -> None:
 logger = log_helper.setup_logger(__name__, level=log_helper.logging.INFO)
 
 
+async def get_audit_actor(
+    guild: discord.Guild,
+    action: discord.AuditLogAction | tuple[discord.AuditLogAction, ...],
+    target_id: int,
+    *,
+    max_age_seconds: int = 15,
+) -> Optional[discord.User]:
+    """Return the user responsible for a recent audit-log action.
+
+    Discord events do not include the actor. Audit logs can arrive slightly
+    after the gateway event, so callers should use this best-effort lookup.
+    """
+    actions = action if isinstance(action, tuple) else (action,)
+    cutoff = _now() - timedelta(seconds=max_age_seconds)
+    try:
+        for audit_action in actions:
+            async for entry in guild.audit_logs(limit=8, action=audit_action):
+                if entry.created_at < cutoff:
+                    break
+                target = entry.target
+                if getattr(target, "id", None) == target_id:
+                    return entry.user
+    except (discord.Forbidden, discord.HTTPException):
+        logger.debug("Unable to read audit log for guild %s", guild.id, exc_info=True)
+    except Exception:
+        logger.warning("Unexpected audit-log lookup failure for guild %s", guild.id, exc_info=True)
+    return None
+
+
+def add_audit_actor_field(
+    embed: discord.Embed, actor: Optional[discord.User], guild_id: int
+) -> None:
+    """Add a consistent actor field to moderation/configuration logs."""
+    if actor is None:
+        value = get_translation("audit_actor_unknown", guild_id)
+    else:
+        value = f"{actor.mention} ({actor})\nID: {actor.id}"
+    embed.add_field(name=get_translation("audit_actor", guild_id), value=value, inline=False)
+
+
 # ---------------------------------------------------------------------------
 # Log-channel persistence
 # ---------------------------------------------------------------------------
 
-def set_log_channel(guild_id: int, channel_id: int) -> None:
+LOG_TYPES = {"all", "useraction", "voiceaction", "groupaction", "messageaction", "channelaction", "roleaction"}
+
+def set_log_channel(guild_id: int, channel_id: int, log_type: str = "all") -> None:
+    if log_type not in LOG_TYPES:
+        raise ValueError(f"Unsupported log type: {log_type}")
     conn = get_db_conn()
     try:
         with conn.cursor() as cursor:
@@ -59,20 +112,26 @@ def set_log_channel(guild_id: int, channel_id: int) -> None:
                 "INSERT INTO guild_log_channels (guild_id, channel_id) "
                 "VALUES (%s, %s) ON DUPLICATE KEY UPDATE channel_id=%s"
             )
-            cursor.execute(sql, (guild_id, channel_id, channel_id))
+            if log_type == "all":
+                cursor.execute(sql, (guild_id, channel_id, channel_id))
+                cursor.execute("DELETE FROM guild_log_channel_settings WHERE guild_id=%s", (guild_id,))
+            else:
+                cursor.execute("INSERT INTO guild_log_channel_settings (guild_id, log_type, channel_id) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id)", (guild_id, log_type, channel_id))
         conn.commit()
     finally:
         conn.close()
 
 
-def get_log_channel(guild_id: int) -> Optional[int]:
+def get_log_channel(guild_id: int, log_type: str = "all") -> Optional[int]:
     conn = get_db_conn()
     try:
         with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT channel_id FROM guild_log_channels WHERE guild_id=%s",
-                (guild_id,),
-            )
+            if log_type != "all":
+                cursor.execute("SELECT channel_id FROM guild_log_channel_settings WHERE guild_id=%s AND log_type=%s", (guild_id, log_type))
+                result = cursor.fetchone()
+                if result:
+                    return result[0]
+            cursor.execute("SELECT channel_id FROM guild_log_channels WHERE guild_id=%s", (guild_id,))
             result = cursor.fetchone()
             return result[0] if result else None
     finally:
@@ -126,15 +185,14 @@ class LogBatcher:
 
     def __init__(self, interval: float = BATCH_INTERVAL) -> None:
         self._interval = interval
-        # guild_id → (guild, [embeds])
-        self._buffers: dict[int, tuple[discord.Guild, list[discord.Embed]]] = {}
-        self._tasks: dict[int, asyncio.Task] = {}
+        self._buffers: dict[tuple[int, int], tuple[discord.Guild, int, list[discord.Embed]]] = {}
+        self._tasks: dict[tuple[int, int], asyncio.Task] = {}
         self._lock = asyncio.Lock()
 
     # -- public API --------------------------------------------------------
 
     async def enqueue(
-        self, guild: discord.Guild, embed: discord.Embed
+        self, guild: discord.Guild, channel_id: int, embed: discord.Embed
     ) -> None:
         """Add *embed* to the buffer for *guild*.
 
@@ -142,12 +200,13 @@ class LogBatcher:
         for a guild is queued.
         """
         async with self._lock:
-            if guild.id in self._buffers:
-                self._buffers[guild.id][1].append(embed)
+            key = (guild.id, channel_id)
+            if key in self._buffers:
+                self._buffers[key][2].append(embed)
             else:
-                self._buffers[guild.id] = (guild, [embed])
-                self._tasks[guild.id] = asyncio.create_task(
-                    self._flush_after_delay(guild)
+                self._buffers[key] = (guild, channel_id, [embed])
+                self._tasks[key] = asyncio.create_task(
+                    self._flush_after_delay(guild, channel_id)
                 )
 
     async def flush_all(self) -> None:
@@ -166,42 +225,39 @@ class LogBatcher:
             self._buffers.clear()
 
         # Flush outside the lock
-        for guild, embeds in snapshot:
-            await self._send_embeds(guild, embeds)
+        for guild, channel_id, embeds in snapshot:
+            await self._send_embeds(guild, channel_id, embeds)
 
     # -- internals ---------------------------------------------------------
 
-    async def _flush_after_delay(self, guild: discord.Guild) -> None:
+    async def _flush_after_delay(self, guild: discord.Guild, channel_id: int) -> None:
         """Sleep for the batch interval, then flush."""
         try:
             await asyncio.sleep(self._interval)
         except asyncio.CancelledError:
             return
-        await self._flush_now(guild)
+        await self._flush_now(guild, channel_id)
 
-    async def _flush_now(self, guild: discord.Guild) -> None:
+    async def _flush_now(self, guild: discord.Guild, channel_id: int) -> None:
         """Send all buffered embeds for *guild* in one or more
         combined messages."""
         async with self._lock:
-            entry = self._buffers.pop(guild.id, None)
-            self._tasks.pop(guild.id, None)
+            key = (guild.id, channel_id)
+            entry = self._buffers.pop(key, None)
+            self._tasks.pop(key, None)
 
         if entry is None:
             return
 
-        _stored_guild, embeds = entry
-        await self._send_embeds(guild, embeds)
+        _stored_guild, _stored_channel_id, embeds = entry
+        await self._send_embeds(guild, channel_id, embeds)
 
     @staticmethod
     async def _send_embeds(
-        guild: discord.Guild, embeds: list[discord.Embed]
+        guild: discord.Guild, log_channel_id: int, embeds: list[discord.Embed]
     ) -> None:
         """Actually transmit *embeds* to the configured log channel."""
         if not embeds:
-            return
-
-        log_channel_id = await run_blocking(get_log_channel, guild.id)
-        if not log_channel_id:
             return
 
         channel = guild.get_channel(log_channel_id)
@@ -242,7 +298,15 @@ async def _send_log_embed(
 
     Returns ``True`` if the log channel is configured, ``False`` otherwise.
     """
-    log_channel_id = await run_blocking(get_log_channel, guild.id)
+    log_type = {
+        "voice_state": "voiceaction",
+        "member_join": "useraction", "member_leave": "useraction", "member_update": "useraction", "member_ban": "useraction", "member_unban": "useraction",
+        "guild_join": "groupaction", "guild_leave": "groupaction", "guild_update": "groupaction",
+        "message_edit": "messageaction", "message_delete": "messageaction", "bulk_delete": "messageaction",
+        "channel_create": "channelaction", "channel_delete": "channelaction", "channel_update": "channelaction",
+        "role_create": "roleaction", "role_delete": "roleaction", "role_update": "roleaction",
+    }.get(sender_name, "all")
+    log_channel_id = await run_blocking(get_log_channel, guild.id, log_type)
     if not log_channel_id:
         return False
 
@@ -250,7 +314,7 @@ async def _send_log_embed(
     if channel is None or not isinstance(channel, discord.abc.Messageable):
         return False
 
-    await _batcher.enqueue(guild, embed)
+    await _batcher.enqueue(guild, log_channel_id, embed)
     return True
 
 

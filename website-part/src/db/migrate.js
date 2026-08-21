@@ -331,6 +331,20 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: '013',
+    name: 'guild manager and categorized log channels',
+    async up(conn) {
+      await addColumnIfMissing(conn, 'ALTER TABLE discord_guild_metadata ADD COLUMN owner_id BIGINT NULL AFTER guild_name');
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS guild_log_channel_settings (
+          guild_id BIGINT NOT NULL, log_type VARCHAR(30) NOT NULL, channel_id BIGINT NOT NULL,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (guild_id, log_type)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

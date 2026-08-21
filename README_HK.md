@@ -304,6 +304,14 @@ npm test
 | 伺服器擁有者 | `>addguildadmin`, `>removeguildadmin`, `>guildpermissions` |
 | Bot 擁有者 | `>addadmin`, `>removeadmin`, `>getinfo`, `>getserverlist`, `>r6update`, `>update` |
 
+### 伺服器管理頁及分類記錄
+
+先在網站 **Account** 產生代碼並以 `>link <code>` 連結 Discord 身分，之後開啟 **Discord Manager**。只有已連結嘅伺服器擁有者、已設定嘅伺服器管理員或 Bot 管理員先會見到相應伺服器。頁面可以設定 Bot 語言、全域 `all` 記錄頻道同各個分類嘅覆寫頻道。
+
+伺服器管理員亦可以喺 Discord 使用：
+`/setlogchannel <all|useraction|voiceaction|groupaction|messageaction|channelaction|roleaction> <channel>`。
+`all` 係所有事件嘅預設頻道；有設定分類頻道時，該分類會優先使用覆寫頻道。
+
 ### R6 活動流程
 
 1. 登入網站，開啟 Account，按「Generate link code」。
@@ -318,7 +326,7 @@ npm test
 
 公開頁面包括 `login.html`、`terms.html`、`roller.html` 同 `404.html`。登入後可
 使用 `index.html`、`account.html`、`events.html`、`remote.html` 同
-`chromium.html`；管理員另外可以使用 `admin.html`。
+`chromium.html` 同 `guild-manager.html`；管理員另外可以使用 `admin.html`。
 
 網站喺 `/api` 提供登入、帳戶及 Discord 連結、R6 抽選、活動、網站連線、管理員、
 遠端設定及 RDP 檔案 API。已授權嘅 HTTP/WebSocket 網站連線位於

@@ -35,6 +35,7 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   app.use('/api/auth', routers.auth);
   app.use('/api/roller', routers.roller);
   if (routers.events) app.use('/api/events', routers.events);
+  if (routers.guildManager) app.use('/api/guild-manager', routers.guildManager);
   app.use('/api/admin', routers.admin);
   app.use('/api/connections', routers.connections);
   if (routers.pageVisibility) app.use('/api/page-visibility', routers.pageVisibility);
@@ -50,6 +51,9 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   });
   app.get('/account.html', requirePageAuth, requirePageVisibility('account'), (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'account.html'));
+  });
+  app.get('/guild-manager.html', requirePageAuth, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'guild-manager.html'));
   });
   app.get('/events.html', requirePageAuth, requirePageVisibility('events'), (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'events.html'));

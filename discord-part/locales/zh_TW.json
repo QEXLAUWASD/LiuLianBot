@@ -298,6 +298,8 @@
   "member_leave_no_roles": "無",
   "member_leave_count": "剩餘人數",
 
+  "audit_actor": "操作者",
+  "audit_actor_unknown": "未知（Audit Log 無法取得或尚未同步）",
   "member_update_title": "成員資料更新",
   "member_update_user": "使用者",
   "member_update_changes": "變更內容",
@@ -332,6 +334,14 @@
   "guild_update_owner": "擁有者：{old} → {new}",
   "guild_update_afk_channel": "AFK 頻道：{old} → {new}",
   "guild_update_verification": "驗證等級：{old} → {new}",
+  "guild_update_notifications": "預設通知：{old} → {new}",
+  "guild_update_content_filter": "內容過濾：{old} → {new}",
+  "guild_update_locale": "伺服器語系：{old} → {new}",
+  "guild_update_description": "伺服器簡介：`{old}` → `{new}`",
+  "guild_update_widget": "Widget：{old} → {new}",
+  "guild_update_system_channel": "系統頻道：{old} → {new}",
+  "guild_update_rules_channel": "規則頻道：{old} → {new}",
+  "guild_update_public_updates_channel": "公告頻道：{old} → {new}",
 
   "channel_create_title": "頻道已建立",
   "channel_create_name": "名稱",

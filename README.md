@@ -10,6 +10,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - Configurable roller channels with role-based random selection
 - Temporary private voice channels with ownership transfer and automatic cleanup
 - Guild event logging for messages, voice states, members, channels, roles, and guild changes
+- Audit-log actor attribution for administrative changes: channel/role create, update, and delete; member role changes, kicks, bans, and unbans; and server setting edits
 - Per-guild language selection for English and Traditional Chinese (`zh_TW`)
 - Hierarchical permissions for bot owners, bot admins, guild owners, guild admins, and users
 - Prefix commands and automatically registered slash commands backed by the same handlers
@@ -124,6 +125,15 @@ Important bot settings:
 | `guild_admins` | Optional per-guild administrator IDs |
 | `activity` | Displayed Discord activity |
 | `updater` | Repository, branch, and restart behavior for `>update` |
+
+#### Administrative audit logging
+
+Configure a log channel with `>setlogchannel all #channel` (or a category such
+as `channelaction` or `roleaction`). For administrative events, the bot reads
+Discord's Audit Log and adds the responsible user's mention and ID to the
+event embed. The bot requires the **View Audit Log** permission; if Discord
+does not return a matching entry yet, the event is still logged with an
+`Unknown` actor instead of being dropped.
 
 ### 2. Configure the shared database
 
@@ -356,6 +366,14 @@ Discord command picker for command-specific usage.
 | Guild owner | `>addguildadmin`, `>removeguildadmin`, `>guildpermissions` |
 | Bot owner | `>addadmin`, `>removeadmin`, `>getinfo`, `>getserverlist`, `>r6update`, `>update` |
 
+### Server manager and categorized logs
+
+Link the website account from **Account** with `>link <code>`, then open **Discord Manager**. The page only exposes servers where the linked Discord account is the server owner, a configured guild administrator, or a configured bot administrator. It can change the bot language and select a fallback `all` log channel plus per-category overrides.
+
+Guild administrators can set the same log routing in Discord:
+`/setlogchannel <all|useraction|voiceaction|groupaction|messageaction|channelaction|roleaction> <channel>`.
+The `all` channel is the fallback for every event; a category-specific channel overrides it for that category.
+
 ### R6 events
 
 1. Log in to the website, open Account, and generate a Discord link code.
@@ -370,7 +388,7 @@ Discord must be linked before creating an event. The website and bot share the s
 
 The public pages are `login.html`, `terms.html`, `roller.html`, and `404.html`.
 Authenticated users can access `index.html`, `account.html`, `events.html`,
-`remote.html`, and `chromium.html`; administrators additionally have `admin.html`.
+`remote.html`, `chromium.html`, and `guild-manager.html`; administrators additionally have `admin.html`.
 
 The website exposes JSON APIs under `/api` for authentication, account and Discord
 link management, R6 rolls, events, website connections, administration, remote

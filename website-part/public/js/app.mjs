@@ -81,6 +81,7 @@ function setSignedOut(refs, pages = GUEST_PAGE_FALLBACK) {
   refs.dropdown.hidden = true;
   refs.remote.hidden = true;
   refs.chromium.hidden = true;
+  refs.guildManager.hidden = true;
   refs.admin.hidden = true;
   refs.login.hidden = false;
   applyPageVisibility(pages);
@@ -93,6 +94,7 @@ function setAuthError(refs, error) {
   refs.logout.hidden = true;
   refs.dropdown.hidden = true;
   refs.chromium.hidden = true;
+  refs.guildManager.hidden = true;
   refs.admin.hidden = true;
   refs.login.hidden = true;
   applyPageVisibility(GUEST_PAGE_FALLBACK);
@@ -126,6 +128,7 @@ export async function setupNavUser() {
   refs.admin.hidden = user.role !== 'admin';
   refs.remote.hidden = user.remoteAvailable === false;
   refs.chromium.hidden = false;
+  refs.guildManager.hidden = false;
   refs.status.textContent = '';
   refs.status.className = 'nav-auth-status';
   refs.status.removeAttribute('title');

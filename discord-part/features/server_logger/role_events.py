@@ -11,6 +11,8 @@ from .base import (
     _send_log_embed,
     _now,
     logger,
+    get_audit_actor,
+    add_audit_actor_field,
 )
 from commands.language_manager import get_translation
 
@@ -52,6 +54,9 @@ async def on_guild_role_create(role: discord.Role) -> None:
     )
     embed.set_footer(text=f"Role ID: {role.id}  |  Guild ID: {guild_id}")
 
+    actor = await get_audit_actor(guild, discord.AuditLogAction.role_create, role.id)
+    add_audit_actor_field(embed, actor, guild_id)
+
     await _send_log_embed(guild, embed, sender_name="role_create")
 
 
@@ -81,6 +86,9 @@ async def on_guild_role_delete(role: discord.Role) -> None:
         inline=True,
     )
     embed.set_footer(text=f"Role ID: {role.id}  |  Guild ID: {guild_id}")
+
+    actor = await get_audit_actor(guild, discord.AuditLogAction.role_delete, role.id)
+    add_audit_actor_field(embed, actor, guild_id)
 
     await _send_log_embed(guild, embed, sender_name="role_delete")
 
@@ -142,5 +150,8 @@ async def on_guild_role_update(before: discord.Role, after: discord.Role) -> Non
         inline=False,
     )
     embed.set_footer(text=f"Role ID: {after.id}  |  Guild ID: {guild_id}")
+
+    actor = await get_audit_actor(guild, discord.AuditLogAction.role_update, after.id)
+    add_audit_actor_field(embed, actor, guild_id)
 
     await _send_log_embed(guild, embed, sender_name="role_update")

@@ -11,6 +11,8 @@ from .base import (
     _send_log_embed,
     _now,
     logger,
+    get_audit_actor,
+    add_audit_actor_field,
 )
 from commands.language_manager import get_translation
 
@@ -72,6 +74,9 @@ async def on_guild_channel_create(channel: discord.abc.GuildChannel) -> None:
 
     embed.set_footer(text=f"Channel ID: {channel.id}  |  Guild ID: {guild_id}")
 
+    actor = await get_audit_actor(guild, discord.AuditLogAction.channel_create, channel.id)
+    add_audit_actor_field(embed, actor, guild_id)
+
     await _send_log_embed(guild, embed, sender_name="channel_create")
 
 
@@ -109,6 +114,9 @@ async def on_guild_channel_delete(channel: discord.abc.GuildChannel) -> None:
             inline=True,
         )
     embed.set_footer(text=f"Channel ID: {channel.id}  |  Guild ID: {guild_id}")
+
+    actor = await get_audit_actor(guild, discord.AuditLogAction.channel_delete, channel.id)
+    add_audit_actor_field(embed, actor, guild_id)
 
     await _send_log_embed(guild, embed, sender_name="channel_delete")
 
@@ -199,5 +207,8 @@ async def on_guild_channel_update(
         inline=False,
     )
     embed.set_footer(text=f"Channel ID: {after.id}  |  Guild ID: {guild_id}")
+
+    actor = await get_audit_actor(guild, discord.AuditLogAction.channel_update, after.id)
+    add_audit_actor_field(embed, actor, guild_id)
 
     await _send_log_embed(guild, embed, sender_name="channel_update")

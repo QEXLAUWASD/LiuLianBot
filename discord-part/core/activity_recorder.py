@@ -42,6 +42,7 @@ class ActivityRecorder:
                 self.guild_metadata_repository.upsert,
                 guild.id,
                 guild.name,
+                guild.owner_id,
             )
         except Exception:
             self.logger.debug("Unable to record guild metadata", exc_info=True)

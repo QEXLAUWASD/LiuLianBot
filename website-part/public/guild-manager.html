@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1c6ba0">
+  <title>LiuLianBot - Discord Manager</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/css/style.css?v=20260821-1">
+</head>
+<body>
+  <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
+  <main class="main-content guild-manager-page">
+    <div class="page-heading"><h1>Discord Server Manager</h1><p>Manage settings for Discord servers where your linked account is an owner or bot administrator.</p></div>
+    <div id="managerStatus" class="status-msg" role="status" aria-live="polite"></div>
+    <section class="guild-manager-layout" aria-label="Discord server settings">
+      <aside class="guild-list-panel"><h2>Your servers</h2><div id="guildList" class="guild-list">Loading...</div></aside>
+      <section id="guildSettings" class="guild-settings-panel" hidden>
+        <h2 id="guildName"></h2>
+        <form id="guildSettingsForm">
+          <label class="form-group" for="guildLanguage">Bot language<select id="guildLanguage" required></select></label>
+          <h3>Log channels</h3>
+          <div id="logChannelFields" class="log-channel-fields"></div>
+          <button class="btn btn-primary" type="submit">Save settings</button>
+        </form>
+      </section>
+      <section id="managerEmpty" class="guild-settings-panel"><h2>Select a server</h2><p>Your Discord account must be linked from Account settings, then have server-owner or bot-admin access.</p></section>
+    </section>
+  </main>
+  <script type="module" src="/js/app.mjs"></script>
+  <script type="module" src="/js/guild_manager.mjs"></script>
+</body>
+</html>

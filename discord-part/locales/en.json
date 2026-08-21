@@ -299,6 +299,8 @@
   "member_leave_no_roles": "None",
   "member_leave_count": "Remaining Members",
 
+  "audit_actor": "Performed by",
+  "audit_actor_unknown": "Unknown (audit log unavailable or not synchronized yet)",
   "member_update_title": "Member Updated",
   "member_update_user": "User",
   "member_update_changes": "Changes",
@@ -333,6 +335,14 @@
   "guild_update_owner": "Owner: {old} → {new}",
   "guild_update_afk_channel": "AFK Channel: {old} → {new}",
   "guild_update_verification": "Verification Level: {old} → {new}",
+  "guild_update_notifications": "Default notifications: {old} → {new}",
+  "guild_update_content_filter": "Content filter: {old} → {new}",
+  "guild_update_locale": "Server locale: {old} → {new}",
+  "guild_update_description": "Description: `{old}` → `{new}`",
+  "guild_update_widget": "Widget: {old} → {new}",
+  "guild_update_system_channel": "System channel: {old} → {new}",
+  "guild_update_rules_channel": "Rules channel: {old} → {new}",
+  "guild_update_public_updates_channel": "Public updates channel: {old} → {new}",
 
   "channel_create_title": "Channel Created",
   "channel_create_name": "Name",

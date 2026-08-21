@@ -23,6 +23,7 @@ async function startServer() {
   const remoteProfile = require('./routes/remote_profile');
   const connectionProxy = require('./routes/connection_proxy');
   const pageVisibility = require('./routes/page_visibility');
+  const guildManager = require('./routes/guild_manager');
   const sessionStore = new MySqlSessionStore();
   const sessionOptions = buildSessionOptions(process.env, sessionStore);
   const sessionMiddleware = session(sessionOptions);
@@ -41,6 +42,7 @@ async function startServer() {
       remoteProfile,
       connectionProxy,
       pageVisibility,
+      guildManager,
     },
   });
   const listenOptions = buildListenOptions(process.env);

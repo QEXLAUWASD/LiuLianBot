@@ -21,6 +21,7 @@ export function renderNavbar(target, location = globalThis.location) {
   const remote = navLink('/remote.html', 'Remote', pathname, 'remote');
   const chromium = navLink('/chromium.html', 'Chromium', pathname, 'chromium');
   const account = navLink('/account.html', 'Account', pathname, 'account');
+  const guildManager = navLink('/guild-manager.html', 'Discord Manager', pathname);
   const admin = navLink('/admin.html', 'Admin', pathname);
   admin.classList.add('admin-only');
   admin.dataset.adminOnly = '';
@@ -85,7 +86,7 @@ export function renderNavbar(target, location = globalThis.location) {
 
   replaceChildren(target, [
     element('div', { className: 'nav-brand', text: '🎮 LiuLianBot' }),
-    element('div', { className: 'nav-links' }, [home, roller, events, remote, chromium, dropdown, account, admin]),
+    element('div', { className: 'nav-links' }, [home, roller, events, remote, chromium, dropdown, account, guildManager, admin]),
     user,
   ]);
 
@@ -97,6 +98,7 @@ export function renderNavbar(target, location = globalThis.location) {
     dropdownMenu,
     dropdownToggle,
     events,
+    guildManager,
     login,
     logout,
     roller,

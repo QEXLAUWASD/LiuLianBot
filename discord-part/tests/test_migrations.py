@@ -191,8 +191,10 @@ def test_default_migrations_register_tables_in_version_order():
         create_self_role_table,
             create_activity_stats_table,
             create_guild_metadata_table,
-            enable_announcement_dispatch,
-            create_guild_channel_metadata_table,
+        enable_announcement_dispatch,
+        create_guild_channel_metadata_table,
+        create_guild_manager_tables,
+        create_categorized_log_channels,
     )
 
     assert [(migration.version, migration.apply) for migration in DEFAULT_MIGRATIONS] == [
@@ -205,6 +207,8 @@ def test_default_migrations_register_tables_in_version_order():
             ("007", create_guild_metadata_table),
             ("008", enable_announcement_dispatch),
             ("009", create_guild_channel_metadata_table),
+            ("010", create_guild_manager_tables),
+            ("011", create_categorized_log_channels),
         ]
 
 

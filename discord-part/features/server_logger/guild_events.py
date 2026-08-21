@@ -12,6 +12,8 @@ from .base import (
     _set_author,
     _now,
     logger,
+    get_audit_actor,
+    add_audit_actor_field,
 )
 from commands.language_manager import get_translation
 
@@ -122,6 +124,35 @@ async def on_guild_update(before: discord.Guild, after: discord.Guild) -> None:
             .replace("{old}", str(before.verification_level))
             .replace("{new}", str(after.verification_level))
         )
+    for attr, translation_key in (
+        ("default_notifications", "guild_update_notifications"),
+        ("explicit_content_filter", "guild_update_content_filter"),
+        ("preferred_locale", "guild_update_locale"),
+        ("description", "guild_update_description"),
+        ("widget_enabled", "guild_update_widget"),
+    ):
+        old_value = getattr(before, attr, None)
+        new_value = getattr(after, attr, None)
+        if old_value != new_value:
+            changes.append(
+                get_translation(translation_key, guild_id)
+                .replace("{old}", str(old_value))
+                .replace("{new}", str(new_value))
+            )
+
+    for attr, translation_key in (
+        ("system_channel", "guild_update_system_channel"),
+        ("rules_channel", "guild_update_rules_channel"),
+        ("public_updates_channel", "guild_update_public_updates_channel"),
+    ):
+        old_channel = getattr(before, attr, None)
+        new_channel = getattr(after, attr, None)
+        if getattr(old_channel, "id", None) != getattr(new_channel, "id", None):
+            changes.append(
+                get_translation(translation_key, guild_id)
+                .replace("{old}", old_channel.name if old_channel else "None")
+                .replace("{new}", new_channel.name if new_channel else "None")
+            )
 
     if not changes:
         return
@@ -145,5 +176,8 @@ async def on_guild_update(before: discord.Guild, after: discord.Guild) -> None:
         inline=False,
     )
     embed.set_footer(text=f"Guild ID: {after.id}")
+
+    actor = await get_audit_actor(guild, discord.AuditLogAction.guild_update, guild_id)
+    add_audit_actor_field(embed, actor, guild_id)
 
     await _send_log_embed(after, embed, sender_name="guild_update")
