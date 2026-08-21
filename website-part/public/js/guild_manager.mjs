@@ -45,7 +45,7 @@ async function selectGuild(guildId) {
   setStatus();
   try {
     const data = await requestJSON(`/api/guild-manager/guilds/${encodeURIComponent(guildId)}`);
-    renderDetail(data.guild);
+    renderDetail({ ...data.guild, logTypes: data.logTypes || [], languages: data.languages || [] });
     [...list.querySelectorAll('button')].forEach(button => { button.classList.toggle('active', button.dataset.guildId === guildId); });
   } catch (error) { setStatus(error.message, true); }
 }
