@@ -62,6 +62,8 @@ async def get_audit_actor(
     target_id: int,
     *,
     max_age_seconds: int = 15,
+    retries: int = 3,
+    retry_delay_seconds: float = 1.0,
 ) -> Optional[discord.User]:
     """Return the user responsible for a recent audit-log action.
 
@@ -69,19 +71,25 @@ async def get_audit_actor(
     after the gateway event, so callers should use this best-effort lookup.
     """
     actions = action if isinstance(action, tuple) else (action,)
-    cutoff = _now() - timedelta(seconds=max_age_seconds)
-    try:
-        for audit_action in actions:
-            async for entry in guild.audit_logs(limit=8, action=audit_action):
-                if entry.created_at < cutoff:
-                    break
-                target = entry.target
-                if getattr(target, "id", None) == target_id:
-                    return entry.user
-    except (discord.Forbidden, discord.HTTPException):
-        logger.debug("Unable to read audit log for guild %s", guild.id, exc_info=True)
-    except Exception:
-        logger.warning("Unexpected audit-log lookup failure for guild %s", guild.id, exc_info=True)
+    for attempt in range(max(1, retries)):
+        cutoff = _now() - timedelta(seconds=max_age_seconds)
+        try:
+            for audit_action in actions:
+                async for entry in guild.audit_logs(limit=8, action=audit_action):
+                    if entry.created_at < cutoff:
+                        break
+                    target = entry.target
+                    if getattr(target, "id", None) == target_id:
+                        return entry.user
+        except (discord.Forbidden, discord.HTTPException):
+            logger.debug("Unable to read audit log for guild %s", guild.id, exc_info=True)
+            return None
+        except Exception:
+            logger.warning("Unexpected audit-log lookup failure for guild %s", guild.id, exc_info=True)
+            return None
+
+        if attempt + 1 < max(1, retries):
+            await asyncio.sleep(retry_delay_seconds)
     return None
 
 

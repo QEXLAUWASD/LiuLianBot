@@ -101,6 +101,13 @@ Copy-Item discord-part\default_config.json discord-part\config.json
 | `activity` | Discord 顯示嘅活動 |
 | `updater` | `>update` 使用嘅儲存庫、分支及重啟設定 |
 
+#### 管理事件 Audit Log 記錄
+
+使用 `>setlogchannel all #channel`（或者 `channelaction`、`roleaction` 等分類）設定記錄頻道。
+Bot 會讀取 Discord Audit Log，並喺管理事件 embed 顯示操作者嘅 mention 同 ID。Bot
+需要 **View Audit Log** 權限；事件後 Bot 會短暫重試等待 Audit Log 同步。如果仍然無法取得，事件仍然會記錄，操作者會顯示為
+「未知（Audit Log 無法取得或尚未同步）」。請將權限授予 Bot 使用緊嘅身份組，而唔只係執行變更嘅管理員。
+
 ### 2. 設定共用資料庫
 
 Bot 同網站都會讀取 `shared/database/config.json` 入面嘅 MySQL 設定。由已追蹤嘅範本建立檔案，再換掉範例帳密。
