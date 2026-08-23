@@ -31,6 +31,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - SSH terminal and remote profiles, with optional browser-local or AES-256-GCM encrypted server-side connection profiles; WebRDP passwords are session-only
 - Built-in Chromium workspace using Puppeteer and Chrome DevTools Protocol screencast
 - Admin page-visibility controls for guests, all signed-in users, selected website groups, and selected users
+- Discord server managers can configure the temporary private-voice trigger channel from the website dashboard
 
 ## Project structure
 

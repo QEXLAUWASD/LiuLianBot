@@ -21,13 +21,18 @@ async def test_activity_recorder_delegates_guild_channels_to_repository():
             SimpleNamespace(id=10, name="general"),
             SimpleNamespace(id=11, name="updates"),
         ],
+        voice_channels=[SimpleNamespace(id=12, name="Create private room")],
     )
 
     await recorder.record_guild_channels(guild)
 
     repository.replace_for_guild.assert_called_once_with(
         7,
-        [(10, "general"), (11, "updates")],
+        [
+            (10, "general", "text"),
+            (11, "updates", "text"),
+            (12, "Create private room", "voice"),
+        ],
     )
 
 

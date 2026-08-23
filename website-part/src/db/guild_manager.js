@@ -32,10 +32,11 @@ async function listManagedGuilds(discordUserId) {
 async function getManagedGuild(discordUserId, guildId) {
   const safeGuildId = validateString(String(guildId), 'guild id');
   const p = await getPool();
-  const [[guilds], [channels], [logChannels]] = await Promise.all([
+  const [[guilds], [channels], [logChannels], [privateVoiceRows]] = await Promise.all([
     p.execute('SELECT guild_id, guild_name, owner_id FROM discord_guild_metadata WHERE guild_id = ?', [safeGuildId]),
-    p.execute('SELECT channel_id, channel_name FROM discord_guild_channels WHERE guild_id = ? ORDER BY channel_name', [safeGuildId]),
+    p.execute('SELECT channel_id, channel_name, channel_type FROM discord_guild_channels WHERE guild_id = ? ORDER BY channel_type, channel_name', [safeGuildId]),
     p.execute('SELECT log_type, channel_id FROM guild_log_channel_settings WHERE guild_id = ?', [safeGuildId]),
+    p.execute("SELECT channel_id FROM private_voice_channels WHERE guild_id = ? AND config_type = 'trigger' LIMIT 1", [safeGuildId]),
   ]);
   const guild = guilds[0];
   if (!guild || !canManage(loadConfig(), discordUserId, guild)) return null;
@@ -46,7 +47,8 @@ async function getManagedGuild(discordUserId, guildId) {
     guild_id: safeGuildId, guild_name: guild.guild_name,
     language: config.guild_languages?.[safeGuildId] || 'en',
     log_channels: logChannelsByType, fallback_log_channel_id: fallbackRows[0] ? String(fallbackRows[0].channel_id) : null,
-    channels: channels.map(row => ({ channel_id: String(row.channel_id), channel_name: row.channel_name })),
+    private_voice_trigger_channel_id: privateVoiceRows[0] ? String(privateVoiceRows[0].channel_id) : null,
+    channels: channels.map(row => ({ channel_id: String(row.channel_id), channel_name: row.channel_name, channel_type: row.channel_type })),
   };
 }
 
@@ -55,10 +57,13 @@ async function updateManagedGuild(discordUserId, guildId, input) {
   if (!detail) return null;
   const language = input?.language;
   const logChannels = input?.log_channels;
+  const privateVoiceTriggerChannelId = input?.private_voice_trigger_channel_id == null ? null : String(input.private_voice_trigger_channel_id);
   if (!LANGUAGES.includes(language) || !logChannels || typeof logChannels !== 'object') throw new Error('Invalid guild settings');
-  const validChannels = new Set(detail.channels.map(channel => channel.channel_id));
+  const validTextChannels = new Set(detail.channels.filter(channel => channel.channel_type === 'text').map(channel => channel.channel_id));
+  const validVoiceChannels = new Set(detail.channels.filter(channel => channel.channel_type === 'voice').map(channel => channel.channel_id));
   const updates = Object.entries(logChannels);
-  if (updates.some(([type, channelId]) => !LOG_TYPES.includes(type) || !validChannels.has(String(channelId)))) throw new Error('Every log channel must belong to this Discord server');
+  if (updates.some(([type, channelId]) => !LOG_TYPES.includes(type) || !validTextChannels.has(String(channelId)))) throw new Error('Every log channel must be a text channel in this Discord server');
+  if (privateVoiceTriggerChannelId && !validVoiceChannels.has(privateVoiceTriggerChannelId)) throw new Error('The private voice trigger must be a voice channel in this Discord server');
   const p = await getPool();
   const conn = await p.getConnection();
   try {
@@ -69,6 +74,13 @@ async function updateManagedGuild(discordUserId, guildId, input) {
     }
     if (logChannels.all) {
       await conn.execute('INSERT INTO guild_log_channels (guild_id, channel_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE channel_id=VALUES(channel_id)', [detail.guild_id, String(logChannels.all)]);
+    }
+    await conn.execute("DELETE FROM private_voice_channels WHERE guild_id = ? AND config_type = 'trigger'", [detail.guild_id]);
+    if (privateVoiceTriggerChannelId) {
+      await conn.execute(
+        "INSERT INTO private_voice_channels (guild_id, channel_id, owner_id, config_json, config_type, trigger_guild_id) VALUES (?, ?, ?, ?, 'trigger', ?) ON DUPLICATE KEY UPDATE guild_id=VALUES(guild_id), owner_id=VALUES(owner_id), config_json=VALUES(config_json), config_type='trigger', trigger_guild_id=VALUES(trigger_guild_id), updated_at=NOW()",
+        [detail.guild_id, privateVoiceTriggerChannelId, String(discordUserId), JSON.stringify({ type: 'trigger' }), detail.guild_id],
+      );
     }
     await conn.commit();
   } catch (err) { await conn.rollback(); throw err; } finally { conn.release(); }

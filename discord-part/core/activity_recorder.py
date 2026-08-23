@@ -49,7 +49,11 @@ class ActivityRecorder:
 
     async def record_guild_channels(self, guild) -> None:
         try:
-            channels = [(channel.id, channel.name) for channel in guild.text_channels]
+            channels = [
+                (channel.id, channel.name, "text") for channel in guild.text_channels
+            ] + [
+                (channel.id, channel.name, "voice") for channel in guild.voice_channels
+            ]
             await run_blocking(
                 self.guild_channel_repository.replace_for_guild,
                 guild.id,

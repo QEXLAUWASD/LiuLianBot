@@ -172,6 +172,29 @@ def test_update_owner_rolls_back_when_channel_row_is_missing():
     connection.close.assert_called_once_with()
 
 
+def test_get_trigger_returns_integer_channel_and_closes():
+    repository, connection, cursor = make_repo()
+    cursor.fetchone.return_value = ("20",)
+
+    result = repository.get_trigger(10)
+
+    cursor.execute.assert_called_once_with(
+        "SELECT channel_id FROM private_voice_channels "
+        "WHERE guild_id=%s AND config_type='trigger' LIMIT 1",
+        (10,),
+    )
+    assert result == 20
+    connection.close.assert_called_once_with()
+
+
+def test_get_trigger_returns_none_when_disabled():
+    repository, connection, cursor = make_repo()
+    cursor.fetchone.return_value = None
+
+    assert repository.get_trigger(10) is None
+    connection.close.assert_called_once_with()
+
+
 def test_load_triggers_returns_integer_mapping_and_closes():
     repository, connection, cursor = make_repo()
     cursor.fetchall.return_value = [("10", "20"), (30, 40)]

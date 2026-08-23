@@ -14,11 +14,12 @@ function setStatus(message = '', error = false) {
 }
 
 function channelSelect(logType, selected) {
+  const textChannels = currentDetail.channels.filter(channel => channel.channel_type === 'text');
   return element('label', { className: 'form-group log-channel-field' }, [
     element('span', { text: logType }),
     element('select', { dataset: { logType } }, [
       element('option', { text: 'Use all channel', attributes: { value: '' } }),
-      ...currentDetail.channels.map(channel => element('option', {
+      ...textChannels.map(channel => element('option', {
         text: `#${channel.channel_name}`,
         attributes: { value: channel.channel_id, ...(String(selected) === channel.channel_id ? { selected: '' } : {}) },
       })),
@@ -33,6 +34,13 @@ function renderDetail(detail) {
   replaceChildren(language, detail.languages.map(code => element('option', {
     text: code, attributes: { value: code, ...(code === detail.language ? { selected: '' } : {}) },
   })));
+  replaceChildren(document.getElementById('privateVoiceTriggerChannel'), [
+    element('option', { text: 'Disabled', attributes: { value: '' } }),
+    ...detail.channels.filter(channel => channel.channel_type === 'voice').map(channel => element('option', {
+      text: channel.channel_name,
+      attributes: { value: channel.channel_id, ...(String(detail.private_voice_trigger_channel_id) === channel.channel_id ? { selected: '' } : {}) },
+    })),
+  ]);
   replaceChildren(document.getElementById('logChannelFields'), detail.logTypes.map(type => channelSelect(
     type, detail.log_channels[type] || (type === 'all' ? detail.fallback_log_channel_id : null),
   )));
@@ -83,7 +91,11 @@ document.getElementById('guildSettingsForm').addEventListener('submit', async ev
   try {
     const data = await requestJSON(`/api/guild-manager/guilds/${encodeURIComponent(selectedGuildId)}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ language: document.getElementById('guildLanguage').value, log_channels: logChannels }),
+      body: JSON.stringify({
+        language: document.getElementById('guildLanguage').value,
+        log_channels: logChannels,
+        private_voice_trigger_channel_id: document.getElementById('privateVoiceTriggerChannel').value || null,
+      }),
     });
     renderDetail(data.guild);
     setStatus('Settings saved.');

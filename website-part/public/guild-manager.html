@@ -19,6 +19,9 @@
         <h2 id="guildName"></h2>
         <form id="guildSettingsForm">
           <label class="form-group" for="guildLanguage">Bot language<select id="guildLanguage" required></select></label>
+          <h3>Private voice channels</h3>
+          <label class="form-group" for="privateVoiceTriggerChannel">Trigger voice channel<select id="privateVoiceTriggerChannel"><option value="">Disabled</option></select></label>
+          <p class="table-subtext">When a member joins this channel, the bot creates a temporary private voice channel in the same category.</p>
           <h3>Log channels</h3>
           <div id="logChannelFields" class="log-channel-fields"></div>
           <button class="btn btn-primary" type="submit">Save settings</button>

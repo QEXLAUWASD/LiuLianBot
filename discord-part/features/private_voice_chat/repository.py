@@ -159,6 +159,20 @@ class PrivateVoiceRepository:
         finally:
             conn.close()
 
+    def get_trigger(self, guild_id) -> int | None:
+        conn = self._connection_factory()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT channel_id FROM private_voice_channels "
+                    "WHERE guild_id=%s AND config_type='trigger' LIMIT 1",
+                    (guild_id,),
+                )
+                row = cursor.fetchone()
+                return int(row[0]) if row else None
+        finally:
+            conn.close()
+
     def load_triggers(self) -> dict[int, int]:
         conn = self._connection_factory()
         try:

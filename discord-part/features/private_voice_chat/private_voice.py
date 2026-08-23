@@ -124,6 +124,23 @@ class PrivateVoiceManager:
 
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         """Handle voice state updates"""
+        # Refresh the trigger so website dashboard changes take effect without a bot restart.
+        if after.channel:
+            try:
+                trigger_channel_id = await run_blocking(
+                    self.repository.get_trigger,
+                    member.guild.id,
+                )
+                if trigger_channel_id is None:
+                    self.trigger_channels.pop(member.guild.id, None)
+                else:
+                    self.trigger_channels[member.guild.id] = trigger_channel_id
+            except Exception:
+                self.bot.logger.debug(
+                    "Unable to refresh private voice trigger",
+                    exc_info=True,
+                )
+
         # User joined a voice channel
         if after.channel and after.channel.id == self.trigger_channels.get(member.guild.id):
             await self.create_private_channel(member, after.channel)

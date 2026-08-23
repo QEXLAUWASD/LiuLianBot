@@ -173,7 +173,7 @@ def create_guild_channel_metadata_table(conn) -> None:
         cursor.execute(
             "CREATE TABLE IF NOT EXISTS discord_guild_channels ("
             "guild_id BIGINT NOT NULL, channel_id BIGINT NOT NULL, "
-            "channel_name VARCHAR(100) NOT NULL, "
+            "channel_name VARCHAR(100) NOT NULL, channel_type VARCHAR(16) NOT NULL DEFAULT 'text', "
             "PRIMARY KEY (guild_id, channel_id), INDEX idx_guild_channel_name (guild_id, channel_name))"
         )
 
@@ -197,6 +197,18 @@ def create_categorized_log_channels(conn) -> None:
         )
 
 
+def add_guild_channel_type(conn) -> None:
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "ALTER TABLE discord_guild_channels ADD COLUMN "
+                "channel_type VARCHAR(16) NOT NULL DEFAULT 'text'"
+            )
+    except Exception as exc:
+        if getattr(exc, "args", [None])[0] != 1060:
+            raise
+
+
 DEFAULT_MIGRATIONS = (
     Migration("001", "create guild_log_channels table", create_log_channel_table),
     Migration("002", "create guild_roller_channels table", create_roller_channel_table),
@@ -213,6 +225,7 @@ DEFAULT_MIGRATIONS = (
     Migration("009", "create Discord guild channel metadata table", create_guild_channel_metadata_table),
     Migration("010", "add Discord guild owner metadata", create_guild_manager_tables),
     Migration("011", "create categorized log channel settings", create_categorized_log_channels),
+    Migration("012", "add Discord guild channel type metadata", add_guild_channel_type),
 )
 
 
