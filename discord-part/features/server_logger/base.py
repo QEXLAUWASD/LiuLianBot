@@ -61,7 +61,8 @@ async def get_audit_actor(
     action: (
         discord.AuditLogAction
         | str
-        | tuple[discord.AuditLogAction | str, ...]
+        | int
+        | tuple[discord.AuditLogAction | str | int, ...]
     ),
     target_id: int,
     *,
@@ -85,6 +86,16 @@ async def get_audit_actor(
                 resolved_actions.append(discord.AuditLogAction[audit_action])
                 continue
             except KeyError:
+                try:
+                    audit_action = int(audit_action)
+                except ValueError:
+                    pass
+        audit_action_value = getattr(audit_action, "value", audit_action)
+        if isinstance(audit_action_value, int) and not isinstance(audit_action_value, bool):
+            try:
+                resolved_actions.append(discord.AuditLogAction(audit_action_value))
+                continue
+            except ValueError:
                 pass
         logger.warning(
             "Ignoring invalid audit-log action %r for guild %s",

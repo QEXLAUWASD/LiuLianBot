@@ -72,3 +72,52 @@ def test_audit_actor_lookup_rejects_unknown_action_name():
     actor = asyncio.run(get_audit_actor(FakeGuild(), "not_an_audit_action", 456))
 
     assert actor is None
+
+
+def test_audit_actor_lookup_accepts_numeric_action_value():
+    class FakeGuild:
+        id = 123
+
+        async def audit_logs(self, *, limit, action):
+            assert action.value == 12
+            yield SimpleNamespace(
+                created_at=_now(), target=SimpleNamespace(id=456), user="actor"
+            )
+
+    actor = asyncio.run(get_audit_actor(FakeGuild(), 12, 456, retries=1))
+
+    assert actor == "actor"
+
+def test_audit_actor_lookup_accepts_numeric_action_string():
+    class FakeGuild:
+        id = 123
+
+        async def audit_logs(self, *, limit, action):
+            assert action.value == 10
+            yield SimpleNamespace(
+                created_at=_now(), target=SimpleNamespace(id=456), user="actor"
+            )
+
+    actor = asyncio.run(get_audit_actor(FakeGuild(), "10", 456, retries=1))
+
+    assert actor == "actor"
+
+
+def test_audit_actor_lookup_accepts_compatible_enum_value():
+    class CompatibleAuditAction:
+        value = 11
+
+    class FakeGuild:
+        id = 123
+
+        async def audit_logs(self, *, limit, action):
+            assert action.value == 11
+            yield SimpleNamespace(
+                created_at=_now(), target=SimpleNamespace(id=456), user="actor"
+            )
+
+    actor = asyncio.run(
+        get_audit_actor(FakeGuild(), CompatibleAuditAction(), 456, retries=1)
+    )
+
+    assert actor == "actor"
