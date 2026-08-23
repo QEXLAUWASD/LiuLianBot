@@ -175,7 +175,8 @@ The bot creates the configured database when its MySQL account has permission. T
 On a fresh database, start the website once before starting the bot: the bot's
 announcement migration updates `website_announcements`, which is created by the
 website migration. Existing databases with both migration ledgers can start in either
-order.
+order. The website migration also maintains the guild-channel type column used
+by the dashboard's private-voice trigger selector.
 
 ### 3. Install and run the Discord bot
 

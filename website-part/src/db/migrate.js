@@ -345,6 +345,16 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: '014',
+    name: 'Discord guild channel types for private voice settings',
+    async up(conn) {
+      await addColumnIfMissing(
+        conn,
+        "ALTER TABLE discord_guild_channels ADD COLUMN channel_type VARCHAR(16) NOT NULL DEFAULT 'text' AFTER channel_name"
+      );
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {
