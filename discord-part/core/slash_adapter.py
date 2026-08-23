@@ -11,7 +11,6 @@ import os
 from typing import Callable
 
 import discord
-from discord import app_commands
 
 
 def _create_interaction_channel(interaction: discord.Interaction):

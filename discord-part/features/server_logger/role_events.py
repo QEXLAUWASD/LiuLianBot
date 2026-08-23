@@ -3,14 +3,11 @@ Role-related log events (create, delete, update).
 """
 
 import discord
-from datetime import datetime
-from typing import Optional
 
 from .base import (
     _safe_field_value,
     _send_log_embed,
     _now,
-    logger,
     get_audit_actor,
     add_audit_actor_field,
 )

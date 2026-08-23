@@ -3,18 +3,15 @@ Message-related log events (edit, delete, bulk-delete).
 """
 
 import discord
-from datetime import datetime
 from typing import Optional
 
 from .base import (
-    get_log_channel,
     _safe_field_value,
     _channel_mention,
     _send_log_embed,
     _set_author,
     _set_footer_id,
     _now,
-    logger,
 )
 from commands.language_manager import get_translation
 

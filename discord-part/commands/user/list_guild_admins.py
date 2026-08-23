@@ -31,7 +31,7 @@ async def listguildadmins(message, bot):
             try:
                 user = await bot.fetch_user(int(user_id))
                 admin_list.append(f"• {user.mention} - **{user}**\n  └ ID: `{user_id}`")
-            except:
+            except discord.DiscordException:
                 admin_list.append(f"• 使用者 ID: `{user_id}` (找不到使用者)")
         
         embed.description = f"**伺服器管理員總數:** {len(guild_admins)}\n\n" + "\n".join(admin_list)

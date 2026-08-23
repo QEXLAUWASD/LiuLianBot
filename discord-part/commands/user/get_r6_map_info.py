@@ -1,4 +1,3 @@
-import re
 
 from features.r6_roll.randommap import load_maps
 

@@ -37,7 +37,7 @@ async def guildpermissions(message, bot):
             try:
                 user = await bot.fetch_user(int(user_id))
                 admin_list.append(f"• {user.mention} - **{user}**")
-            except:
+            except discord.DiscordException:
                 admin_list.append(f"• ID: `{user_id}` (User not found)")
         
         embed.add_field(

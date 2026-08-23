@@ -1,5 +1,4 @@
 from commands.language_manager import set_guild_language, list_locale_codes, get_translation
-from discord import Embed
 
 async def setlang(message, bot):
     # permission: guild_admin or guild_owner (checked by handler before calling)

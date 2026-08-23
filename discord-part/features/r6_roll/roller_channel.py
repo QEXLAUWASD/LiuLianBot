@@ -1,5 +1,3 @@
-import json
-import os
 from typing import Optional
 
 from utils.database import get_db_conn as _get_db_conn

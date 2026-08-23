@@ -1,5 +1,7 @@
 # shared/r6/operator_scraper.py
-import json, os, requests
+import json
+import os
+import requests
 from bs4 import BeautifulSoup
 
 URL = "https://www.ubisoft.com/en-gb/game/rainbow-six/siege/game-info/operators"

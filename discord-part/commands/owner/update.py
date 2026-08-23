@@ -18,7 +18,7 @@ from updater.updater import (
     _perform_git_update_unlocked,
     begin_update,
     format_update_success,
-    get_current_branch,
+    get_current_branch,  # noqa: F401 - retained for command-module monkeypatch compatibility
     get_latest_commit,
     restart_bot,
 )
@@ -181,7 +181,6 @@ async def update(message, bot):
         return "❌ 更新設定不完整。請確認 config.json 中的 `github_repo` 已正確設定。"
 
     # 顯示更新前狀態
-    old_branch = get_current_branch()
     old_commit = get_latest_commit()
 
     embed = discord.Embed(

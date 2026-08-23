@@ -3,13 +3,10 @@ Guild-related log events (bot join, bot leave, guild update).
 """
 
 import discord
-from datetime import datetime
-from typing import Optional
 
 from .base import (
     _safe_field_value,
     _send_log_embed,
-    _set_author,
     _now,
     logger,
     get_audit_actor,
@@ -105,8 +102,6 @@ async def on_guild_update(before: discord.Guild, after: discord.Guild) -> None:
             .replace("{new}", after.name)
         )
     if before.owner_id != after.owner_id:
-        old_owner = before.owner
-        new_owner = after.owner
         changes.append(
             get_translation("guild_update_owner", guild_id)
             .replace("{old}", f"<@{before.owner_id}>")

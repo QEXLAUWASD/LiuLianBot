@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import ast
 import json
-import os
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Iterable, Optional

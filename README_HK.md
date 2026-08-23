@@ -37,7 +37,7 @@ LiuLianBot/
 |-- discord-part/                 # Python Discord 機械人
 |   |-- main.py                   # Bot 主入口
 |   |-- default_config.json       # Bot 設定範本
-|   |-- commands/                 # 前綴指令處理器
+|   |-- commands/                 # 前綴指令處理器及共用使用者解析
 |   |-- core/                     # Bot 生命週期、設定與 Slash adapter
 |   |-- features/                 # Discord 事件功能
 |   |-- locales/                  # 英文及繁體中文字串
@@ -58,6 +58,13 @@ LiuLianBot/
 |-- PRIVACY_POLICY.md
 `-- TERMS_OF_SERVICE.md
 ```
+
+## 架構及重構界線
+
+Discord 機械人同網站維持獨立 runtime，只共用 MySQL schema 同資料契約。
+`discord-part/commands/user_target.py` 集中處理管理指令嘅 mention／使用者 ID
+解析：無效 ID 交返畀指令做本地化驗證，而預期嘅 Discord 查詢失敗會退回數字
+ID，唔會吞掉取消操作或者無關例外。
 
 ## 環境要求
 

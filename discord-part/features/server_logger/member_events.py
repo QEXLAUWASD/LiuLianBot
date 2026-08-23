@@ -3,7 +3,6 @@ Member-related log events (join, leave, update, ban, unban).
 """
 
 import discord
-from typing import Optional
 
 from .base import (
     _safe_field_value,
@@ -11,7 +10,6 @@ from .base import (
     _set_author,
     _set_footer_id,
     _now,
-    logger,
     get_audit_actor,
     add_audit_actor_field,
 )

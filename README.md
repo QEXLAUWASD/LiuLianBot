@@ -40,7 +40,7 @@ LiuLianBot/
 |-- discord-part/                 # Python Discord bot
 |   |-- main.py                   # Bot entry point
 |   |-- default_config.json       # Bot configuration template
-|   |-- commands/                 # Prefix-command handlers
+|   |-- commands/                 # Prefix-command handlers and shared user-target parsing
 |   |-- core/                     # Bot lifecycle, config, and slash adapter
 |   |-- features/                 # Discord event features
 |   |-- locales/                  # English and Traditional Chinese strings
@@ -77,6 +77,10 @@ sharing only the MySQL schema and data contract:
 - Discord configuration reads return snapshots; persistent changes go through
   the atomic `update_config` API so handlers cannot silently mutate runtime
   state without writing the configuration file.
+- `discord-part/commands/user_target.py` centralizes mention/ID parsing for
+  administrative commands. Invalid IDs remain a command-level validation error,
+  while expected Discord lookup failures fall back to the numeric ID instead of
+  swallowing cancellation or unrelated exceptions.
 
 The ongoing refactoring direction is compatibility-first: preserve Discord
 commands and website URLs/API fields, keep database access behind repositories,
@@ -439,7 +443,8 @@ The Node.js tests inject database fakes where needed, so they do not require a
 live MySQL server or start the production server.
 
 Run the Ruff command from the repository root so both the Discord bot and shared
-Python modules are checked together:
+Python modules are checked together. The configured baseline includes import,
+statement, syntax, and general pyflakes checks:
 
 ```bash
 python -m ruff check discord-part shared

@@ -3,16 +3,13 @@ Voice-channel event logging (join / leave / move).
 """
 
 import discord
-from datetime import datetime
 from typing import Optional
 
 from .base import (
-    get_log_channel,
     _send_log_embed,
     _set_author,
     _set_footer_id,
     _now,
-    logger,
 )
 from commands.language_manager import get_translation
 

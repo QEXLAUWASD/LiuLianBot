@@ -1,4 +1,3 @@
-import discord
 from features.private_voice_chat.private_voice import get_manager
 from commands.language_manager import get_translation
 

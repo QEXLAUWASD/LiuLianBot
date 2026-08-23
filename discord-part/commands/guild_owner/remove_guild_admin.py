@@ -1,5 +1,5 @@
-import discord
 from commands.language_manager import get_translation
+from commands.user_target import resolve_user_target
 from core.config import get_config, update_config
 from utils.error_reporting import report_exception
 
@@ -21,28 +21,15 @@ async def removeguildadmin(message, bot):
         return get_translation("no_permission_admin", message.guild.id)
     
     try:
-        # Parse user from message
-        parts = message.content.split()
-        if len(parts) < 2:
+        try:
+            target = await resolve_user_target(message, bot)
+        except ValueError:
+            return get_translation("invalid_user_id", message.guild.id)
+        if target is None:
             return get_translation("usage_removeguildadmin", message.guild.id)
-        
-        # Try to get user ID from mention or direct ID
-        user_id = None
-        if message.mentions:
-            user_id = message.mentions[0].id
-            user_name = str(message.mentions[0])
-        else:
-            # Try to parse as user ID
-            try:
-                user_id = int(parts[1].strip('<@!>'))
-                try:
-                    user = await bot.fetch_user(user_id)
-                    user_name = str(user)
-                except:
-                    user_name = f"User ID {user_id}"
-            except ValueError:
-                return get_translation("invalid_user_id", message.guild.id)
-        
+
+        user_id = target.id
+        user_name = target.name
         config = get_config()
         guild_id_str = str(message.guild.id)
         
