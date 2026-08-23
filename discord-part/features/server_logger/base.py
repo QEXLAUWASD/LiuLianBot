@@ -65,8 +65,8 @@ async def get_audit_actor(
     ),
     target_id: int,
     *,
-    max_age_seconds: int = 15,
-    retries: int = 3,
+    max_age_seconds: int = 30,
+    retries: int = 6,
     retry_delay_seconds: float = 1.0,
 ) -> Optional[discord.User]:
     """Return the user responsible for a recent audit-log action.
@@ -97,7 +97,7 @@ async def get_audit_actor(
         cutoff = _now() - timedelta(seconds=max_age_seconds)
         try:
             for audit_action in resolved_actions:
-                async for entry in guild.audit_logs(limit=8, action=audit_action):
+                async for entry in guild.audit_logs(limit=50, action=audit_action):
                     if entry.created_at < cutoff:
                         break
                     target = entry.target

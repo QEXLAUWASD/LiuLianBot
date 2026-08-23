@@ -43,7 +43,7 @@ def test_audit_actor_lookup_retries_until_audit_entry_is_available(monkeypatch):
         async def audit_logs(self, *, limit, action):
             self.calls += 1
             assert action.value == 11
-            if self.calls < 2:
+            if self.calls < 6:
                 return
             yield SimpleNamespace(
                 created_at=_now(), target=SimpleNamespace(id=456), user="actor"
@@ -55,10 +55,10 @@ def test_audit_actor_lookup_retries_until_audit_entry_is_available(monkeypatch):
     monkeypatch.setattr("features.server_logger.base.asyncio.sleep", no_wait)
     guild = FakeGuild()
 
-    actor = asyncio.run(get_audit_actor(guild, "channel_update", 456, retries=2))
+    actor = asyncio.run(get_audit_actor(guild, "channel_update", 456))
 
     assert actor == "actor"
-    assert guild.calls == 2
+    assert guild.calls == 6
 
 
 def test_audit_actor_lookup_rejects_unknown_action_name():

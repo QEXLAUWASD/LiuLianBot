@@ -132,7 +132,7 @@ Configure a log channel with `>setlogchannel all #channel` (or a category such
 as `channelaction` or `roleaction`). For administrative events, the bot reads
 Discord's Audit Log and adds the responsible user's mention and ID to the
 event embed. The bot requires the **View Audit Log** permission; if Discord
-does not return a matching entry yet, the bot retries briefly before logging
+does not return a matching entry yet, the bot retries for about five seconds before logging
 the event with an `Unknown` actor instead of dropping it. Grant this permission
 to the bot's role, not only to the administrator performing the change.
 If the audit lookup raises an unexpected error, the bot console log includes the
