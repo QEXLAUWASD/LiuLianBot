@@ -137,6 +137,9 @@ the event with an `Unknown` actor instead of dropping it. Grant this permission
 to the bot's role, not only to the administrator performing the change.
 If the audit lookup raises an unexpected error, the bot console log includes the
 guild ID and Python exception details for diagnosis.
+The lookup accepts both Discord action enums and their documented names (for
+example, `channel_update`) so valid internal callers cannot pass an unsupported
+string to Discord's API.
 
 ### 2. Configure the shared database
 

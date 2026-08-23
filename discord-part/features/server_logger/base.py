@@ -58,7 +58,11 @@ logger = log_helper.setup_logger(__name__, level=log_helper.logging.INFO)
 
 async def get_audit_actor(
     guild: discord.Guild,
-    action: discord.AuditLogAction | tuple[discord.AuditLogAction, ...],
+    action: (
+        discord.AuditLogAction
+        | str
+        | tuple[discord.AuditLogAction | str, ...]
+    ),
     target_id: int,
     *,
     max_age_seconds: int = 15,
@@ -71,10 +75,28 @@ async def get_audit_actor(
     after the gateway event, so callers should use this best-effort lookup.
     """
     actions = action if isinstance(action, tuple) else (action,)
+    resolved_actions: list[discord.AuditLogAction] = []
+    for audit_action in actions:
+        if isinstance(audit_action, discord.AuditLogAction):
+            resolved_actions.append(audit_action)
+            continue
+        if isinstance(audit_action, str):
+            try:
+                resolved_actions.append(discord.AuditLogAction[audit_action])
+                continue
+            except KeyError:
+                pass
+        logger.warning(
+            "Ignoring invalid audit-log action %r for guild %s",
+            audit_action,
+            guild.id,
+        )
+        return None
+
     for attempt in range(max(1, retries)):
         cutoff = _now() - timedelta(seconds=max_age_seconds)
         try:
-            for audit_action in actions:
+            for audit_action in resolved_actions:
                 async for entry in guild.audit_logs(limit=8, action=audit_action):
                     if entry.created_at < cutoff:
                         break

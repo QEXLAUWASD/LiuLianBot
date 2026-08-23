@@ -42,6 +42,7 @@ def test_audit_actor_lookup_retries_until_audit_entry_is_available(monkeypatch):
 
         async def audit_logs(self, *, limit, action):
             self.calls += 1
+            assert action.value == 11
             if self.calls < 2:
                 return
             yield SimpleNamespace(
@@ -58,3 +59,16 @@ def test_audit_actor_lookup_retries_until_audit_entry_is_available(monkeypatch):
 
     assert actor == "actor"
     assert guild.calls == 2
+
+
+def test_audit_actor_lookup_rejects_unknown_action_name():
+    class FakeGuild:
+        id = 123
+
+        async def audit_logs(self, *, limit, action):
+            raise AssertionError("Invalid actions must not reach Discord.")
+            yield
+
+    actor = asyncio.run(get_audit_actor(FakeGuild(), "not_an_audit_action", 456))
+
+    assert actor is None
