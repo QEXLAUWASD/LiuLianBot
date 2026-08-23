@@ -135,6 +135,8 @@ event embed. The bot requires the **View Audit Log** permission; if Discord
 does not return a matching entry yet, the bot retries briefly before logging
 the event with an `Unknown` actor instead of dropping it. Grant this permission
 to the bot's role, not only to the administrator performing the change.
+If the audit lookup raises an unexpected error, the bot console log includes the
+guild ID and Python exception details for diagnosis.
 
 ### 2. Configure the shared database
 
