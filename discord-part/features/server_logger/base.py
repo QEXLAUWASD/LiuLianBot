@@ -12,6 +12,7 @@ import asyncio
 import discord
 from datetime import datetime, timedelta
 from typing import Optional
+from types import SimpleNamespace
 
 from commands.language_manager import get_translation
 import utils.logger as log_helper
@@ -92,9 +93,17 @@ async def get_audit_actor(
         if isinstance(audit_action_value, int) and not isinstance(audit_action_value, bool):
             try:
                 resolved_actions.append(discord.AuditLogAction(audit_action_value))
-                continue
             except ValueError:
-                pass
+                # Older discord.py releases may not know newer Discord actions,
+                # but audit_logs only requires an object exposing ``value``.
+                if audit_action_value >= 0:
+                    resolved_actions.append(SimpleNamespace(value=audit_action_value))
+                else:
+                    pass
+            else:
+                continue
+            if resolved_actions and resolved_actions[-1].value == audit_action_value:
+                continue
         logger.warning(
             "Ignoring invalid audit-log action %r for guild %s",
             audit_action,

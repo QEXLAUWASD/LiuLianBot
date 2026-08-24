@@ -144,7 +144,9 @@ If the audit lookup raises an unexpected error, the bot console log includes the
 guild ID and Python exception details for diagnosis.
 The lookup accepts Discord action enums, documented names (for example,
 `channel_update`), numeric values or numeric strings such as `10`, `11`, and `12`,
-and compatible enum objects that expose an integer `value`.
+and compatible enum objects that expose an integer `value`. Any non-negative
+numeric action value is passed through, even when the deployed discord.py version
+does not define that newer action yet.
 
 ### 2. Configure the shared database
 

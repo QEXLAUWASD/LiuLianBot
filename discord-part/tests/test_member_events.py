@@ -121,3 +121,31 @@ def test_audit_actor_lookup_accepts_compatible_enum_value():
     )
 
     assert actor == "actor"
+
+def test_audit_actor_lookup_accepts_unknown_numeric_action_value():
+    class FakeGuild:
+        id = 123
+
+        async def audit_logs(self, *, limit, action):
+            assert action.value == 32
+            yield SimpleNamespace(
+                created_at=_now(), target=SimpleNamespace(id=456), user="actor"
+            )
+
+    actor = asyncio.run(get_audit_actor(FakeGuild(), 32, 456, retries=1))
+
+    assert actor == "actor"
+
+def test_audit_actor_lookup_accepts_any_nonnegative_numeric_action_value():
+    class FakeGuild:
+        id = 123
+
+        async def audit_logs(self, *, limit, action):
+            assert action.value == 999999
+            yield SimpleNamespace(
+                created_at=_now(), target=SimpleNamespace(id=456), user="actor"
+            )
+
+    actor = asyncio.run(get_audit_actor(FakeGuild(), 999999, 456, retries=1))
+
+    assert actor == "actor"

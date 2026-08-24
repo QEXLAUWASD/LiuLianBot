@@ -115,7 +115,7 @@ Bot 會讀取 Discord Audit Log，並喺管理事件 embed 顯示操作者嘅 me
 需要 **View Audit Log** 權限；事件後 Bot 會重試約五秒，等待 Audit Log 同步。如果仍然無法取得，事件仍然會記錄，操作者會顯示為
 「未知（Audit Log 無法取得或尚未同步）」。請將權限授予 Bot 使用緊嘅身份組，而唔只係執行變更嘅管理員。
 如果 Audit Log 查詢出現非預期錯誤，Bot 主控台日誌會顯示伺服器 ID 同 Python 例外詳情，方便診斷。
-查詢同時接受 Discord 動作列舉、名稱（例如 `channel_update`）、數值或數字字串（例如 `10`、`11`、`12`），以及帶有整數 `value` 嘅相容列舉物件，避免相容性格式直接傳畀 Discord API。
+查詢同時接受 Discord 動作列舉、名稱（例如 `channel_update`）、數值或數字字串（例如 `10`、`11`、`12`），以及帶有整數 `value` 嘅相容列舉物件。任何非負數值動作都會直接傳畀 Discord API，即使部署環境嘅 discord.py 尚未定義較新動作值。
 
 ### 2. 設定共用資料庫
 
