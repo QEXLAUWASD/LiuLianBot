@@ -125,7 +125,10 @@ async def get_audit_actor(
                     if entry.created_at < cutoff:
                         break
                     target = entry.target
-                    if getattr(target, "id", None) == target_id:
+                    target_ids = {getattr(target, "id", None)}
+                    extra = getattr(entry, "extra", None)
+                    target_ids.add(getattr(getattr(extra, "user", None), "id", None))
+                    if target_id in target_ids:
                         return entry.user
         except (discord.Forbidden, discord.HTTPException):
             logger.debug("Unable to read audit log for guild %s", guild.id, exc_info=True)
@@ -133,6 +136,30 @@ async def get_audit_actor(
         except Exception:
             logger.warning("Unexpected audit-log lookup failure for guild %s", guild.id, exc_info=True)
             return None
+
+        # Some Discord.py versions do not return member_move entries when an
+        # action filter is supplied. Scan recent entries without a filter as a
+        # compatibility fallback for forced voice-channel moves.
+        if any(getattr(candidate, "value", candidate) == 26 for candidate in resolved_actions):
+            try:
+                async for entry in guild.audit_logs(limit=100):
+                    if entry.created_at < cutoff:
+                        break
+                    entry_action = getattr(getattr(entry, "action", None), "value", None)
+                    if entry_action != 26:
+                        continue
+                    target = entry.target
+                    target_ids = {getattr(target, "id", None)}
+                    extra = getattr(entry, "extra", None)
+                    target_ids.add(getattr(getattr(extra, "user", None), "id", None))
+                    if target_id in target_ids:
+                        return entry.user
+            except (discord.Forbidden, discord.HTTPException):
+                logger.debug("Unable to scan audit log for guild %s", guild.id, exc_info=True)
+                return None
+            except Exception:
+                logger.warning("Unexpected audit-log scan failure for guild %s", guild.id, exc_info=True)
+                return None
 
         if attempt + 1 < max(1, retries):
             await asyncio.sleep(retry_delay_seconds)

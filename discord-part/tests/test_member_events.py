@@ -211,3 +211,23 @@ def test_audit_actor_lookup_accepts_batch_of_numeric_actions():
 
     assert actor == "actor"
     assert guild.seen == list(range(1, 31))
+
+def test_member_move_falls_back_to_unfiltered_audit_scan():
+    class FakeGuild:
+        id = 123
+
+        async def audit_logs(self, *, limit, action=None):
+            if action is not None:
+                return
+            yield SimpleNamespace(
+                created_at=_now(),
+                action=SimpleNamespace(value=26),
+                target=SimpleNamespace(id=456),
+                user="actor",
+            )
+
+    actor = asyncio.run(
+        get_audit_actor(FakeGuild(), discord.AuditLogAction.member_move, 456, retries=1)
+    )
+
+    assert actor == "actor"
