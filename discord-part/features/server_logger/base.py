@@ -75,41 +75,47 @@ async def get_audit_actor(
     after the gateway event, so callers should use this best-effort lookup.
     """
     actions = action if isinstance(action, tuple) else (action,)
-    resolved_actions: list[discord.AuditLogAction] = []
-    for audit_action in actions:
-        if isinstance(audit_action, discord.AuditLogAction):
-            resolved_actions.append(audit_action)
-            continue
+    resolved_actions: list[object] = []
+    for original_action in actions:
+        audit_action = original_action
         if isinstance(audit_action, str):
             try:
-                resolved_actions.append(discord.AuditLogAction[audit_action])
-                continue
+                audit_action = discord.AuditLogAction[audit_action]
             except KeyError:
                 try:
                     audit_action = int(audit_action)
                 except ValueError:
-                    pass
+                    audit_action = None
+
         audit_action_value = getattr(audit_action, "value", audit_action)
-        if isinstance(audit_action_value, int) and not isinstance(audit_action_value, bool):
+        if isinstance(audit_action_value, bool):
+            audit_action_value = None
+        elif isinstance(audit_action_value, int):
+            pass
+        else:
             try:
-                resolved_actions.append(discord.AuditLogAction(audit_action_value))
-            except ValueError:
-                # Older discord.py releases may not know newer Discord actions,
-                # but audit_logs only requires an object exposing ``value``.
-                if audit_action_value >= 0:
-                    resolved_actions.append(SimpleNamespace(value=audit_action_value))
-                else:
-                    pass
-            else:
-                continue
-            if resolved_actions and resolved_actions[-1].value == audit_action_value:
-                continue
-        logger.warning(
-            "Ignoring invalid audit-log action %r for guild %s",
-            audit_action,
-            guild.id,
-        )
-        return None
+                audit_action_value = int(audit_action_value)
+            except (TypeError, ValueError):
+                audit_action_value = None
+
+        if audit_action_value is None or audit_action_value < 0:
+            logger.warning(
+                "Ignoring invalid audit-log action %r for guild %s",
+                original_action,
+                guild.id,
+            )
+            return None
+
+        if isinstance(audit_action, discord.AuditLogAction):
+            resolved_actions.append(audit_action)
+            continue
+
+        try:
+            resolved_actions.append(discord.AuditLogAction(audit_action_value))
+        except (TypeError, ValueError):
+            # Older discord.py releases may not know newer Discord actions,
+            # but audit_logs only requires an object exposing ``value``.
+            resolved_actions.append(SimpleNamespace(value=audit_action_value))
 
     for attempt in range(max(1, retries)):
         cutoff = _now() - timedelta(seconds=max_age_seconds)

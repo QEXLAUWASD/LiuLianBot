@@ -10,6 +10,8 @@ from .base import (
     _set_author,
     _set_footer_id,
     _now,
+    get_audit_actor,
+    add_audit_actor_field,
 )
 from commands.language_manager import get_translation
 
@@ -76,5 +78,10 @@ async def on_voice_state_update(
         inline=False,
     )
     _set_footer_id(embed, member)
+
+    # Discord records administrator/user-forced voice moves as member_move.
+    if before.channel is not None and after.channel is not None:
+        actor = await get_audit_actor(guild, discord.AuditLogAction.member_move, member.id)
+        add_audit_actor_field(embed, actor, guild_id)
 
     await _send_log_embed(guild, embed, sender_name="voice_state")

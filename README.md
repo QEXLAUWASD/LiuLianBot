@@ -10,7 +10,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - Configurable roller channels with role-based random selection
 - Temporary private voice channels with ownership transfer and automatic cleanup
 - Guild event logging for messages, voice states, members, channels, roles, and guild changes
-- Audit-log actor attribution for administrative changes: channel/role create, update, and delete; member role changes, kicks, bans, and unbans; and server setting edits
+- Audit-log actor attribution for administrative changes: channel/role create, update, and delete; member role changes, kicks, bans, and unbans; and server setting edits; forced voice-channel moves (`member_move`)
 - Per-guild language selection for English and Traditional Chinese (`zh_TW`)
 - Hierarchical permissions for bot owners, bot admins, guild owners, guild admins, and users
 - Prefix commands and automatically registered slash commands backed by the same handlers
@@ -136,7 +136,9 @@ Important bot settings:
 Configure a log channel with `>setlogchannel all #channel` (or a category such
 as `channelaction` or `roleaction`). For administrative events, the bot reads
 Discord's Audit Log and adds the responsible user's mention and ID to the
-event embed. The bot requires the **View Audit Log** permission; if Discord
+event embed.
+Channel updates also check permission-overwrite audit actions, because Discord
+records permission changes separately from normal channel updates. The bot requires the **View Audit Log** permission; if Discord
 does not return a matching entry yet, the bot retries for about five seconds before logging
 the event with an `Unknown` actor instead of dropping it. Grant this permission
 to the bot's role, not only to the administrator performing the change.

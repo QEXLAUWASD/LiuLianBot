@@ -9,7 +9,7 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 《彩虹六號：圍攻》地圖、幹員同地圖資訊指令
 - 可設定抽選頻道，支援根據身份組隨機揀選
 - 臨時私人語音頻道，支援轉移擁有權同自動清理空頻道
-- 記錄訊息、語音狀態、成員、頻道、身份組同伺服器事件
+- 記錄訊息、語音狀態、成員、頻道、身份組同伺服器事件；被其他使用者或管理員強制移動語音頻道時會記錄操作者
 - 每個伺服器可獨立揀英文或繁體中文（`zh_TW`）
 - Bot 擁有者、Bot 管理員、伺服器擁有者、伺服器管理員同一般用戶嘅分層權限
 - 前綴指令同自動註冊嘅 slash 指令共用同一套處理器
@@ -111,7 +111,7 @@ Copy-Item discord-part\default_config.json discord-part\config.json
 #### 管理事件 Audit Log 記錄
 
 使用 `>setlogchannel all #channel`（或者 `channelaction`、`roleaction` 等分類）設定記錄頻道。
-Bot 會讀取 Discord Audit Log，並喺管理事件 embed 顯示操作者嘅 mention 同 ID。Bot
+Bot 會讀取 Discord Audit Log，並喺管理事件 embed 顯示操作者嘅 mention 同 ID。頻道權限變更會另外查詢 permission-overwrite Audit Log，因為 Discord 會將呢類變更分開記錄。Bot
 需要 **View Audit Log** 權限；事件後 Bot 會重試約五秒，等待 Audit Log 同步。如果仍然無法取得，事件仍然會記錄，操作者會顯示為
 「未知（Audit Log 無法取得或尚未同步）」。請將權限授予 Bot 使用緊嘅身份組，而唔只係執行變更嘅管理員。
 如果 Audit Log 查詢出現非預期錯誤，Bot 主控台日誌會顯示伺服器 ID 同 Python 例外詳情，方便診斷。

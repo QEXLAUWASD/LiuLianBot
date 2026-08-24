@@ -149,3 +149,65 @@ def test_audit_actor_lookup_accepts_any_nonnegative_numeric_action_value():
     actor = asyncio.run(get_audit_actor(FakeGuild(), 999999, 456, retries=1))
 
     assert actor == "actor"
+
+def test_audit_actor_lookup_matches_permission_overwrite_action():
+    class FakeGuild:
+        id = 123
+
+        async def audit_logs(self, *, limit, action):
+            if action.value != 14:
+                return
+            yield SimpleNamespace(
+                created_at=_now(), target=SimpleNamespace(id=456), user="actor"
+            )
+
+    actor = asyncio.run(
+        get_audit_actor(
+            FakeGuild(),
+            (
+                discord.AuditLogAction.channel_update,
+                discord.AuditLogAction.overwrite_create,
+                discord.AuditLogAction.overwrite_update,
+                discord.AuditLogAction.overwrite_delete,
+            ),
+            456,
+            retries=1,
+        )
+    )
+
+    assert actor == "actor"
+
+def test_audit_actor_lookup_accepts_member_move_action():
+    class FakeGuild:
+        id = 123
+
+        async def audit_logs(self, *, limit, action):
+            assert action.value == 26
+            yield SimpleNamespace(
+                created_at=_now(), target=SimpleNamespace(id=456), user="actor"
+            )
+
+    actor = asyncio.run(
+        get_audit_actor(FakeGuild(), discord.AuditLogAction.member_move, 456, retries=1)
+    )
+
+    assert actor == "actor"
+
+def test_audit_actor_lookup_accepts_batch_of_numeric_actions():
+    class FakeGuild:
+        id = 123
+        seen = []
+
+        async def audit_logs(self, *, limit, action):
+            self.seen.append(action.value)
+            if action.value != 30:
+                return
+            yield SimpleNamespace(
+                created_at=_now(), target=SimpleNamespace(id=456), user="actor"
+            )
+
+    guild = FakeGuild()
+    actor = asyncio.run(get_audit_actor(guild, tuple(range(1, 31)), 456, retries=1))
+
+    assert actor == "actor"
+    assert guild.seen == list(range(1, 31))
