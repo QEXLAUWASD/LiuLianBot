@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1c6ba0">
+  <title>LiuLianBot - Interim VLESS Tunnel</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/css/style.css?v=20260722-3">
+</head>
+<body>
+  <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
+  <main class="main-content">
+    <div class="tunnel-container">
+      <header class="tunnel-hero">
+        <div>
+          <p class="panel-kicker">INTERNAL NETWORK ACCESS</p>
+          <h1>Interim VLESS Tunnel</h1>
+          <p>產生一條短期 VLESS 連線，並將它加入你現有的 VLESS 位址或 Clash / Mihomo 設定。</p>
+        </div>
+        <span class="protocol-chip">VLESS</span>
+      </header>
+
+      <div class="tunnel-grid">
+        <section class="tunnel-panel" aria-labelledby="sourceHeading">
+          <div class="tunnel-panel-heading">
+            <div><p class="panel-kicker">YOUR CONFIGURATION</p><h2 id="sourceHeading">原有設定</h2></div>
+            <span class="tunnel-step">01</span>
+          </div>
+          <div class="tab-list tunnel-tabs" role="tablist" aria-label="Configuration format">
+            <button class="tab active" type="button" role="tab" aria-selected="true" aria-controls="vlessSourcePanel" id="vlessSourceTab">VLESS 位址</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="clashSourcePanel" id="clashSourceTab">Clash / Mihomo YAML</button>
+          </div>
+          <div id="vlessSourcePanel" role="tabpanel" aria-labelledby="vlessSourceTab">
+            <label class="tunnel-label" for="vlessSource">VLESS / V2Ray server address</label>
+            <textarea id="vlessSource" rows="8" maxlength="32768" spellcheck="false" placeholder="vless://uuid@example.com:443?type=ws&security=tls&sni=example.com#原有伺服器"></textarea>
+            <p class="tunnel-help">每行一個 <code>vless://</code> 位址。內容只會用於今次合併，不會寫入伺服器日誌。</p>
+          </div>
+          <div id="clashSourcePanel" role="tabpanel" aria-labelledby="clashSourceTab" hidden>
+            <label class="tunnel-label" for="clashSource">原有 Clash / Mihomo YAML</label>
+            <textarea id="clashSource" rows="15" maxlength="32768" spellcheck="false" placeholder="proxies:&#10;  - name: my-server&#10;    type: vless&#10;    server: example.com&#10;    port: 443"></textarea>
+            <p class="tunnel-help">會保留原有內容，將 interim proxy 加入 <code>proxies</code>，並加入現有 proxy group。</p>
+          </div>
+          <div class="tunnel-actions">
+            <button class="btn btn-outline" id="saveSource" type="button">儲存到此瀏覽器</button>
+            <button class="btn btn-outline" id="clearSource" type="button">清除已儲存設定</button>
+          </div>
+          <p class="tunnel-storage-note" id="storageStatus" role="status" aria-live="polite"></p>
+        </section>
+
+        <aside class="tunnel-panel tunnel-info-panel" aria-labelledby="tunnelInfoHeading">
+          <div class="tunnel-panel-heading">
+            <div><p class="panel-kicker">TEMPORARY ACCESS</p><h2 id="tunnelInfoHeading">隧道說明</h2></div>
+            <span class="tunnel-step">02</span>
+          </div>
+          <dl class="tunnel-facts">
+            <div><dt>用途</dt><dd>連接網站伺服器可到達的內部網絡</dd></div>
+            <div><dt>輸出</dt><dd>VLESS 位址或 Clash YAML</dd></div>
+            <div><dt>保存</dt><dd>原有設定只保存在你的瀏覽器</dd></div>
+          </dl>
+          <p class="tunnel-warning">請只在可信任的 V2Ray / Clash 用戶端使用輸出內容。產生結果會顯示有效期限。</p>
+        </aside>
+      </div>
+
+      <section class="tunnel-panel tunnel-result-panel" aria-labelledby="resultHeading">
+        <div class="tunnel-panel-heading">
+          <div><p class="panel-kicker">MERGED OUTPUT</p><h2 id="resultHeading">合併結果</h2></div>
+          <span class="tunnel-step">03</span>
+        </div>
+        <div class="tunnel-result-meta" id="resultMeta" hidden></div>
+        <textarea id="mergedOutput" class="tunnel-output" rows="16" readonly spellcheck="false" placeholder="完成上面的設定後，合併結果會顯示在這裡。"></textarea>
+        <div class="tunnel-actions">
+          <button class="btn btn-primary" id="generateTunnel" type="button">產生並合併隧道</button>
+          <button class="btn btn-outline" id="copyOutput" type="button" disabled>複製合併結果</button>
+        </div>
+        <p class="status-msg" id="tunnelStatus" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="/js/app.mjs"></script>
+  <script type="module" src="/js/vless_tunnel.mjs"></script>
+</body>
+</html>

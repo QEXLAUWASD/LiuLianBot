@@ -355,6 +355,17 @@ const MIGRATIONS = [
       );
     },
   },
+  {
+    version: '015',
+    name: 'VLESS tunnel page visibility',
+    async up(conn) {
+      await conn.execute(`
+        INSERT IGNORE INTO website_page_visibility
+          (page_key, public_access, authenticated_access)
+        VALUES ('vless-tunnel', 0, 1)
+      `);
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

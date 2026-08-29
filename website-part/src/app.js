@@ -42,6 +42,7 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   if (routers.rdp) app.use('/api/rdp', routers.rdp);
   if (routers.remoteProfile) app.use('/api/remote-profile', routers.remoteProfile);
   if (routers.mobileConnections) app.use('/api/mobile', routers.mobileConnections);
+  if (routers.vlessTunnel) app.use('/api/vless-tunnel', routers.vlessTunnel);
 
   app.get('/roller.html', requirePageVisibility('roller'), (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'roller.html'));
@@ -63,6 +64,9 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   });
   app.get('/chromium.html', requirePageAuth, requirePageVisibility('chromium'), (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'chromium.html'));
+  });
+  app.get('/vless-tunnel.html', requirePageAuth, requirePageVisibility('vless-tunnel'), (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'vless-tunnel.html'));
   });
   app.get('/terms.html', (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'terms.html'));

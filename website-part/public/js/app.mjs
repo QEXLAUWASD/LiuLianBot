@@ -12,6 +12,7 @@ const GUEST_PAGE_FALLBACK = Object.freeze({
   account: false,
   remote: false,
   chromium: false,
+  'vless-tunnel': false,
 });
 const USER_PAGE_FALLBACK = Object.freeze({
   roller: true,
@@ -19,6 +20,7 @@ const USER_PAGE_FALLBACK = Object.freeze({
   account: true,
   remote: true,
   chromium: true,
+  'vless-tunnel': true,
 });
 
 function getNavbar() {

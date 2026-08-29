@@ -20,6 +20,7 @@ export function renderNavbar(target, location = globalThis.location) {
   const events = navLink('/events.html', 'Events', pathname, 'events');
   const remote = navLink('/remote.html', 'Remote', pathname, 'remote');
   const chromium = navLink('/chromium.html', 'Chromium', pathname, 'chromium');
+  const vlessTunnel = navLink('/vless-tunnel.html', 'VLESS Tunnel', pathname, 'vless-tunnel');
   const account = navLink('/account.html', 'Account', pathname, 'account');
   const guildManager = navLink('/guild-manager.html', 'Discord Manager', pathname);
   const admin = navLink('/admin.html', 'Admin', pathname);
@@ -86,7 +87,7 @@ export function renderNavbar(target, location = globalThis.location) {
 
   replaceChildren(target, [
     element('div', { className: 'nav-brand', text: '🎮 LiuLianBot' }),
-    element('div', { className: 'nav-links' }, [home, roller, events, remote, chromium, dropdown, account, guildManager, admin]),
+    element('div', { className: 'nav-links' }, [home, roller, events, remote, chromium, vlessTunnel, dropdown, account, guildManager, admin]),
     user,
   ]);
 
@@ -94,6 +95,7 @@ export function renderNavbar(target, location = globalThis.location) {
     account,
     admin,
     chromium,
+    vlessTunnel,
     dropdown,
     dropdownMenu,
     dropdownToggle,

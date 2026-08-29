@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 test('page visibility catalog covers the configurable website subpages', () => {
   const { PAGE_DEFINITIONS, pageDefinition } = require('../src/services/page_visibility');
   assert.deepEqual(PAGE_DEFINITIONS.map(page => page.key), [
-    'roller', 'events', 'account', 'remote', 'chromium',
+    'roller', 'events', 'account', 'remote', 'chromium', 'vless-tunnel',
   ]);
   assert.deepEqual(pageDefinition(' CHROMIUM '), {
     key: 'chromium', name: 'Chromium', path: '/chromium.html',

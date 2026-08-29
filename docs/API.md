@@ -159,12 +159,25 @@ fragment，並會標準化為以 `/` 結尾。`slug` 只接受小寫英數字及
 
 | 方法 | 路徑 | 權限 | 請求／成功回應 |
 | --- | --- | --- | --- |
-| `GET` | `/api/page-visibility` | 公開 | `{ pages: { roller, events, account, remote, chromium } }`；值會按訪客或 session 計算 |
+| `GET` | `/api/page-visibility` | 公開 | `{ pages: { roller, events, account, remote, chromium, vless-tunnel } }`；值會按訪客或 session 計算 |
 | `GET` | `/api/admin/page-visibility` | 管理員 | `{ pages, groups, users }`；`pages` 包含設定及指定 roles/users |
 | `PUT` | `/api/admin/page-visibility/:pageKey` | 管理員 | `{ public_access, authenticated_access, role_ids?, user_ids? }`；回應 `{ success: true, page_key }` |
 
-可用 `pageKey` 是 `roller`、`events`、`account`、`remote`、`chromium`。admin 使用者
+可用 `pageKey` 是 `roller`、`events`、`account`、`remote`、`chromium`、`vless-tunnel`。admin 使用者
 會看到所有頁面；`remote` 頁面即使可見，仍須通過遠端群組及條款檢查。
+
+### Interim VLESS Tunnel
+
+| 方法 | 路徑 | 權限 | 請求／成功回應 |
+| --- | --- | --- | --- |
+| `POST` | `/api/vless-tunnel/generate` | 登入及頁面可見度 | body `{ format: "vless" 或 "clash", source: string }`；回應 `{ id, format, config, interim: { name, url, internalTarget, generatedAt, expiresAt, expiresInSeconds } }` |
+
+`vless` format 的 `source` 是每行一個 `vless://` 位址；回應 `config` 會以換行
+保留原有位址並加入 interim 位址。`clash` format 的 `source` 是 Clash /
+Mihomo YAML；回應會保留原有 YAML、加入 `proxies` 節點，並把 interim 節點加入
+所有現有 proxy groups。產生功能需要設定 `VLESS_TUNNEL_ADDRESS` 及有效的
+`VLESS_TUNNEL_UUID`；網站只產生設定，實際內部網絡路由由外部 VLESS listener
+負責。原有設定不會由網站 API 保存。
 
 ## 遠端功能
 

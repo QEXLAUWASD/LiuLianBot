@@ -31,6 +31,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - SSH terminal and remote profiles, with optional browser-local or AES-256-GCM encrypted server-side connection profiles; WebRDP passwords are session-only
 - Built-in Chromium workspace using Puppeteer and Chrome DevTools Protocol screencast
 - Admin page-visibility controls for guests, all signed-in users, selected website groups, and selected users
+- An Interim VLESS Tunnel page that merges a short-lived VLESS profile into an existing VLESS address list or Clash/Mihomo YAML
 - Discord server managers can configure the temporary private-voice trigger channel from the website dashboard
 
 ## Project structure
@@ -404,7 +405,7 @@ Discord must be linked before creating an event. The website and bot share the s
 
 The public pages are `login.html`, `terms.html`, `roller.html`, and `404.html`.
 Authenticated users can access `index.html`, `account.html`, `events.html`,
-`remote.html`, `chromium.html`, and `guild-manager.html`; administrators additionally have `admin.html`.
+`remote.html`, `chromium.html`, `vless-tunnel.html`, and `guild-manager.html`; administrators additionally have `admin.html`.
 
 The website exposes JSON APIs under `/api` for authentication, account and Discord
 link management, R6 rolls, events, website connections, administration, remote
@@ -424,6 +425,20 @@ Administrators can open Admin > Page Visibility to control which website subpage
 ### Chromium workspace
 
 The Chromium page uses Puppeteer with Chrome DevTools Protocol (CDP) screencasting. The website server launches a headless Chrome/Chromium process, sends JPEG screencast frames over an authenticated WebSocket, and forwards browser input events back through CDP. Install Chrome or Chromium on the server; set `CHROME_EXECUTABLE_PATH` when the executable is not on `PATH`. On OpenWrt, where Chromium may not be available in the configured feed, set `CHROME_CDP_URL` to a Chrome DevTools endpoint on another machine instead. Each connected user owns a browser page that is closed when the WebSocket ends or its timeout is reached. Administrators can still use Admin > Page Visibility to decide which users or groups can see the Chromium page.
+
+### Interim VLESS Tunnel
+
+Set `VLESS_TUNNEL_ADDRESS`, `VLESS_TUNNEL_UUID`, and the listener transport
+settings in `website-part/.env`. An Xray/V2Ray VLESS listener must already be
+running at that address and route traffic to the web server's internal network;
+the website only generates client configuration and does not implement the
+VLESS protocol or change firewall rules. Signed-in users can paste existing
+`vless://` addresses or Clash/Mihomo YAML into **VLESS Tunnel**. Generation
+preserves the original nodes and adds the interim node to the displayed output.
+Original configuration is saved only in browser `localStorage`, never in the
+website database. The displayed TTL is an expiry hint; actual post-expiry
+rejection requires the VLESS listener or an external provisioner to enforce
+credential/UUID expiry. Page Visibility can restrict access to the page.
 
 ## Development checks
 

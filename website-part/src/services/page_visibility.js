@@ -4,6 +4,7 @@ const PAGE_DEFINITIONS = Object.freeze([
   { key: 'account', name: 'Account', path: '/account.html' },
   { key: 'remote', name: 'Remote', path: '/remote.html' },
   { key: 'chromium', name: 'Chromium', path: '/chromium.html' },
+  { key: 'vless-tunnel', name: 'VLESS Tunnel', path: '/vless-tunnel.html' },
 ]);
 
 const PAGE_KEYS = new Set(PAGE_DEFINITIONS.map(page => page.key));

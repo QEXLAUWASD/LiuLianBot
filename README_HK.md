@@ -28,6 +28,7 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 記錄網站資料儲存同意；SSH/RDP 遠端功能可限制畀指定用戶群組
 - 提供 SSH 終端機及 RDP 連線檔，設定可選擇只保存喺瀏覽器或以 AES-256-GCM 加密保存喺伺服器
 - 提供使用 Puppeteer 同 Chrome DevTools Protocol screencast 嘅內建 Chromium 工作區頁面
+- Interim VLESS Tunnel 頁面：將短期 VLESS 連線加入現有 VLESS 位址或 Clash / Mihomo YAML
 - Admin 提供頁面可見度設定，可按未登入訪客、全部登入用戶、指定網站群組或指定用戶控制顯示
 
 ## 專案結構
@@ -268,6 +269,19 @@ docker rm --force liulianbot-website
 | `CHROME_EXECUTABLE_PATH` | 空白 | 如果 Chrome/Chromium 唔喺 `PATH`，請填入執行檔路徑。 |
 | `CHROME_CDP_URL` | 空白 | 可選嘅遠端 Chrome DevTools endpoint，例如 `http://192.168.1.10:9222`；設定後網站會連去遠端 Chrome，而唔會喺本機啟動。 |
 | `CHROMIUM_SESSION_TIMEOUT_MS` | `1800000` | 每個 Chromium WebSocket 工作階段最長存活時間，單位係毫秒。 |
+| `VLESS_TUNNEL_ADDRESS` | 空白 | Interim VLESS listener 對用戶端公開嘅主機名稱或地址；留空會停用產生功能。 |
+| `VLESS_TUNNEL_PORT` | `443` | Interim VLESS listener 連接埠。 |
+| `VLESS_TUNNEL_UUID` | 空白 | Xray / V2Ray listener 使用嘅 UUID。 |
+| `VLESS_TUNNEL_NETWORK` | `tcp` | 傳輸方式：`tcp`、`ws` 或 `grpc`。 |
+| `VLESS_TUNNEL_SECURITY` | `tls` | 安全方式：`tls` 或 `none`。 |
+| `VLESS_TUNNEL_SNI` | `VLESS_TUNNEL_ADDRESS` | TLS SNI；WebSocket / gRPC 亦可用作 server name。 |
+| `VLESS_TUNNEL_PATH` | `/` | WebSocket path 或 gRPC service name。 |
+| `VLESS_TUNNEL_HOST` | 空白 | WebSocket Host header（選填）。 |
+| `VLESS_TUNNEL_FLOW` | 空白 | VLESS flow（選填）。 |
+| `VLESS_TUNNEL_REMARK` | `LiuLianBot interim internal tunnel` | 輸出設定中顯示嘅節點名稱。 |
+| `VLESS_TUNNEL_INTERNAL_TARGET` | `web server internal network` | 頁面顯示嘅路由目標說明；實際路由由 VLESS listener 設定。 |
+| `VLESS_TUNNEL_TTL_SECONDS` | `3600` | 輸出結果標示嘅有效時間，範圍 60 秒至 24 小時。 |
+| `VLESS_TUNNEL_ALLOW_INSECURE` | `false` | 是否在輸出中略過 TLS 憑證驗證；除非使用受信任內網憑證，否則應保持 `false`。 |
 
 ### 遠端用戶端設定
 
@@ -342,10 +356,10 @@ npm test
 
 公開頁面包括 `login.html`、`terms.html`、`roller.html` 同 `404.html`。登入後可
 使用 `index.html`、`account.html`、`events.html`、`remote.html` 同
-`chromium.html` 同 `guild-manager.html`；管理員另外可以使用 `admin.html`。
+`chromium.html`、`vless-tunnel.html` 同 `guild-manager.html`；管理員另外可以使用 `admin.html`。
 
 網站喺 `/api` 提供登入、帳戶及 Discord 連結、R6 抽選、活動、網站連線、管理員、
-遠端設定及 RDP 檔案 API。已授權嘅 HTTP/WebSocket 網站連線位於
+遠端設定、VLESS tunnel 合併及 RDP 檔案 API。已授權嘅 HTTP/WebSocket 網站連線位於
 `/connect/<slug>/`；SSH 使用 `/api/ssh` WebSocket endpoint。
 
 完整 endpoint、請求欄位、權限、錯誤回應同 WebSocket/Socket.IO 訊息協定，請參考
@@ -358,6 +372,19 @@ npm test
 ### Chromium 工作區
 
 Chromium 頁面使用 Puppeteer 同 Chrome DevTools Protocol（CDP）screencast。網站伺服器會啟動 headless Chrome/Chromium，經已驗證嘅 WebSocket 傳送 JPEG 畫面，再經 CDP 將用戶輸入事件傳返瀏覽器。請喺伺服器安裝 Chrome 或 Chromium；如果執行檔唔喺 `PATH`，就設定 `CHROME_EXECUTABLE_PATH`。OpenWrt 如果 feed 入面冇 Chromium，可以設定 `CHROME_CDP_URL` 連去另一部機嘅 Chrome DevTools endpoint。每個登入用戶會有自己嘅瀏覽器頁面，WebSocket 中斷或者逾時後會自動關閉。管理員仍然可以喺 Admin > Page Visibility 設定邊啲用戶或群組可以見到 Chromium 頁面。
+
+### Interim VLESS Tunnel
+
+管理員先要喺 `website-part/.env` 設定 `VLESS_TUNNEL_ADDRESS`、
+`VLESS_TUNNEL_UUID` 及其他 listener 參數，並在該地址運行 Xray / V2Ray
+VLESS listener，將流量路由到 `VLESS_TUNNEL_INTERNAL_TARGET` 所代表嘅內部網絡。
+網站本身只負責產生用戶端設定，不會代替 Xray / V2Ray 運行協定或自動開啟
+防火牆。登入用戶可以在 **VLESS Tunnel** 貼上原有 `vless://` 位址或 Clash /
+Mihomo YAML；產生後會保留原有節點並加入 interim 節點，結果只顯示在畫面上。
+原有設定只會以瀏覽器 `localStorage` 保存，唔會寫入網站資料庫。輸出標示嘅 TTL
+係設定有效期限提示；如要在到期後真正拒絕連線，Xray / V2Ray listener 或外部
+provisioner 必須同步執行憑證／UUID 到期控制。管理員可以使用 Page Visibility
+限制頁面可見範圍。
 
 ## 開發檢查
 
