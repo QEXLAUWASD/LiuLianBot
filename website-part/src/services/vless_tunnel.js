@@ -3,7 +3,7 @@ const yaml = require('js-yaml');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SUPPORTED_NETWORKS = new Set(['tcp', 'ws', 'grpc']);
-const SUPPORTED_SECURITY = new Set(['none', 'tls']);
+const SUPPORTED_SECURITY = new Set(['none', 'tls', 'reality']);
 
 class VlessTunnelInputError extends Error {
   constructor(message) {
@@ -37,6 +37,14 @@ function envBoolean(value, fallback = false) {
   return ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
 }
 
+function optionalPattern(value, name, pattern) {
+  const normalized = stringValue(value || '', name, { max: 128 });
+  if (normalized && !pattern.test(normalized)) {
+    throw new VlessTunnelConfigError(`${name} has an invalid format`);
+  }
+  return normalized;
+}
+
 function readTunnelSettings(env = process.env) {
   const address = stringValue(env.VLESS_TUNNEL_ADDRESS, 'VLESS_TUNNEL_ADDRESS', { max: 253 });
   const uuid = stringValue(env.VLESS_TUNNEL_UUID, 'VLESS_TUNNEL_UUID', { max: 36 });
@@ -48,7 +56,13 @@ function readTunnelSettings(env = process.env) {
   const network = stringValue(env.VLESS_TUNNEL_NETWORK || 'tcp', 'VLESS_TUNNEL_NETWORK', { max: 8 });
   const security = stringValue(env.VLESS_TUNNEL_SECURITY || 'tls', 'VLESS_TUNNEL_SECURITY', { max: 8 });
   if (!SUPPORTED_NETWORKS.has(network)) throw new VlessTunnelConfigError('VLESS_TUNNEL_NETWORK must be tcp, ws, or grpc');
-  if (!SUPPORTED_SECURITY.has(security)) throw new VlessTunnelConfigError('VLESS_TUNNEL_SECURITY must be none or tls');
+  if (!SUPPORTED_SECURITY.has(security)) throw new VlessTunnelConfigError('VLESS_TUNNEL_SECURITY must be none, tls, or reality');
+  const realityPublicKey = optionalPattern(env.VLESS_TUNNEL_REALITY_PUBLIC_KEY, 'VLESS_TUNNEL_REALITY_PUBLIC_KEY', /^[A-Za-z0-9_-]{20,128}$/);
+  const realityShortId = optionalPattern(env.VLESS_TUNNEL_REALITY_SHORT_ID, 'VLESS_TUNNEL_REALITY_SHORT_ID', /^[0-9a-f]{0,32}$/i);
+  const clientFingerprint = optionalPattern(env.VLESS_TUNNEL_CLIENT_FINGERPRINT || 'chrome', 'VLESS_TUNNEL_CLIENT_FINGERPRINT', /^[A-Za-z0-9._-]{1,64}$/);
+  if (security === 'reality' && (!realityPublicKey || !realityShortId)) {
+    throw new VlessTunnelConfigError('VLESS_TUNNEL_REALITY_PUBLIC_KEY and VLESS_TUNNEL_REALITY_SHORT_ID are required for reality');
+  }
   const ttlSeconds = Number(env.VLESS_TUNNEL_TTL_SECONDS || 3600);
   if (!Number.isInteger(ttlSeconds) || ttlSeconds < 60 || ttlSeconds > 86400) {
     throw new VlessTunnelConfigError('VLESS_TUNNEL_TTL_SECONDS must be between 60 and 86400');
@@ -63,6 +77,9 @@ function readTunnelSettings(env = process.env) {
     path: stringValue(env.VLESS_TUNNEL_PATH || '/', 'VLESS_TUNNEL_PATH', { max: 1024 }),
     host: stringValue(env.VLESS_TUNNEL_HOST || '', 'VLESS_TUNNEL_HOST', { max: 253 }),
     flow: stringValue(env.VLESS_TUNNEL_FLOW || '', 'VLESS_TUNNEL_FLOW', { max: 64 }),
+    realityPublicKey,
+    realityShortId,
+    clientFingerprint,
     remark: stringValue(env.VLESS_TUNNEL_REMARK || 'LiuLianBot interim internal tunnel', 'VLESS_TUNNEL_REMARK', { max: 80 }),
     internalTarget: stringValue(env.VLESS_TUNNEL_INTERNAL_TARGET || 'web server internal network', 'VLESS_TUNNEL_INTERNAL_TARGET', { max: 253 }),
     ttlSeconds,
@@ -105,6 +122,11 @@ function vlessUrl(settings) {
   }
   if (settings.network === 'grpc') params.set('serviceName', settings.path.replace(/^\/+/, ''));
   if (settings.flow) params.set('flow', settings.flow);
+  if (settings.security === 'reality') {
+    params.set('pbk', settings.realityPublicKey);
+    params.set('sid', settings.realityShortId);
+    params.set('fp', settings.clientFingerprint);
+  }
   if (settings.allowInsecure) params.set('allowInsecure', '1');
   return `vless://${settings.uuid}@${settings.address}:${settings.port}?${params.toString()}#${encodeURIComponent(settings.remark)}`;
 }
@@ -120,7 +142,7 @@ function vlessProxyFromUrl(parsed, name) {
     port: Number(parsed.port || (parsed.searchParams.get('security') === 'tls' ? 443 : 80)),
     uuid: decodeURIComponent(parsed.username),
     udp: true,
-    tls: security === 'tls',
+    tls: security === 'tls' || security === 'reality',
   };
   if (query.get('sni')) proxy.servername = query.get('sni');
   if (query.get('flow')) proxy.flow = query.get('flow');
@@ -133,6 +155,13 @@ function vlessProxyFromUrl(parsed, name) {
     if (network === 'grpc') proxy['grpc-opts'] = { 'grpc-service-name': query.get('serviceName') || '' };
   }
   if (security === 'none') delete proxy.tls;
+  if (security === 'reality') {
+    proxy['reality-opts'] = {
+      'public-key': query.get('pbk') || '',
+      'short-id': query.get('sid') || '',
+    };
+    proxy['client-fingerprint'] = query.get('fp') || 'chrome';
+  }
   if (query.get('allowInsecure') === '1') proxy['skip-cert-verify'] = true;
   return proxy;
 }

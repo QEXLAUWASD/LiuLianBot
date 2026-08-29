@@ -179,6 +179,11 @@ Mihomo YAML；回應會保留原有 YAML、加入 `proxies` 節點，並把 inte
 `VLESS_TUNNEL_UUID`；網站只產生設定，實際內部網絡路由由外部 VLESS listener
 負責。原有設定不會由網站 API 保存。
 
+`VLESS_TUNNEL_SECURITY=reality` 時，還需要設定
+`VLESS_TUNNEL_REALITY_PUBLIC_KEY` 及 `VLESS_TUNNEL_REALITY_SHORT_ID`。
+VLESS URI 使用 `pbk`、`sid`、`fp`；Clash/Mihomo 使用 `reality-opts`、
+`client-fingerprint`，並保留 `flow`（例如 `xtls-rprx-vision`）。
+
 ## 遠端功能
 
 遠端 HTTP API 需要登入、接受目前條款，並屬於 `REMOTE_ALLOWED_GROUPS` 指定的網站

@@ -287,7 +287,10 @@ docker rm --force liulianbot-website
 | `VLESS_TUNNEL_PORT` | `443` | Interim VLESS listener 連接埠。 |
 | `VLESS_TUNNEL_UUID` | 空白 | Xray / V2Ray listener 使用嘅 UUID。 |
 | `VLESS_TUNNEL_NETWORK` | `tcp` | 傳輸方式：`tcp`、`ws` 或 `grpc`。 |
-| `VLESS_TUNNEL_SECURITY` | `tls` | 安全方式：`tls` 或 `none`。 |
+| `VLESS_TUNNEL_SECURITY` | `tls` | 安全方式：`tls`、`reality` 或 `none`。 |
+| `VLESS_TUNNEL_REALITY_PUBLIC_KEY` | 空白 | Reality public key；使用 `reality` 時必須設定。 |
+| `VLESS_TUNNEL_REALITY_SHORT_ID` | 空白 | Reality short ID；使用 `reality` 時必須設定。 |
+| `VLESS_TUNNEL_CLIENT_FINGERPRINT` | `chrome` | Reality client fingerprint。 |
 | `VLESS_TUNNEL_SNI` | `VLESS_TUNNEL_ADDRESS` | TLS SNI；WebSocket / gRPC 亦可用作 server name。 |
 | `VLESS_TUNNEL_PATH` | `/` | WebSocket path 或 gRPC service name。 |
 | `VLESS_TUNNEL_HOST` | 空白 | WebSocket Host header（選填）。 |
@@ -395,7 +398,11 @@ VLESS listener，將流量路由到 `VLESS_TUNNEL_INTERNAL_TARGET` 所代表嘅�
 網站本身只負責產生用戶端設定，不會代替 Xray / V2Ray 運行協定或自動開啟
 防火牆。登入用戶可以在 **VLESS Tunnel** 貼上原有 `vless://` 位址或 Clash /
 Mihomo YAML；產生後會保留原有節點並加入 interim 節點，結果只顯示在畫面上。
-原有設定只會以瀏覽器 `localStorage` 保存，唔會寫入網站資料庫。輸出標示嘅 TTL
+如使用 Reality，將 `VLESS_TUNNEL_SECURITY` 設為 `reality`，再設定
+`VLESS_TUNNEL_REALITY_PUBLIC_KEY`、`VLESS_TUNNEL_REALITY_SHORT_ID`，
+並可選擇設定 `VLESS_TUNNEL_CLIENT_FINGERPRINT=chrome`。VLESS URI 會使用
+`pbk`、`sid`、`fp` 參數；Clash / Mihomo 輸出會使用 `reality-opts` 同
+`client-fingerprint`。原有設定只會以瀏覽器 `localStorage` 保存，唔會寫入網站資料庫。輸出標示嘅 TTL
 係設定有效期限提示；如要在到期後真正拒絕連線，Xray / V2Ray listener 或外部
 provisioner 必須同步執行憑證／UUID 到期控制。管理員可以使用 Page Visibility
 限制頁面可見範圍。

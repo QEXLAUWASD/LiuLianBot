@@ -330,6 +330,22 @@ runtime settings are read from `website-part/.env`.
 | `CHROME_EXECUTABLE_PATH` | Empty | Optional path to the Chrome/Chromium executable when it is not available on `PATH`. |
 | `CHROME_CDP_URL` | Empty | Optional remote Chrome DevTools endpoint, such as `http://192.168.1.10:9222`; when set, the website connects to that Chrome instead of launching one locally. |
 | `CHROMIUM_SESSION_TIMEOUT_MS` | `1800000` | Maximum lifetime of one Chromium WebSocket session in milliseconds. |
+| `VLESS_TUNNEL_ADDRESS` | empty | Public host/address of the interim VLESS listener; generation is unavailable when empty. |
+| `VLESS_TUNNEL_PORT` | `443` | Interim VLESS listener port. |
+| `VLESS_TUNNEL_UUID` | empty | UUID configured on the Xray/V2Ray listener. |
+| `VLESS_TUNNEL_NETWORK` | `tcp` | Transport: `tcp`, `ws`, or `grpc`. |
+| `VLESS_TUNNEL_SECURITY` | `tls` | Security: `tls`, `reality`, or `none`. |
+| `VLESS_TUNNEL_REALITY_PUBLIC_KEY` | empty | Reality public key; required when security is `reality`. |
+| `VLESS_TUNNEL_REALITY_SHORT_ID` | empty | Reality short ID; required when security is `reality`. |
+| `VLESS_TUNNEL_CLIENT_FINGERPRINT` | `chrome` | Reality client fingerprint. |
+| `VLESS_TUNNEL_SNI` | `VLESS_TUNNEL_ADDRESS` | TLS SNI/server name. |
+| `VLESS_TUNNEL_PATH` | `/` | WebSocket path or gRPC service name. |
+| `VLESS_TUNNEL_HOST` | empty | Optional WebSocket Host header. |
+| `VLESS_TUNNEL_FLOW` | empty | Optional VLESS flow, such as `xtls-rprx-vision`. |
+| `VLESS_TUNNEL_REMARK` | `LiuLianBot interim internal tunnel` | Node name shown in generated output. |
+| `VLESS_TUNNEL_INTERNAL_TARGET` | `web server internal network` | Target description shown on the page; routing is performed by the VLESS listener. |
+| `VLESS_TUNNEL_TTL_SECONDS` | `3600` | Lifetime shown for generated output, clamped to 60 seconds-24 hours. |
+| `VLESS_TUNNEL_ALLOW_INSECURE` | `false` | Whether generated clients skip TLS certificate verification. |
 
 ### Remote client configuration
 
@@ -435,7 +451,11 @@ the website only generates client configuration and does not implement the
 VLESS protocol or change firewall rules. Signed-in users can paste existing
 `vless://` addresses or Clash/Mihomo YAML into **VLESS Tunnel**. Generation
 preserves the original nodes and adds the interim node to the displayed output.
-Original configuration is saved only in browser `localStorage`, never in the
+For Reality, set `VLESS_TUNNEL_SECURITY=reality`,
+`VLESS_TUNNEL_REALITY_PUBLIC_KEY`, `VLESS_TUNNEL_REALITY_SHORT_ID`, and optionally
+`VLESS_TUNNEL_CLIENT_FINGERPRINT=chrome`. The generated VLESS URI uses `pbk`,
+`sid`, and `fp`; Clash/Mihomo output uses `reality-opts` and
+`client-fingerprint`. Original configuration is saved only in browser `localStorage`, never in the
 website database. The displayed TTL is an expiry hint; actual post-expiry
 rejection requires the VLESS listener or an external provisioner to enforce
 credential/UUID expiry. Page Visibility can restrict access to the page.
