@@ -228,13 +228,13 @@ production dependencies before restarting the process:
 ```bash
 cd /opt/website/LiuLianBot/website-part
 npm ci --omit=dev
-npm ls socket.io @electerm/rdpjs --depth=0
+npm ls js-yaml socket.io @electerm/rdpjs --depth=0
 pm2 restart liulianb --update-env
 ```
 
-The `npm ls` command should show both packages. A `MODULE_NOT_FOUND` error from
-`src/rdp_socket.js` means this dependency installation step has not completed on
-the deployment host.
+The `npm ls` command should show all three packages. A `MODULE_NOT_FOUND` error
+from `src/rdp_socket.js` or `src/services/vless_tunnel.js` means this dependency
+installation step has not completed on the deployment host.
 
 If the remote page reports that WebRDP client assets failed to load, verify the
 three static files from the deployed site. Each request must return `200`:

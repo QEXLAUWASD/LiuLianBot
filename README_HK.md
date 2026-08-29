@@ -200,6 +200,20 @@ cd website-part
 MySQL Session 背景清理遇到暫時性錯誤時只會記錄錯誤，唔會停用新登入
 Session。部署 Session Store 修正後，請執行 `./start.sh restart` 重啟 PM2 程式。
 
+如果更新咗網站依賴（例如 Interim VLESS Tunnel 新增嘅 `js-yaml`），要先喺
+實際 PM2 使用嘅 website 目錄重新安裝 production dependencies，再重啟：
+
+```bash
+cd /opt/website/LiuLianBot/website-part
+npm ci --omit=dev
+npm ls js-yaml socket.io @electerm/rdpjs --depth=0
+pm2 restart liulianb --update-env
+```
+
+`npm ls` 應該列出以上三個套件；如果 `src/services/vless_tunnel.js` 出現
+`MODULE_NOT_FOUND`，代表部署主機未完成依賴安裝，或者 PM2 指向另一個 website
+目錄。
+
 ### 用 Docker CLI 執行網站
 
 以下映像只包含 `website-part/` 同其 production Node.js 依賴，唔會建立或啟動
