@@ -11,10 +11,13 @@ function postAuthDestination() {
 document.addEventListener('DOMContentLoaded', () => {
   const termsRow = document.getElementById('termsAcceptanceRow');
   const termsCheckbox = document.getElementById('termsAccepted');
+  // Keep consent mandatory unless the server explicitly disables the policy.
+  let termsAcceptanceRequired = true;
   fetch('/api/auth/terms-status')
     .then(response => response.ok ? response.json() : null)
     .then(data => {
       if (data?.required === false) {
+        termsAcceptanceRequired = false;
         termsRow.hidden = true;
         termsCheckbox.required = false;
       }
@@ -77,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
       errorEl.textContent = 'Password must be at least 6 characters';
       return;
     }
-    if (!termsAccepted) {
+    if (termsAcceptanceRequired && !termsAccepted) {
       errorEl.textContent = 'You must accept the Terms of Service and Privacy Policy';
       return;
     }
@@ -87,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await requestJSON('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, termsAccepted }),
+          body: JSON.stringify({ username, password, termsAccepted: termsAcceptanceRequired && termsAccepted }),
         });
 
         if (data?.success) {
