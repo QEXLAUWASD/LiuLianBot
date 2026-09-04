@@ -26,14 +26,6 @@ function normalizeStartUrl(value) {
   if (!['http:', 'https:'].includes(url.protocol)) {
     throw new ChromiumInputError('Start URL must use http:// or https://');
   }
-  const hostname = url.hostname.toLowerCase();
-  if (hostname === 'localhost' || hostname.endsWith('.localhost')
-    || hostname === '0.0.0.0' || hostname === '::1'
-    || /^127\./.test(hostname) || /^10\./.test(hostname)
-    || /^192\.168\./.test(hostname) || /^169\.254\./.test(hostname)
-    || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) {
-    throw new ChromiumInputError('Private or loopback destinations are not permitted');
-  }
   return url.toString();
 }
 
