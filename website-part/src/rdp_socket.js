@@ -53,7 +53,7 @@ function attachRdpServer(server, { sessionMiddleware }) {
 
       try {
         const connection = normalizeWebRdpInput(infos);
-        await assertResolvedRemoteHost(connection.host, allowedRemoteHosts(process.env.RDP_ALLOWED_HOSTS), { allowPrivate: true });
+        await assertResolvedRemoteHost(connection.host, allowedRemoteHosts(process.env.RDP_ALLOWED_HOSTS));
         const screen = screenSize(infos?.screen);
         rdpClient = rdp.createClient({
           domain: connection.domain,

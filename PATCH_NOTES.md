@@ -8,3 +8,7 @@
 - Prevented Terms open redirects and preserved upstream CSP headers.
 - Restricted updater repository input and required verified Git commits.
 - Added deployment documentation for security-sensitive environment settings.
+
+## Follow-up compatibility fix
+
+- Restored the documented empty allowlist behavior for public SSH/RDP hosts while retaining DNS-resolved private-network blocking.

@@ -56,7 +56,6 @@ function normalizeWebRdpInput(input) {
   if (input.password.length > 512 || /[\r\n\0]/.test(input.password)) {
     throw new RemoteInputError('Password contains invalid characters');
   }
-  assertAllowedRemoteHost(connection.host, allowedRemoteHosts(process.env.RDP_ALLOWED_HOSTS));
   return { ...connection, password: input.password };
 }
 
@@ -93,7 +92,7 @@ function allowedRemoteHosts(value) {
 function assertAllowedRemoteHost(host, allowedHosts) {
   const normalized = host.toLowerCase();
   const allowed = [...allowedHosts].some(entry => entry === normalized || cidrMatches(host, entry));
-  if (allowedHosts.size === 0 || !allowed) {
+  if (allowedHosts.size > 0 && !allowed) {
     throw new RemoteInputError('This SSH host is not permitted');
   }
 }
