@@ -36,6 +36,10 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 
 ## Project structure
 
+## Security-sensitive deployment settings
+
+The website requires `SESSION_SECRET` to be a high-entropy value of at least 32 characters. Remote SSH and RDP connections require explicit `SSH_ALLOWED_HOSTS` and `RDP_ALLOWED_HOSTS` allowlists. Chromium server-side navigation requires `CHROMIUM_ALLOWED_HOSTS` when private destinations are intentionally needed. The updater accepts only signed Git commits trusted by the host's Git keyring.
+
 ```
 LiuLianBot/
 |-- discord-part/                 # Python Discord bot

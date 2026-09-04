@@ -1,3 +1,7 @@
+const fs = require('fs');
+const dns = require('dns').promises;
+const net = require('net');
+
 const DEFAULT_WIDTH = 1280;
 const DEFAULT_HEIGHT = 720;
 const MAX_WIDTH = 1920;
@@ -22,7 +26,31 @@ function normalizeStartUrl(value) {
   if (!['http:', 'https:'].includes(url.protocol)) {
     throw new ChromiumInputError('Start URL must use http:// or https://');
   }
+  const hostname = url.hostname.toLowerCase();
+  if (hostname === 'localhost' || hostname.endsWith('.localhost')
+    || hostname === '0.0.0.0' || hostname === '::1'
+    || /^127\./.test(hostname) || /^10\./.test(hostname)
+    || /^192\.168\./.test(hostname) || /^169\.254\./.test(hostname)
+    || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) {
+    throw new ChromiumInputError('Private or loopback destinations are not permitted');
+  }
   return url.toString();
+}
+
+function privateAddress(address) {
+  if (net.isIP(address) === 6) return address === '::1' || /^(fc|fd|fe8)/i.test(address);
+  const n = address.split('.').map(Number);
+  return n.length === 4 && (n[0] === 10 || n[0] === 127 || (n[0] === 172 && n[1] >= 16 && n[1] <= 31)
+    || (n[0] === 192 && n[1] === 168) || (n[0] === 169 && n[1] === 254));
+}
+
+async function assertSafeDestination(urlText, env = process.env) {
+  const url = new URL(urlText);
+  const allowed = new Set(String(env.CHROMIUM_ALLOWED_HOSTS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean));
+  const addresses = net.isIP(url.hostname) ? [url.hostname] : (await dns.lookup(url.hostname, { all: true })).map(x => x.address);
+  if (!addresses.length || (addresses.some(privateAddress) && !allowed.has(url.hostname.toLowerCase()))) {
+    throw new ChromiumInputError('Private or unresolved destinations are not permitted');
+  }
 }
 
 function screenSize(value = {}) {
@@ -58,8 +86,6 @@ function launchOptions(config) {
       '--disable-dev-shm-usage',
       '--disable-gpu',
       '--no-first-run',
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
     ],
   };
 }
@@ -72,6 +98,7 @@ async function launchChromiumPage({
   env = process.env,
 } = {}) {
   const url = normalizeStartUrl(startUrl);
+  await assertSafeDestination(url, env);
   const viewport = screenSize(size);
   const puppeteer = puppeteerImpl || require('puppeteer-core');
   const config = chromiumConfig(env);
@@ -170,6 +197,6 @@ module.exports = {
   dispatchInput,
   launchChromiumPage,
   normalizeStartUrl,
+  assertSafeDestination,
   screenSize,
 };
-const fs = require('fs');

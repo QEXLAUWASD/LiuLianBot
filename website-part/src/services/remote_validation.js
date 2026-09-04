@@ -1,3 +1,6 @@
+const dns = require('dns').promises;
+const net = require('net');
+
 class RemoteInputError extends Error {
   constructor(message) {
     super(message);
@@ -53,6 +56,7 @@ function normalizeWebRdpInput(input) {
   if (input.password.length > 512 || /[\r\n\0]/.test(input.password)) {
     throw new RemoteInputError('Password contains invalid characters');
   }
+  assertAllowedRemoteHost(connection.host, allowedRemoteHosts(process.env.RDP_ALLOWED_HOSTS));
   return { ...connection, password: input.password };
 }
 
@@ -79,10 +83,35 @@ function cidrMatches(host, cidr) {
 }
 
 function assertAllowedSshHost(host, allowedHosts = allowedSshHosts()) {
-  const allowed = [...allowedHosts].some(entry => entry === host.toLowerCase() || cidrMatches(host, entry));
-  if (allowedHosts.size > 0 && !allowed) {
+  assertAllowedRemoteHost(host, allowedHosts);
+}
+
+function allowedRemoteHosts(value) {
+  return new Set(String(value || '').split(',').map(host => host.trim().toLowerCase()).filter(Boolean));
+}
+
+function assertAllowedRemoteHost(host, allowedHosts) {
+  const normalized = host.toLowerCase();
+  const allowed = [...allowedHosts].some(entry => entry === normalized || cidrMatches(host, entry));
+  if (allowedHosts.size === 0 || !allowed) {
     throw new RemoteInputError('This SSH host is not permitted');
   }
+}
+
+function isPrivateAddress(address) {
+  if (net.isIP(address) === 6) return address === '::1' || /^(fc|fd|fe8)/i.test(address);
+  return cidrMatches(address, '10.0.0.0/8') || cidrMatches(address, '172.16.0.0/12')
+    || cidrMatches(address, '192.168.0.0/16') || cidrMatches(address, '127.0.0.0/8')
+    || cidrMatches(address, '169.254.0.0/16') || cidrMatches(address, '100.64.0.0/10');
+}
+
+async function assertResolvedRemoteHost(host, allowedHosts, { allowPrivate = false } = {}) {
+  assertAllowedRemoteHost(host, allowedHosts);
+  const addresses = net.isIP(host) ? [host] : (await dns.lookup(host, { all: true })).map(result => result.address);
+  if (!addresses.length || (!allowPrivate && addresses.some(isPrivateAddress))) {
+    throw new RemoteInputError('Private or unresolved remote destinations are not permitted');
+  }
+  return addresses;
 }
 
 module.exports = {
@@ -94,4 +123,7 @@ module.exports = {
   allowedSshHosts,
   cidrMatches,
   assertAllowedSshHost,
+  allowedRemoteHosts,
+  assertAllowedRemoteHost,
+  assertResolvedRemoteHost,
 };

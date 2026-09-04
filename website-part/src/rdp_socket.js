@@ -2,7 +2,7 @@ const { Server: SocketIOServer } = require('socket.io');
 const rdp = require('@electerm/rdpjs');
 
 const { userHasRemoteAccess } = require('./middleware/remote_auth');
-const { normalizeWebRdpInput, RemoteInputError } = require('./services/remote_validation');
+const { normalizeWebRdpInput, RemoteInputError, assertResolvedRemoteHost, allowedRemoteHosts } = require('./services/remote_validation');
 const { remoteFeatures } = require('./services/remote_features');
 
 function screenSize(value) {
@@ -46,13 +46,14 @@ function attachRdpServer(server, { sessionMiddleware }) {
     let rdpClient = null;
     let connecting = false;
 
-    socket.on('infos', infos => {
+    socket.on('infos', async infos => {
       if (connecting) return;
       connecting = true;
       if (rdpClient) rdpClient.close();
 
       try {
         const connection = normalizeWebRdpInput(infos);
+        await assertResolvedRemoteHost(connection.host, allowedRemoteHosts(process.env.RDP_ALLOWED_HOSTS), { allowPrivate: true });
         const screen = screenSize(infos?.screen);
         rdpClient = rdp.createClient({
           domain: connection.domain,

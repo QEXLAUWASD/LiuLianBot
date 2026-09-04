@@ -123,9 +123,7 @@ function createRedirectRootRelativeRequest(getAccessBySlug = getConnectionAccess
 const redirectRootRelativeRequest = createRedirectRootRelativeRequest();
 
 function sanitizeUpstreamResponseHeaders(proxyRes) {
-  delete proxyRes.headers['content-security-policy'];
-  delete proxyRes.headers['content-security-policy-report-only'];
-  delete proxyRes.headers['service-worker-allowed'];
+  // Preserve upstream browser security policy headers.
 }
 
 const proxy = createProxyMiddleware({

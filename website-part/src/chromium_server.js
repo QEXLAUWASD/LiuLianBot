@@ -1,9 +1,11 @@
 const { WebSocketServer } = require('ws');
 const { getSessionId, getStoredSession } = require('./websocket_session');
+const { getVisiblePageKeys } = require('./db');
 const {
   ChromiumInputError,
   dispatchInput,
   launchChromiumPage,
+  assertSafeDestination,
   normalizeStartUrl,
   screenSize,
 } = require('./services/chromium');
@@ -25,6 +27,8 @@ function attachChromiumServer(server, options) {
       const sessionId = getSessionId(req.headers.cookie, options.sessionCookieName, options.sessionSecret);
       const sessionData = sessionId && await getStoredSession(options.sessionStore, sessionId);
       if (!sessionData?.user?.id) throw new Error('Unauthorized');
+      const pages = await getVisiblePageKeys(sessionData.user.id);
+      if (pages.chromium !== true) throw new Error('Chromium access is disabled');
       websocketServer.handleUpgrade(req, socket, head, ws => websocketServer.emit('connection', ws, req));
     } catch (_) {
       socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
@@ -79,6 +83,7 @@ function attachChromiumServer(server, options) {
         refreshTimeout();
         if (message.type === 'navigate') {
           const url = normalizeStartUrl(message.url);
+          await assertSafeDestination(url, options.env);
           await chromium.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
           send(socket, { type: 'navigated', url });
         } else if (message.type === 'input') {

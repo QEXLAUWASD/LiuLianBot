@@ -8,6 +8,8 @@ const {
   normalizeHost,
   normalizePort,
   assertAllowedSshHost,
+  assertResolvedRemoteHost,
+  allowedSshHosts,
 } = require('./services/remote_validation');
 
 const MAX_MESSAGE_BYTES = 32 * 1024;
@@ -16,10 +18,10 @@ function send(socket, message) {
   if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(message));
 }
 
-function sshConfig(message) {
+async function sshConfig(message) {
   if (!message || message.type !== 'connect') throw new RemoteInputError('Connect request is required');
   const host = normalizeHost(message.host);
-  assertAllowedSshHost(host);
+  await assertResolvedRemoteHost(host, allowedSshHosts());
   const username = typeof message.username === 'string' ? message.username.trim() : '';
   if (!username || username.length > 256 || /[\r\n\0]/.test(username)) {
     throw new RemoteInputError('Username is invalid');
@@ -70,13 +72,13 @@ function attachSshServer(server, options) {
       client = null;
     };
 
-    socket.on('message', raw => {
+    socket.on('message', async raw => {
       let message;
       try {
         message = JSON.parse(raw.toString());
         if (message.type === 'connect') {
           if (client) throw new RemoteInputError('An SSH connection is already open');
-          const config = sshConfig(message);
+          const config = await sshConfig(message);
           client = new Client();
           client.on('ready', () => {
             client.shell({ term: 'xterm-256color', cols: 120, rows: 32 }, (err, shell) => {

@@ -20,7 +20,8 @@ button.addEventListener('click', async () => {
   button.disabled = true;
   try {
     await requestJSON('/api/auth/terms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ termsAccepted: true }) });
-    location.href = new URLSearchParams(location.search).get('next') || '/index.html';
+      const next = new URLSearchParams(location.search).get('next') || '/index.html';
+      location.href = next.startsWith('/') && !next.startsWith('//') ? next : '/index.html';
   } catch (error) {
     status.textContent = error.message;
     status.className = 'status-msg status-error';

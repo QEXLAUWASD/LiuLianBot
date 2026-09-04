@@ -309,6 +309,9 @@ def fetch_and_pull(
     """
     repo_root = _get_repo_root()
 
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", github_repo):
+        return False, "GitHub repository 格式無效"
+
     # 檢查是否為 git 儲存庫
     if not (repo_root / ".git").exists():
         return False, "目前目錄不是 git 儲存庫"
@@ -351,6 +354,12 @@ def fetch_and_pull(
         restore_note = _restore_origin(repo_root, original_url)
         return False, f"Fetch 失敗: {detail}{restore_note}"
     steps.append(f"✓ Fetch {branch} 完成")
+
+    # Only install commits whose signatures are trusted by the local Git keyring.
+    rc, _, stderr = _run_git(["verify-commit", "FETCH_HEAD"], cwd=repo_root)
+    if rc != 0:
+        restore_note = _restore_origin(repo_root, original_url)
+        return False, f"遠端 commit 簽章驗證失敗，已停止更新: {_redact_git_output(stderr, github_token)}{restore_note}"
 
     # 3. 只允許 fast-forward，避免自動建立 merge commit 或覆蓋本地歷史。
     rc, stdout, stderr = _run_git(
