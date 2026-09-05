@@ -67,7 +67,7 @@ async function startServer() {
     sessionCookieName: sessionOptions.name,
     sessionSecret: sessionOptions.secret,
   });
-  attachRdpServer(server, { sessionMiddleware });
+  server.rdpServer = attachRdpServer(server, { sessionMiddleware });
   const chromiumServer = attachChromiumServer(server, {
     sessionStore,
     sessionCookieName: sessionOptions.name,
@@ -93,6 +93,9 @@ async function startServer() {
 
 async function stopServer(server) {
   server?.chromiumServer?.closeAll();
+  if (server?.rdpServer) {
+    await new Promise(resolve => server.rdpServer.close(resolve));
+  }
   if (server?.listening) {
     await new Promise((resolve, reject) => {
       server.close(err => (err ? reject(err) : resolve()));

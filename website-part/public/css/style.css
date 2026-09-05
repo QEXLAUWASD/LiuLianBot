@@ -915,10 +915,11 @@ a:hover { color: var(--accent-hover); }
 .webrdp-toolbar .panel-kicker { color: #8bc9ff; }
 .webrdp-toolbar-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; }
 .rdp-host-label { max-width: 280px; overflow: hidden; color: #8dabb7; font: .78rem ui-monospace, SFMono-Regular, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
-.rdp-viewport { position: relative; display: grid; place-items: center; width: 100%; min-height: 480px; height: min(68vh, 760px); overflow: auto; background: #05090c; outline: none; }
+.rdp-viewport { position: relative; display: grid; place-items: safe center; width: 100%; min-height: 480px; height: min(68vh, 760px); overflow: auto; background: #05090c; outline: none; }
 .rdp-viewport:focus-visible { box-shadow: inset 0 0 0 2px #66d9c5; }
 .rdp-viewport:fullscreen { height: 100vh; }
-.rdp-canvas { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: auto; }
+.rdp-canvas { display: block; flex: none; max-width: none; image-rendering: auto; touch-action: none; outline: none; }
+.rdp-canvas:focus-visible { outline: 2px solid #66d9c5; outline-offset: -2px; }
 .rdp-empty-state, .rdp-loading-state { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 28px; text-align: center; }
 .rdp-empty-state { color: #a8bac2; }
 .rdp-empty-state h3 { color: #eff8fb; font-size: 1.1rem; }

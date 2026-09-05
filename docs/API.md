@@ -267,3 +267,16 @@ RDP 關閉或未啟用時，Socket.IO handshake 會失敗。
 cd website-part
 npm run check
 ```
+
+### RDP 連線生命週期補充
+
+每個 Socket.IO 連線只接受一次 `infos`，後續重複請求會忽略。重新連線
+需建立新的 Socket.IO transport；客戶端停用自動重連，避免重送憑證。
+`infos` 處理前會重新載入登入 session 並檢查遠端權限。
+伺服器連線逾時為 30 秒，失敗會送出 `rdp-error` 並關閉 transport；
+正常 RDP 結束送出 `rdp-close`。取消與逾時會清理尚在協商中的 TCP socket。
+
+輸入僅於 RDP 已連線時接受：滑鼠座標須在協商畫面內，按鈕值為
+0（移動）、1（左）、2（右）、3（中），滾輪步幅為整數 1–255。
+`scancode(code, isPressed)` 接受一般掃描碼 1–127 或 E0 擴充掃描碼
+`0xE001–0xE07F`；bridge 會拆成低位掃描碼與 extended 旗標。

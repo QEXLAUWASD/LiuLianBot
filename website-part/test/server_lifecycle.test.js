@@ -12,3 +12,14 @@ test('stopServer closes a listening HTTP server', async () => {
 
   assert.equal(server.listening, false);
 });
+
+test('stopServer closes RDP transports before waiting for HTTP shutdown', async () => {
+  const server = http.createServer();
+  await new Promise(resolve => server.listen(0, resolve));
+  const calls = [];
+  server.chromiumServer = { closeAll: () => calls.push('chromium') };
+  server.rdpServer = { close: callback => { calls.push('rdp'); callback(); } };
+  await stopServer(server);
+  assert.deepEqual(calls, ['chromium', 'rdp']);
+  assert.equal(server.listening, false);
+});

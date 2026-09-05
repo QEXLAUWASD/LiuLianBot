@@ -27,7 +27,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - R6 events page for creating events and managing shared signups
 - One-time account linking lets Discord commands and website signups use the same identity
 - Terms acceptance records consent for website data storage; remote SSH/RDP access can be limited to named user groups
-- Browser-based WebRDP desktop sessions powered by mstsc.js and HTML5 Canvas, plus RDP file generation
+- Browser-based RDP desktop sessions using a modular Canvas client, plus RDP file generation
 - SSH terminal and remote profiles, with optional browser-local or AES-256-GCM encrypted server-side connection profiles; WebRDP passwords are session-only
 - Built-in Chromium workspace using Puppeteer and Chrome DevTools Protocol screencast
 - Admin page-visibility controls for guests, all signed-in users, selected website groups, and selected users
@@ -70,10 +70,12 @@ LiuLianBot/
 ## Architecture and refactoring boundaries
 
 The repository keeps the Discord bot and website as separate runtimes while
-sharing only the MySQL schema and data contract:
+sharing the MySQL schema/data contract and the R6 JSON datasets in `shared/r6/`.
+See the [Traditional Chinese feature walkthrough](docs/FEATURE_WALKTHROUGH.zh-TW.md)
+for startup, command dispatch, and cross-runtime feature flows.
 
-- `discord-part/main.py` owns startup ordering: configuration, database
-  creation/migrations, then Discord client construction.
+- `discord-part/main.py` owns startup ordering: configuration and Discord client
+  construction, database creation/migrations, then connection to Discord.
 - `website-part/src/server.js` owns runtime composition: pool/migrations,
   Express app assembly, WebSocket/SSH attachment, and graceful shutdown.
 - `website-part/src/db/` contains domain repositories. `src/db.js` remains a
@@ -246,7 +248,7 @@ three static files from the deployed site. Each request must return `200`:
 ```bash
 curl -I https://your-domain.example/vendor/socket.io.min.js
 curl -I https://your-domain.example/vendor/webrdp/rle.js
-curl -I https://your-domain.example/vendor/webrdp/webrdp.js
+curl -I https://your-domain.example/js/rdp_client.mjs
 ```
 
 For a Linux production deployment managed by PM2:
@@ -430,7 +432,7 @@ Authenticated users can access `index.html`, `account.html`, `events.html`,
 The website exposes JSON APIs under `/api` for authentication, account and Discord
 link management, R6 rolls, events, website connections, administration, remote
 profiles, and RDP file generation. The authenticated `remote.html` page also
-provides an in-browser WebRDP workspace using the mstsc.js Canvas/RLE client and a
+provides an in-browser RDP workspace using the modular Canvas client, the bundled mstsc.js RLE decoder, and a
 Socket.IO bridge backed by `@electerm/rdpjs`. Authorized HTTP/WebSocket website
 connections are available under `/connect/<slug>/`. SSH uses the `/api/ssh`
 WebSocket endpoint.
@@ -522,3 +524,37 @@ This project is for personal and community use. All rights reserved.
 ## Contributing
 
 Issues and pull requests are welcome. Keep changes scoped to either `discord-part/`, `website-part/`, or `shared/` unless a cross-project change is required.
+
+## RDP client lifecycle and verification
+
+The RDP page uses `public/js/rdp_client.mjs` for connection state,
+`rdp_input.mjs` for focused keyboard/pointer input, and `rdp_bitmap.mjs` for
+bitmap conversion. The old bundled `webrdp.js` client has been removed;
+the RLE decoder and its attribution remain under `public/vendor/webrdp/`.
+
+Click the desktop to direct keyboard input to Windows. Moving focus to a
+form or another window releases held keys. Fit-to-window mode rescales
+pointer coordinates; switching to original size changes only the display
+scale, not the remote desktop resolution. A dropped connection requires an
+explicit reconnect and a new password entry. Passwords are cleared from the
+form after submission and are excluded from saved profiles.
+
+The bridge allows one RDP attempt per Socket.IO connection, reloads the login
+session before connecting, and connects to the IP returned by destination
+validation. Server connection attempts time out after 30 seconds; the browser
+has a 35-second overall deadline. Cancelling, failing, or shutting down also
+destroys pending RDP TCP sockets.
+
+Run the browser smoke test from `website-part/`:
+
+```bash
+npm run test:rdp-browser
+```
+
+It uses a local mock Socket.IO server and headless Chromium, with no database
+or remote host. Set `RDP_BROWSER_PATH` if Chrome/Edge/Chromium is not installed
+in a detected location; optionally set `RDP_SCREENSHOT_PATH` for a screenshot.
+The test covers real RLE rendering, keyboard focus, scaled pointer input,
+password clearing, cancellation, errors, and reconnecting. A real Windows
+RDP authentication/desktop session must still be checked in the deployment
+environment; the protocol engine remains `@electerm/rdpjs`.

@@ -9,7 +9,7 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
   <title>LiuLianBot - WebRDP</title>
-  <link rel="stylesheet" href="/css/style.css?v=20260814-webrdp">
+  <link rel="stylesheet" href="/css/style.css?v=20260905-rdp">
 </head>
 <body>
   <nav id="siteNav" class="navbar" aria-label="主要導覽"></nav>
@@ -27,13 +27,13 @@
       <div class="webrdp-toolbar">
         <div class="remote-panel-heading"><div><p class="panel-kicker">BROWSER RDP</p><h2 id="rdpHeading">WebRDP 桌面</h2></div><span id="rdpHostLabel" class="rdp-host-label">尚未選擇主機</span></div>
         <div class="webrdp-toolbar-actions">
-          <button class="btn btn-sm btn-outline" id="rdpFit" type="button" title="將桌面縮放至工作區">適合畫面</button>
+          <button class="btn btn-sm btn-outline" id="rdpFit" type="button" aria-pressed="true" title="將桌面縮放至工作區">適合畫面</button>
           <button class="btn btn-sm btn-outline" id="rdpFullscreen" type="button" title="切換全螢幕">全螢幕</button>
           <button class="btn btn-sm btn-danger" id="rdpDisconnect" type="button" disabled>結束連線</button>
         </div>
       </div>
       <div id="rdpViewport" class="rdp-viewport" tabindex="0" aria-label="RDP 遠端桌面">
-        <canvas id="rdpCanvas" class="rdp-canvas" aria-label="Windows 遠端桌面畫面"></canvas>
+        <canvas id="rdpCanvas" class="rdp-canvas" tabindex="0" aria-label="Windows 遠端桌面畫面"></canvas>
         <div id="rdpEmptyState" class="rdp-empty-state">
           <div class="rdp-empty-icon" aria-hidden="true">▣</div>
           <h3>準備好連線</h3>
@@ -46,7 +46,7 @@
 
     <div class="remote-grid remote-grid-lower">
       <section id="rdpConnectPanel" class="remote-panel rdp-connect-panel" aria-labelledby="rdpConnectHeading">
-        <div class="remote-panel-heading"><div><p class="panel-kicker">CONNECTION</p><h2 id="rdpConnectHeading">連線設定</h2></div><span class="protocol-chip">mstsc.js</span></div>
+        <div class="remote-panel-heading"><div><p class="panel-kicker">CONNECTION</p><h2 id="rdpConnectHeading">連線設定</h2></div><span class="protocol-chip">RDP</span></div>
         <p class="remote-note">密碼只用於目前工作階段，不會儲存至瀏覽器或伺服器。</p>
         <form id="rdpForm" class="remote-form">
           <label class="field-span-2">主機<input id="rdpHost" required maxlength="253" autocomplete="off" placeholder="windows.example.com"></label>
@@ -62,7 +62,7 @@
       <aside class="remote-side-stack">
         <section class="remote-panel remote-info-panel" aria-labelledby="rdpInfoHeading">
           <div class="remote-panel-heading"><div><p class="panel-kicker">SESSION</p><h2 id="rdpInfoHeading">工作階段資訊</h2></div></div>
-          <dl class="remote-facts"><div><dt>引擎</dt><dd>WebRDP + mstsc.js</dd></div><div><dt>畫面</dt><dd>HTML5 Canvas / RLE</dd></div><div><dt>輸入</dt><dd>鍵盤、滑鼠、滾輪</dd></div></dl>
+          <dl class="remote-facts"><div><dt>引擎</dt><dd>LiuLianBot RDP</dd></div><div><dt>畫面</dt><dd>HTML5 Canvas / RLE</dd></div><div><dt>輸入</dt><dd>鍵盤、滑鼠、滾輪</dd></div></dl>
           <p class="remote-security-note"><span aria-hidden="true">●</span> 連線需要已授權的 Remote Access 群組。</p>
         </section>
         <section class="remote-panel" aria-labelledby="rdpDownloadHeading">
@@ -91,7 +91,6 @@
   </main>
   <script src="/vendor/socket.io.min.js"></script>
   <script src="/vendor/webrdp/rle.js"></script>
-  <script type="module" src="/vendor/webrdp/webrdp.js"></script>
   <script type="module" src="/js/app.mjs"></script>
   <script type="module" src="/js/remote.mjs"></script>
 </body>

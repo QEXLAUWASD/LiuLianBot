@@ -4,6 +4,8 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 
 ## 功能
 
+程式入口、指令處理同 Bot／網站之間嘅資料流程，見[功能運作導覽（繁體中文）](docs/FEATURE_WALKTHROUGH.zh-TW.md)。
+
 ### Discord 機械人
 
 - 《彩虹六號：圍攻》地圖、幹員同地圖資訊指令
@@ -452,3 +454,19 @@ Discord Bot 嘅依賴已列喺 `discord-part/requirements.txt`。網站嘅依賴
 ## 貢獻
 
 歡迎提交 Issue 及 Pull Request。除非改動確實需要跨專案，否則請將修改範圍限制喺 `discord-part/`、`website-part/` 或 `shared/` 其中一個目錄。
+
+## RDP 客戶端重建
+
+瀏覽器 RDP 改用獨立連線狀態、畫面解碼同輸入模組；已移除舊
+`webrdp.js`，保留 RLE 解碼器同來源聲明。點選桌面先會將鍵盤輸入
+送去遠端；切換去表單或其他視窗會釋放按住嘅鍵。縮放畫面會同步
+換算滑鼠座標，原始大小模式只改顯示比例。
+
+取消、連線錯誤、逾時同網站關機會清理 RDP socket。伺服器連線期限
+為 30 秒，瀏覽器整體期限為 35 秒。斷線後需手動重連並重新輸入密碼；
+密碼送出後會清空，唔會儲存喺設定內。
+
+喺 `website-part/` 執行 `npm run test:rdp-browser`，可用本機模擬伺服器
+測試畫面、輸入同重連。若未能自動搵到瀏覽器，設定 `RDP_BROWSER_PATH`
+指向 Chrome／Edge／Chromium。此測試唔會連真實 RDP 主機；Windows
+登入同實際桌面仍需喺部署環境驗證。
