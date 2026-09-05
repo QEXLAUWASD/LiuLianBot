@@ -344,3 +344,10 @@
 - 保留舊版單組設定，提供另存為命名設定的流程；需設定 REMOTE_CREDENTIAL_ENCRYPTION_KEY。
 - 補上 API、加密、跨帳號隔離、migration 及前端操作測試與文件。
 - 驗證：新增測試與瀏覽器 smoke test 通過；完整網站測試 230 通過、2 項既有失敗。未連線實際 MySQL 或 Windows 主機驗證。
+
+
+## 2026-09-05 — 修正網站 CI 測試
+
+- 修正 production session secret 測試 fixture，使其符合程式要求的至少 32 字元長度。
+- 更新 WebSocket proxy header 測試，驗證目前保留 upstream browser security policy headers 的行為。
+- 本機工作區工具暫時無法啟動，因此修正已直接提交至 `master`，待 GitHub Actions 重新驗證。
