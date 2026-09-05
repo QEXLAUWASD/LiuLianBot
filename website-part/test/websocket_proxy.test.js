@@ -84,7 +84,7 @@ test('uses new routing only for connections that do not opt into legacy routing'
   assert.equal(continued, true);
 });
 
-test('removes upstream browser policy headers that do not match the proxy origin', () => {
+test('preserves upstream browser policy headers', () => {
   const proxyRes = {
     headers: {
       'content-security-policy': "default-src 'self'",
@@ -96,9 +96,9 @@ test('removes upstream browser policy headers that do not match the proxy origin
 
   connectionProxy.sanitizeUpstreamResponseHeaders(proxyRes);
 
-  assert.equal(proxyRes.headers['content-security-policy'], undefined);
-  assert.equal(proxyRes.headers['content-security-policy-report-only'], undefined);
-  assert.equal(proxyRes.headers['service-worker-allowed'], undefined);
+  assert.equal(proxyRes.headers['content-security-policy'], "default-src 'self'");
+  assert.equal(proxyRes.headers['content-security-policy-report-only'], "script-src 'unsafe-inline' 'unsafe-eval'");
+  assert.equal(proxyRes.headers['service-worker-allowed'], '/');
   assert.equal(proxyRes.headers['content-type'], 'text/html');
 });
 
