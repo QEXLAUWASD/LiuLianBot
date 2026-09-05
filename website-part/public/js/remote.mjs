@@ -1,12 +1,14 @@
 import { requestJSON } from './api_client.mjs';
 import { RdpClient } from './rdp_client.mjs';
+import { createRdpProfiles } from './rdp_profiles.mjs';
+const rdpProfiles = createRdpProfiles(document);
 
 const BROWSER_PROFILE_KEY = 'liulianbot.remote-profile.v1';
 const refs = Object.fromEntries([
   'sshForm', 'sshHost', 'sshPort', 'sshUsername', 'sshAuthType', 'sshPasswordLabel', 'sshPassword',
   'sshKeyLabel', 'sshKey', 'sshConnect', 'sshDisconnect', 'sshStatus', 'sshTerminal', 'sshInput',
   'sshStorage', 'saveSsh', 'rdpForm', 'rdpHost', 'rdpPort', 'rdpUsername', 'rdpDomain', 'rdpStatus',
-  'rdpStorage', 'saveRdp', 'deleteServerProfile',
+  'saveRdp', 'deleteServerProfile',
   'sshPanel', 'rdpPanel', 'rdpConnectPanel', 'rdpPassword', 'rdpDownloadForm', 'rdpDisconnect', 'rdpConnect',
   'rdpCanvas', 'rdpViewport', 'rdpEmptyState', 'rdpLoadingState', 'rdpLoadingText', 'rdpStatusBadge',
   'rdpStatusBadgeText', 'rdpHostLabel', 'rdpFullscreen', 'rdpFit',
@@ -50,7 +52,7 @@ function saveBrowserProfile(profile) {
 }
 
 function setServerOptionEnabled(enabled) {
-  [refs.sshStorage, refs.rdpStorage].forEach(select => {
+  [refs.sshStorage].forEach(select => {
     const option = select.querySelector('option[value="server"]');
     option.disabled = !enabled;
     if (!enabled && select.value === 'server') select.value = 'browser';
@@ -59,13 +61,14 @@ function setServerOptionEnabled(enabled) {
 
 async function loadSavedProfiles() {
   fillFields('ssh', browserProfile().ssh);
-  fillFields('rdp', browserProfile().rdp);
+  // Named RDP profiles are loaded through the authenticated database API.
   try {
     const data = await requestJSON('/api/remote-profile');
     serverStorageAvailable = Boolean(data.serverStorageAvailable);
     serverProfile = data.profile || serverProfile;
     setFeatureVisibility(data.features || { ssh: true, rdp: true });
     setServerOptionEnabled(serverStorageAvailable);
+    await rdpProfiles.initialize(serverProfile.rdp || browserProfile().rdp);
   } catch (_) {
     setFeatureVisibility({ ssh: false, rdp: false });
     setServerOptionEnabled(false);
@@ -138,9 +141,9 @@ function connectRdp() {
 }
 
 async function saveProfile(type) {
-  const storage = type === 'ssh' ? refs.sshStorage.value : refs.rdpStorage.value;
+  const storage = refs.sshStorage.value;
   const profile = profileFromFields(type);
-  const status = type === 'ssh' ? refs.sshStatus : refs.rdpStatus;
+  const status = refs.sshStatus;
   try {
     if (storage === 'browser') {
       const saved = browserProfile();
@@ -232,7 +235,7 @@ refs.rdpForm.addEventListener('submit', event => {
   connectRdp();
 });
 
-refs.saveRdp.addEventListener('click', () => saveProfile('rdp'));
+
 refs.rdpDisconnect.addEventListener('click', () => disconnectRdp());
 refs.rdpDownloadForm.addEventListener('submit', async event => {
   event.preventDefault();
@@ -269,17 +272,6 @@ document.addEventListener('fullscreenchange', fitRdpCanvas);
 if (globalThis.ResizeObserver) new ResizeObserver(fitRdpCanvas).observe(refs.rdpViewport);
 window.addEventListener('pagehide', () => rdpClient?.disconnect());
 
-refs.deleteServerProfile.addEventListener('click', async () => {
-  try {
-    await requestJSON('/api/remote-profile', { method: 'DELETE' });
-    serverProfile = { ssh: null, rdp: null };
-    refs.rdpStatus.textContent = '伺服器儲存資料已刪除。';
-    refs.rdpStatus.className = 'status-msg status-success';
-  } catch (error) {
-    refs.rdpStatus.textContent = error.message || '無法刪除伺服器儲存資料。';
-    refs.rdpStatus.className = 'status-msg status-error';
-  }
-});
 
 loadSavedProfiles();
 resetRdpView();

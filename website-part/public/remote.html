@@ -47,16 +47,19 @@
     <div class="remote-grid remote-grid-lower">
       <section id="rdpConnectPanel" class="remote-panel rdp-connect-panel" aria-labelledby="rdpConnectHeading">
         <div class="remote-panel-heading"><div><p class="panel-kicker">CONNECTION</p><h2 id="rdpConnectHeading">連線設定</h2></div><span class="protocol-chip">RDP</span></div>
-        <p class="remote-note">密碼只用於目前工作階段，不會儲存至瀏覽器或伺服器。</p>
+        <p class="remote-note">每位使用者可保存多組連線，密碼會加密儲存於帳號資料庫。更新時密碼留空會保留原密碼。</p>
         <form id="rdpForm" class="remote-form">
+          <label class="field-span-2">我的連線設定<select id="rdpProfileList" disabled><option value="">新增連線設定</option></select></label>
+          <label class="field-span-2">設定名稱<input id="rdpProfileName" maxlength="100" placeholder="例如：家中電腦" disabled></label>
           <label class="field-span-2">主機<input id="rdpHost" required maxlength="253" autocomplete="off" placeholder="windows.example.com"></label>
           <label>連接埠<input id="rdpPort" type="number" min="1" max="65535" value="3389"></label>
           <label>使用者名稱<input id="rdpUsername" required maxlength="256" autocomplete="username"></label>
           <label>網域（選填）<input id="rdpDomain" maxlength="256" autocomplete="off" placeholder="CONTOSO"></label>
           <label>密碼<input id="rdpPassword" type="password" required maxlength="512" autocomplete="current-password"></label>
-          <label class="field-span-2">設定儲存位置<select id="rdpStorage"><option value="browser">此瀏覽器（不含密碼）</option><option value="server">伺服器（加密）</option></select></label>
-          <div class="remote-actions"><button class="btn btn-primary" id="rdpConnect" type="submit">連線至桌面</button><button class="btn btn-outline" id="saveRdp" type="button">儲存設定</button><button class="btn btn-outline" id="deleteServerProfile" type="button">刪除伺服器設定</button></div>
+
+          <div class="remote-actions"><button class="btn btn-primary" id="rdpConnect" type="submit">連線至桌面</button><button class="btn btn-outline" id="newRdp" type="button" disabled>新增</button><button class="btn btn-outline" id="saveRdp" type="button" disabled>儲存設定</button><button class="btn btn-outline" id="loadRdp" type="button" disabled>載入設定與密碼</button><button class="btn btn-outline" id="deleteServerProfile" type="button" disabled>刪除此組設定</button></div>
         </form>
+        <p id="rdpProfileStatus" class="status-msg" role="status" aria-live="polite">正在載入連線設定…</p>
       </section>
 
       <aside class="remote-side-stack">

@@ -366,6 +366,24 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: '016',
+    name: 'per-user named encrypted RDP profiles',
+    async up(conn) {
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_rdp_profiles (
+          id CHAR(36) NOT NULL PRIMARY KEY,
+          user_id VARCHAR(30) NOT NULL,
+          name VARCHAR(100) NOT NULL,
+          encrypted_data MEDIUMTEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_rdp_profiles_user (user_id),
+          FOREIGN KEY (user_id) REFERENCES website_users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

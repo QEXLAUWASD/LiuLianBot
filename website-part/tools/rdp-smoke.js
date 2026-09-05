@@ -15,6 +15,24 @@ async function main() {
   if (!executablePath) throw new Error('Set RDP_BROWSER_PATH to a Chromium browser executable');
   const app = express();
   app.get('/api/auth/me', (req, res) => res.json({ loggedIn: true, user: { username: 'RDP test', role: 'admin' } }));
+
+  // Exercise the real encrypted profile router with an in-memory test repository.
+  process.env.REMOTE_CREDENTIAL_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString('base64');
+  const profiles = new Map();
+  const repo = {
+    list: async user => [...profiles.values()].filter(p => p.user === user).map(({id,name}) => ({id,name})),
+    get: async (user,id) => profiles.get(id)?.user === user ? profiles.get(id) : null,
+    create: async (user,id,name,encrypted_data) => profiles.set(id,{user,id,name,encrypted_data}),
+    update: async (user,id,name,encrypted_data) => {
+      if (profiles.get(id)?.user !== user) return false;
+      profiles.set(id,{user,id,name,encrypted_data}); return true;
+    },
+    remove: async (user,id) => profiles.get(id)?.user === user && profiles.delete(id),
+  };
+  app.use(express.json());
+  app.use('/api/rdp/profiles', (req,res,next) => { req.session = {user:{id:'smoke-user'}}; next(); },
+    require('../src/routes/rdp_profiles').createRouter(repo));
+
   app.get('/api/remote-profile', (req, res) => res.json({ features: { rdp: true, ssh: false }, profile: null, serverStorageAvailable: false }));
   app.get('/api/page-visibility', (req, res) => res.json({ pages: { remote: true } }));
   app.get('/api/connections', (req, res) => res.json({ connections: [] }));
@@ -60,7 +78,43 @@ async function main() {
       await fill('#rdpPassword', 'test-only');
       await page.click('#rdpConnect');
     };
-    await connect('desktop.example');
+
+    await page.waitForFunction(() => !document.querySelector('#saveRdp').disabled);
+    await fill('#rdpProfileName', 'Home desktop');
+    await fill('#rdpHost', 'desktop.example');
+    await fill('#rdpUsername', 'test-user');
+    await fill('#rdpPassword', 'test-only');
+    await page.click('#saveRdp');
+    await page.waitForFunction(() => document.querySelector('#rdpProfileList').options.length === 2 && !document.querySelector('#saveRdp').disabled);
+    const homeId = await page.$eval('#rdpProfileList', element => element.value);
+    await page.click('#newRdp');
+    assert.equal(await page.$eval('#rdpPassword', element => element.value), '');
+    await fill('#rdpProfileName', 'Office desktop');
+    await fill('#rdpHost', 'office.example');
+    await fill('#rdpUsername', 'test-user');
+    await fill('#rdpPassword', 'office-secret');
+    await page.click('#saveRdp');
+    await page.waitForFunction(() => document.querySelector('#rdpProfileList').options.length === 3 && !document.querySelector('#saveRdp').disabled);
+    const officeId = await page.$eval('#rdpProfileList', element => element.value);
+    await page.select('#rdpProfileList', homeId);
+    await page.waitForFunction(() => document.querySelector('#rdpPassword').value === 'test-only');
+    await fill('#rdpProfileName', 'Home renamed');
+    await fill('#rdpPassword', '');
+    await page.click('#saveRdp');
+    await page.waitForFunction(() => document.querySelector('#rdpProfileList').selectedOptions[0].textContent === 'Home renamed' && !document.querySelector('#loadRdp').disabled);
+    await page.click('#loadRdp');
+    await page.waitForFunction(() => document.querySelector('#rdpPassword').value === 'test-only');
+    await page.select('#rdpProfileList', officeId);
+    await page.waitForFunction(() => document.querySelector('#rdpPassword').value === 'office-secret');
+    await page.click('#deleteServerProfile');
+    await page.waitForFunction(() => document.querySelector('#rdpProfileList').options.length === 2 && !document.querySelector('#rdpProfileList').disabled);
+    assert.equal(profiles.size, 1);
+    assert.ok(![...profiles.values()][0].encrypted_data.includes('test-only'));
+    await page.select('#rdpProfileList', homeId);
+    await page.waitForFunction(() => document.querySelector('#rdpPassword').value === 'test-only');
+    // Connect using the restored password rather than typing it again.
+    await page.click('#rdpConnect');
+
     await page.waitForFunction(() => document.querySelector('#rdpStatusBadge').dataset.state === 'connected');
     await page.waitForFunction(() => document.querySelector('#rdpCanvas').getContext('2d').getImageData(0, 0, 1, 1).data[0] === 255);
     assert.deepEqual(await page.$eval('#rdpCanvas', canvas => [...canvas.getContext('2d').getImageData(0, 0, 1, 1).data]), [255, 0, 0, 255]);
@@ -102,7 +156,7 @@ async function main() {
     assert.equal(await page.$eval('#rdpDisconnect', element => element.disabled), true);
     assert.equal(attempts, 3);
     assert.deepEqual(errors, []);
-    console.log('RDP browser smoke passed: real RLE render, focused keyboard, scaled mouse, password clearing, cancel/error/reconnect/disconnect.');
+    console.log('RDP browser smoke passed: named encrypted profile CRUD and restored password login, real RLE render, focused keyboard, scaled mouse, password clearing, cancel/error/reconnect/disconnect.');
   } finally {
     await browser?.close();
     await new Promise(resolve => io.close(resolve));

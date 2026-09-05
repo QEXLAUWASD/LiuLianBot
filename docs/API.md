@@ -280,3 +280,21 @@ npm run check
 0（移動）、1（左）、2（右）、3（中），滾輪步幅為整數 1–255。
 `scancode(code, isPressed)` 接受一般掃描碼 1–127 或 E0 擴充掃描碼
 `0xE001–0xE07F`；bridge 會拆成低位掃描碼與 extended 旗標。
+
+### 每使用者命名 RDP 設定
+
+以下 API 需要現有遠端存取權限及啟用 RDP，並回傳 `Cache-Control: no-store`：
+
+| Method | Path | 用途 |
+|---|---|---|
+| GET | /api/rdp/profiles | 回傳 `{ available, profiles: [{ id, name }] }`，不含密碼 |
+| POST | /api/rdp/profiles | 新增，回傳 201 `{ id, name }` |
+| GET | /api/rdp/profiles/:id | 回傳 `{ profile }`，包含解密後的連線資料與已儲存密碼 |
+| PUT | /api/rdp/profiles/:id | 更新，成功 204；密碼留空／省略會保留舊密碼 |
+| DELETE | /api/rdp/profiles/:id | 刪除所選設定，成功 204 |
+
+新增／更新 body：`{ name, host, port?, username, domain?, password? }`。
+名稱 1–100 字元；連線欄位沿用 RDP 驗證。帳號 ID 只從 session 取得，
+不接受 body 指定擁有者；不存在或其他帳號的 ID 均回傳 404。
+未設定加密金鑰時清單回傳 `available: false`，其他操作回傳 503。
+資料庫 migration 016 新增獨立資料表，不變更舊版 remote-profile API。

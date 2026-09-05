@@ -5,6 +5,7 @@ const { remoteFeatures } = require('../services/remote_features');
 
 const router = express.Router();
 router.use(requireRemoteAccess);
+router.use('/profiles', require('./rdp_profiles').createRouter());
 
 function rdpFile({ host, port, username, domain }) {
   const lines = [

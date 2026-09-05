@@ -28,7 +28,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - One-time account linking lets Discord commands and website signups use the same identity
 - Terms acceptance records consent for website data storage; remote SSH/RDP access can be limited to named user groups
 - Browser-based RDP desktop sessions using a modular Canvas client, plus RDP file generation
-- SSH terminal and remote profiles, with optional browser-local or AES-256-GCM encrypted server-side connection profiles; WebRDP passwords are session-only
+- SSH terminal and remote profiles, with optional browser-local or AES-256-GCM encrypted server-side connection profiles; named RDP profiles can also store encrypted passwords
 - Built-in Chromium workspace using Puppeteer and Chrome DevTools Protocol screencast
 - Admin page-visibility controls for guests, all signed-in users, selected website groups, and selected users
 - An Interim VLESS Tunnel page that merges a short-lived VLESS profile into an existing VLESS address list or Clash/Mihomo YAML
@@ -508,7 +508,7 @@ graceful `SIGINT` or `SIGTERM` shutdown.
 - Set `REMOTE_SSH_ENABLED=false` or `REMOTE_RDP_ENABLED=false` to disable that remote feature globally, including for administrators.
 - Remote access requires both accepted website terms and membership in one of the groups listed in `REMOTE_ALLOWED_GROUPS`.
 - Browser-local remote profiles use `localStorage`; do not use browser storage on shared or untrusted devices.
-- WebRDP passwords are sent only for the active Socket.IO connection and are not included in saved profiles.
+- Named RDP profiles optionally store passwords encrypted with AES-256-GCM; passwords are never written to browser localStorage. Legacy remote profiles still exclude passwords.
 - Keep `REMOTE_CREDENTIAL_ENCRYPTION_KEY` outside source control and back it up securely; it protects stored SSH private keys and RDP connection details.
 
 ## Dependencies
@@ -537,7 +537,8 @@ form or another window releases held keys. Fit-to-window mode rescales
 pointer coordinates; switching to original size changes only the display
 scale, not the remote desktop resolution. A dropped connection requires an
 explicit reconnect and a new password entry. Passwords are cleared from the
-form after submission and are excluded from saved profiles.
+form after connecting. Named database profiles may retain encrypted passwords;
+use Load profile to restore one for another connection.
 
 The bridge allows one RDP attempt per Socket.IO connection, reloads the login
 session before connecting, and connects to the IP returned by destination
@@ -574,3 +575,27 @@ subnet for your deployment. Comma-separated hostnames, IPs and IPv4 CIDRs are
 supported. An empty list allows public destinations only; a nonempty list
 restricts all destinations to matching entries, including private addresses.
 The bridge connects to the validated IP. SSH rules are unchanged.
+
+### Multiple RDP profiles per user
+
+The Remote page supports named RDP connections with host, port, username,
+domain and an optional password. Select **New**, enter a name and connection
+details, then **Save**. Select a saved entry or use **Load profile** to restore
+its credentials. Saving an existing entry updates only that entry; a blank
+password preserves its saved password. Deleting an entry removes only that
+profile. Saving a password does not start a remote session.
+
+Profiles are stored in `website_rdp_profiles`, with every operation scoped to
+the signed-in user's ID. Migration `016` creates the table automatically on
+website startup. Names are list metadata; connection details and passwords
+are encrypted using the existing `REMOTE_CREDENTIAL_ENCRYPTION_KEY`.
+Set this to a stable Base64-encoded 32-byte key before enabling storage,
+keep it outside version control, and retain it across deployments.
+Without the key, connection functionality remains available but profile
+storage is disabled with a setup message. Existing remote-access permissions
+continue to apply.
+
+Legacy single profiles are not deleted. When present, the page loads their
+details into a new entry named "舊版 RDP 設定" for explicit saving. Named
+profiles are loaded on selection; their passwords are not exposed in the
+profile list response or stored in localStorage.
