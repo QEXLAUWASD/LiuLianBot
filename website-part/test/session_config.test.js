@@ -11,7 +11,7 @@ test('production requires an explicit session secret', () => {
 
 test('production cookies are secure and development cookies are not', () => {
   const production = buildSessionOptions(
-    { NODE_ENV: 'production', SESSION_SECRET: 'test-secret' },
+    { NODE_ENV: 'production', SESSION_SECRET: 'test-session-secret-0123456789abcdef' },
     {}
   );
   const development = buildSessionOptions({}, {});
