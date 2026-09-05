@@ -14,7 +14,7 @@ test('production cookies are secure and development cookies are not', () => {
     { NODE_ENV: 'production', SESSION_SECRET: 'test-session-secret-0123456789abcdef' },
     {}
   );
-  const development = buildSessionOptions({}, {});
+  const development = buildSessionOptions({ SESSION_SECRET: 'test-session-secret-0123456789abcdef' }, {});
 
   assert.equal(production.cookie.secure, true);
   assert.equal(development.cookie.secure, false);
