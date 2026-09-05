@@ -558,3 +558,19 @@ The test covers real RLE rendering, keyboard focus, scaled pointer input,
 password clearing, cancellation, errors, and reconnecting. A real Windows
 RDP authentication/desktop session must still be checked in the deployment
 environment; the protocol engine remains `@electerm/rdpjs`.
+
+### Private-network RDP destinations
+
+Private RDP hosts must explicitly match `RDP_ALLOWED_HOSTS`. For example, in
+`website-part/.env`:
+
+```dotenv
+RDP_ALLOWED_HOSTS=192.168.0.0/24
+```
+
+Restart the website after deploying this fix and changing the environment.
+This example allows RDP to the 192.168.0.x subnet; choose the intended host or
+subnet for your deployment. Comma-separated hostnames, IPs and IPv4 CIDRs are
+supported. An empty list allows public destinations only; a nonempty list
+restricts all destinations to matching entries, including private addresses.
+The bridge connects to the validated IP. SSH rules are unchanged.

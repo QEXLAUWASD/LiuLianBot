@@ -470,3 +470,11 @@ Discord Bot 嘅依賴已列喺 `discord-part/requirements.txt`。網站嘅依賴
 測試畫面、輸入同重連。若未能自動搵到瀏覽器，設定 `RDP_BROWSER_PATH`
 指向 Chrome／Edge／Chromium。此測試唔會連真實 RDP 主機；Windows
 登入同實際桌面仍需喺部署環境驗證。
+
+### RDP 內網允許清單
+
+部署修正後，喺 `website-part/.env` 設定
+`RDP_ALLOWED_HOSTS=192.168.0.0/24`，再重啟網站，即可允許連接
+192.168.0.x 網段。請按實際需要填主機或網段；支援逗號分隔嘅
+主機名稱、IP 同 IPv4 CIDR。空清單只允許公網；非空清單只允許
+符合項目嘅目標，包括內網。此修正唔會改變 SSH 規則。

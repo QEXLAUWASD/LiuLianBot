@@ -34,9 +34,12 @@ async function authorizeSocket(socket, reload = false) {
   if (!remoteFeatures().rdp) throw new Error('RDP is disabled');
   if (!await userHasRemoteAccess(userId)) throw new Error('Remote access required');
 }
-async function resolveConnection(infos) {
+async function resolveConnection(infos, allowedHosts = allowedRemoteHosts(process.env.RDP_ALLOWED_HOSTS)) {
   const connection = normalizeWebRdpInput(infos);
-  const addresses = await assertResolvedRemoteHost(connection.host, allowedRemoteHosts(process.env.RDP_ALLOWED_HOSTS));
+  // The resolver must match the nonempty allowlist before permitting private addresses.
+  const addresses = await assertResolvedRemoteHost(connection.host, allowedHosts, {
+    allowPrivate: allowedHosts.size > 0,
+  });
   // Pin the validated IP instead of performing a second DNS lookup at connect time.
   return { ...connection, address: addresses[0] };
 }
@@ -53,4 +56,4 @@ function attachRdpServer(server, { sessionMiddleware }) {
   }));
   return io;
 }
-module.exports = { attachRdpServer, errorPayload, screenSize };
+module.exports = { attachRdpServer, errorPayload, screenSize, resolveConnection };
