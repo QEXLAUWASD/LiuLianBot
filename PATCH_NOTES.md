@@ -17,6 +17,23 @@
 - Added a CI guard that rebuilds the bundle and fails when `website-part/public` is
   stale.
 
+### Follow-up: registration failed on databases created by these migrations
+
+- Registration returned `500 / INTERNAL_ERROR` with
+  `ER_DATA_TOO_LONG: Data too long for column 'id'`.
+- Migration 001 declared `website_users.id` (and every referencing
+  `user_id`/`created_by` column) as `VARCHAR(30)`, while the application
+  generates `crypto.randomUUID()` ids of 36 characters, so no account could be
+  created on a fresh database.
+- Migration 017 widens those columns to `VARCHAR(64)`. Because InnoDB refuses to
+  change a column that a foreign key still uses, it reads the referencing keys
+  (with their delete/update rules) from `information_schema`, drops them, widens
+  the columns, then recreates the same foreign keys. Columns that are already
+  wide enough are skipped, so the migration is safe to replay.
+- Verified against a local MariaDB 10.11 instance: 16 columns became
+  `varchar(64)`, all 9 foreign keys were restored, and register → login → page
+  and API requests then succeeded. Two migration regression tests were added.
+
 ## Since `396b4947a6c58ed6f4f069ec7771af6c4c9525ae`
 
 - Hardened session signing by removing the predictable fallback secret.

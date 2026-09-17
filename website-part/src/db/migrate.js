@@ -6,6 +6,47 @@ async function addColumnIfMissing(conn, sql) {
   }
 }
 
+function quoteIdentifier(value) {
+  return `\`${String(value).replace(/`/g, '``')}\``;
+}
+
+async function columnLength(conn, table, column) {
+  const [rows] = await conn.execute(
+    `SELECT CHARACTER_MAXIMUM_LENGTH AS length
+       FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+    [table, column]
+  );
+  if (rows.length === 0) return null;
+  const value = rows[0].length;
+  return value === null || value === undefined ? null : Number(value);
+}
+
+// Widens a column only when it is still too short, so the migration is safe to
+// replay on databases that already store longer identifiers.
+async function widenColumn(conn, table, column, definition, minimumLength = 64) {
+  const length = await columnLength(conn, table, column);
+  if (length === null || length >= minimumLength) return false;
+  await conn.execute(
+    `ALTER TABLE ${quoteIdentifier(table)} MODIFY COLUMN ${quoteIdentifier(column)} ${definition}`
+  );
+  return true;
+}
+
+// User ids are `crypto.randomUUID()` values (36 characters) while migration 001
+// declared 30 character columns, so every insert failed with ER_DATA_TOO_LONG.
+const USER_ID_COLUMNS = [
+  ['website_user_roles', 'user_id'],
+  ['website_connection_users', 'user_id'],
+  ['website_page_visibility_users', 'user_id'],
+  ['website_remote_profiles', 'user_id'],
+  ['website_rdp_profiles', 'user_id'],
+  ['website_event_participants', 'user_id'],
+  ['website_link_codes', 'user_id'],
+  ['website_events', 'created_by'],
+  ['website_announcements', 'created_by'],
+];
+
 const MIGRATIONS = [
   {
     version: '001',
@@ -382,6 +423,60 @@ const MIGRATIONS = [
           FOREIGN KEY (user_id) REFERENCES website_users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
+    },
+  },
+  {
+    version: '017',
+    name: 'widen website user identifiers for uuid ids',
+    async up(conn) {
+      // Foreign keys have to be dropped first: InnoDB refuses to change a column
+      // that a foreign key still uses, even with FOREIGN_KEY_CHECKS disabled.
+      const [referencingKeys] = await conn.execute(
+        `SELECT k.TABLE_NAME AS table_name, k.COLUMN_NAME AS column_name,
+                k.CONSTRAINT_NAME AS constraint_name,
+                r.DELETE_RULE AS delete_rule, r.UPDATE_RULE AS update_rule
+           FROM information_schema.KEY_COLUMN_USAGE k
+           JOIN information_schema.REFERENTIAL_CONSTRAINTS r
+             ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
+            AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+          WHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME = 'website_users'`
+      );
+
+      const keys = referencingKeys.map(row => ({
+        table: row.table_name ?? row.TABLE_NAME,
+        column: row.column_name ?? row.COLUMN_NAME,
+        constraint: row.constraint_name ?? row.CONSTRAINT_NAME,
+        deleteRule: row.delete_rule ?? row.DELETE_RULE,
+        updateRule: row.update_rule ?? row.UPDATE_RULE,
+      }));
+
+      for (const key of keys) {
+        await conn.execute(
+          `ALTER TABLE ${quoteIdentifier(key.table)} DROP FOREIGN KEY ${quoteIdentifier(key.constraint)}`
+        );
+      }
+
+      await widenColumn(conn, 'website_users', 'id', 'VARCHAR(64) NOT NULL');
+
+      const widened = new Set(keys.map(key => `${key.table}.${key.column}`));
+      for (const key of keys) {
+        await widenColumn(conn, key.table, key.column, 'VARCHAR(64) NOT NULL');
+      }
+      // Reference columns that exist without a foreign key still have to fit a
+      // UUID, so widen the known list as well.
+      for (const [table, column] of USER_ID_COLUMNS) {
+        if (widened.has(`${table}.${column}`)) continue;
+        await widenColumn(conn, table, column, 'VARCHAR(64) NOT NULL');
+      }
+
+      for (const key of keys) {
+        await conn.execute(
+          `ALTER TABLE ${quoteIdentifier(key.table)}
+             ADD CONSTRAINT ${quoteIdentifier(key.constraint)}
+             FOREIGN KEY (${quoteIdentifier(key.column)}) REFERENCES website_users (id)
+             ON DELETE ${key.deleteRule} ON UPDATE ${key.updateRule}`
+        );
+      }
     },
   },
 ];

@@ -361,3 +361,10 @@
 - CSS、圖示、manifest 與 Socket.IO／RDP 解碼器等第三方資源移至 `frontend/static`，建置後輸出到 `website-part/public`（含 `/assets/*.js`，已納入版本控制）。
 - 前端測試改為 React 元件測試，使用 `node:test` + jsdom，並以 esbuild JSX loader 轉換 `.jsx` 與 JSX 測試檔；CI 新增重建檢查，`website-part/public` 過期會直接失敗。
 - 未連線實際 Windows RDP 主機或 MySQL 驗證；`npm run check`（語法檢查、建置、227 項測試）全部通過。
+
+## 2026-09-17 — 修正新資料庫無法註冊帳號
+
+- 實際啟動網站後發現註冊 API 回 500：`ER_DATA_TOO_LONG: Data too long for column 'id'`。
+- 原因：migration 001 將 `website_users.id` 及所有 `user_id`／`created_by` 欄位設為 `VARCHAR(30)`，但程式使用 `crypto.randomUUID()`（36 字元），因此由 migration 建立的新資料庫完全無法新增帳號。
+- 新增 migration 017：先由 `information_schema` 讀出參照 `website_users` 的外鍵（含刪除／更新規則）並 drop，將上述欄位擴為 `VARCHAR(64)`，再依原規則重建外鍵；長度已足夠的欄位會跳過，可安全重跑。
+- 驗證：以本機 MariaDB 10.11 實際套用，16 個欄位變為 `varchar(64)`、9 個外鍵全部還原，之後註冊、登入、頁面與 API 請求全部成功；另新增 2 個 migration 回歸測試。
