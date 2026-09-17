@@ -113,7 +113,21 @@ export function LoginPage() {
   };
 
   return (
-    <div className="auth-container">
+    <main className="auth-container" id="main-content">
+      <aside className="auth-aside">
+        <p className="page-eyebrow">LiuLianBot</p>
+        <h2>Your home server, one sign-in away.</h2>
+        <p>
+          Sign in to roll Rainbow Six picks, plan events, browse the FnOS file
+          browser and open remote sessions to your own machines.
+        </p>
+        <ul>
+          <li><span aria-hidden="true">🎯</span> Operator and map rollers shared with the Discord bot</li>
+          <li><span aria-hidden="true">🗂️</span> FnOS file browser with expiring share links</li>
+          <li><span aria-hidden="true">🖥️</span> SSH, RDP and Chromium workspaces for linked accounts</li>
+        </ul>
+      </aside>
+
       <div className="auth-card tabs">
         <h1>🎮 LiuLianBot</h1>
         <p className="subtitle">R6 Roller System</p>
@@ -225,6 +239,6 @@ export function LoginPage() {
           </button>
         </TabPanel>
       </div>
-    </div>
+    </main>
   );
 }

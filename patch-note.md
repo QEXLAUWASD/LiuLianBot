@@ -1,6 +1,21 @@
 # 完整更新紀錄
 
-## 未提交更新（基準：`d17e122`）
+## 未提交更新（基準：`6f6e233`）
+
+- 重做 website-part 前端 UI：以單一設計系統取代舊紫色主題與 Remote／VLESS 頁各自為政的配色，統一使用品牌藍 `#1c6ba0`（同時是 PWA theme color）搭配青色 `#66d9c5` 作為次要強調色。
+- `frontend/static/css/style.css` 改寫為 token 化設計系統：深藍色階表面、`--radius`／`--shadow`／`--ring` 等形狀與層次變數、一致的表單、按鈕（primary／outline／danger／roll）、tabs、表格、badge、modal、toast、empty state 與 focus ring。
+- 導覽列重做為 sticky 玻璃質感頂欄：品牌標記、主要連結群組、`Workspaces ▾`（Remote／Chromium／VLESS）、`Websites ▾`（已連線網站）、`Manage ▾`（Discord servers／Admin）、使用者膠囊與登出；≤1080px 改為 `Menu` 收合抽屜，並新增 skip link 與 `#main-content` 頁面錨點。
+- 導覽分組後，`page-visibility` 與 `remoteAvailable` 過濾仍套用於選單內項目；`/api/connections` 仍於首次展開 `Websites` 時載入一次。
+- Dashboard 改為 hero（問候、說明與主要動作按鈕）加上工具卡片格；卡片加上 icon tile、hover 位移與箭頭提示。
+- 登入頁改為左右版面：左側品牌說明、右側登入／註冊卡片（tab 結構、`role="alert"` 錯誤訊息與所有 id 維持不變）。
+- Remote／WebRDP、SSH、Chromium、VLESS 與 FnOS 檔案頁改用同一組 token 與元件樣式；Chromium 網址列與檔案頁輸入框改為深色 inset 樣式。
+- `frontend/static/css/files.css` 以共用 token 重寫（檔案列表、分享面板、breadcrumbs、上傳欄位），不再使用獨立的灰藍色硬編碼。
+- `frontend/*.html` 的樣式版本參數更新為 `?v=20260917-ui2`，避免部署後瀏覽器沿用舊 CSS。
+- 重新建置 `website-part/public` 產物，並更新 `test/frontend/nav.test.mjs`：改為驗證分組選單（Workspaces／Manage）、`page-visibility` 於選單內仍生效，以及一次僅開啟一個選單。
+- 驗證：`npm run check`（JSX／Node 語法檢查、Vite 建置、251 項測試）全數通過；另以本機 Chromium 對 13 個頁面與 390／1024／1280／1440 寬度截圖比對版面（截圖僅為本機驗證，未納入版本庫）。
+- 尚未在 Router 部署環境重新驗證外觀；部署後需以實際瀏覽器確認導覽抽屜與各工作區頁面。
+
+## 已推送：FnOS 檔案管理與分享（`d17e122` → `6f6e233`）
 
 - 新增 Router 網站 FnOS 檔案管理與分享功能，限定存取 `/vol*/1000`。
 - 依 `31efd56` 的 React 架構移植前端：`frontend/files.html` 與 `frontend/share.html` 掛載共用 bundle，邏輯在 `frontend/src/pages/FilesPage.jsx`、`SharePage.jsx`，API 包裝在 `frontend/src/lib/filesApi.mjs`，樣式在 `frontend/static/css/files.css`。

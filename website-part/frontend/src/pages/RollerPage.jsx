@@ -162,7 +162,7 @@ export function RollerPage({ search = globalThis.location?.search || '' }) {
   };
 
   return (
-    <main className="main-content">
+    <main className="main-content" id="main-content">
       <div className="roller-container tabs">
         <h2>🎲 R6 Roller</h2>
 

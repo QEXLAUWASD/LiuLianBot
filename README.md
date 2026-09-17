@@ -34,6 +34,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - An Interim VLESS Tunnel page that merges a short-lived VLESS profile into an existing VLESS address list or Clash/Mihomo YAML
 - An FnOS file browser with per-account read/write/share grants and expiring, revocable share links that work without signing in
 - Discord server managers can configure the temporary private-voice trigger channel from the website dashboard
+- One shared dark design system for every page: brand-blue accents, tokenised colours/spacing/elevation, a grouped sticky navigation bar with a mobile drawer, and consistent buttons, forms, tables, modals and empty states
 
 ## Project structure
 
@@ -468,6 +469,12 @@ authorization rules, error behavior, and WebSocket/Socket.IO message protocols.
 
 Administrators can open Admin > Page Visibility to control which website subpages appear in navigation and dashboard links. Each page can be shown to non-logged-in visitors, all signed-in users, selected website groups, or selected users. The settings are also checked by the page routes; existing feature-specific requirements such as Remote access permissions still apply.
 
+The navigation groups the workspace screens (`remote.html`, `chromium.html`,
+`vless-tunnel.html`) under **Workspaces** and the administration screens
+(`guild-manager.html`, `admin.html`) under **Manage**. Page visibility and the
+per-account remote permission filter the entries inside those menus exactly like
+the top-level links, so a hidden page never appears in either place.
+
 ### Chromium workspace
 
 The Chromium page uses Puppeteer with Chrome DevTools Protocol (CDP) screencasting. The website server launches a headless Chrome/Chromium process, sends JPEG screencast frames over an authenticated WebSocket, and forwards browser input events back through CDP. Install Chrome or Chromium on the server; set `CHROME_EXECUTABLE_PATH` when the executable is not on `PATH`. On OpenWrt, where Chromium may not be available in the configured feed, set `CHROME_CDP_URL` to a Chrome DevTools endpoint on another machine instead. Each connected user owns a browser page that is closed when the WebSocket ends or its timeout is reached. Administrators can still use Admin > Page Visibility to decide which users or groups can see the Chromium page.
@@ -566,6 +573,26 @@ The website is a multi-page React application built with Vite:
   `chromiumSession.mjs`, and `frontend/src/lib/rdp/`.
 - `frontend/static/` is the Vite public directory; its CSS, icons, manifest and
   vendored Socket.IO/RDP decoder files are copied to `public/` on build.
+
+### Design system
+
+`frontend/static/css/style.css` is the single source of truth for the look of
+every page. It defines the palette, spacing, radii, elevation and focus tokens
+once — brand blue `--brand: #1c6ba0` (matching the PWA `theme-color`) with
+`--accent-2: #66d9c5` as the secondary highlight — and then styles the shared
+components (buttons, form fields, tabs, tables, badges, modals, toasts, empty
+states). `frontend/static/css/files.css` layers the FnOS file browser and public
+share screens on top of the same tokens.
+
+The shared navigation lives in `frontend/src/components/NavBar.jsx`. It renders
+the brand, the primary links, the **Workspaces**, **Websites** and **Manage**
+menus, and the account chip; below 1080 px it collapses into a `Menu` drawer.
+Only one menu is open at a time, and both the menu state and the drawer close on
+`Escape` or an outside click.
+
+Page entries reference the stylesheet with a version query
+(`/css/style.css?v=...`); bump that value whenever the CSS changes so browsers do
+not serve a cached copy after a deployment.
 
 The build writes the page entries into `website-part/public` and bundles the
 React app into `/assets/*.js`. Because the output is committed, CI rebuilds it and

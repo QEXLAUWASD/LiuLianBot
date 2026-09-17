@@ -50,7 +50,7 @@ export function TermsPage() {
   };
 
   return (
-    <main className="main-content legal-page">
+    <main className="main-content legal-page" id="main-content">
       <h1>服務條款與資料儲存說明</h1>
       <p>最後更新：2026-07-31</p>
       <h2>帳戶資料</h2>

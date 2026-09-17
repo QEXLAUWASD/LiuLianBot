@@ -81,7 +81,6 @@ test('signed-in admins get account, admin and connected website menus', async ()
     await flush();
 
     assert.equal(document.getElementById('navUsername').textContent, '👤 alice');
-    assert.equal(document.querySelector('a[href="/admin.html"]').textContent, 'Admin');
     assert.equal(document.querySelector('a[href="/files.html"]')?.textContent, 'Files');
     assert.equal(
       document.querySelector('a[href="/remote.html"]')?.hidden,
@@ -90,12 +89,34 @@ test('signed-in admins get account, admin and connected website menus', async ()
     );
     assert.equal(document.querySelector('a[href="/login.html"]') === null, true);
 
+    // Workspace and management screens sit behind the two grouped menus.
+    const workspaceMenu = document.getElementById('workspaceMenu');
+    assert.equal(
+      workspaceMenu.querySelector('a[href="/chromium.html"]'),
+      null,
+      'page visibility still filters grouped entries',
+    );
+    assert.equal(workspaceMenu.querySelector('a[href="/vless-tunnel.html"]') !== null, true);
+    const manageMenu = document.getElementById('manageMenu');
+    assert.equal(manageMenu.querySelector('a[href="/admin.html"]') !== null, true);
+    assert.equal(manageMenu.querySelector('a[href="/guild-manager.html"]') !== null, true);
+
+    const sectionToggles = [...document.querySelectorAll('.nav-menu-toggle')];
+    assert.equal(sectionToggles.length, 2);
+    assert.equal(sectionToggles.every(node => node.getAttribute('aria-expanded') === 'false'), true);
+    click(sectionToggles[0]);
+    await flush();
+    assert.equal(sectionToggles[0].getAttribute('aria-expanded'), 'true');
+    assert.equal(workspaceMenu.hidden, false);
+
+    // Opening the websites menu closes the workspace menu again.
     const toggle = document.querySelector('.nav-dropdown-toggle');
     assert.equal(toggle.getAttribute('aria-expanded'), 'false');
     click(toggle);
     await flush();
 
     assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+    assert.equal(workspaceMenu.hidden, true);
     assert.equal(fetchMock.callsTo('GET', '/api/connections').length, 1);
 
     const menu = document.getElementById('websiteDropdownMenu');

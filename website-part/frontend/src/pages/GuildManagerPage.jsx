@@ -94,7 +94,7 @@ export function GuildManagerPage() {
   const voiceChannels = (detail?.channels || []).filter(channel => channel.channel_type === 'voice');
 
   return (
-    <main className="main-content guild-manager-page">
+    <main className="main-content guild-manager-page" id="main-content">
       <div className="page-heading">
         <h1>Discord Server Manager</h1>
         <p>Manage settings for Discord servers where your linked account is an owner or bot administrator.</p>

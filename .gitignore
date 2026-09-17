@@ -216,11 +216,16 @@ AGENTS.md
 .streamlit/secrets.toml
 
 config.json
-node_modules/
+# No trailing slash: a symlinked install (node_modules -> elsewhere) is a file
+# as far as git is concerned and would slip past the directory-only rule.
+node_modules
 .env
 .worktrees/
 
 # Website frontend (Vite)
 website-part/frontend/.vite/
+# Crash dumps left behind by browser tooling run from the website folder.
+website-part/core
+website-part/core.*
 # The generic `lib/` rule above must not hide the frontend browser libraries.
 !website-part/frontend/src/lib/

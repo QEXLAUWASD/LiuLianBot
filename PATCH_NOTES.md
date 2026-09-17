@@ -1,5 +1,38 @@
 # Patch notes
 
+## Since `6f6e233`
+
+- Rebuilt the website UI on one shared design system, replacing the old purple
+  theme and the separate teal styling the remote pages had grown. The brand blue
+  (`#1c6ba0`, also the PWA theme colour) now leads, with teal `#66d9c5` as the
+  secondary accent.
+- Rewrote `frontend/static/css/style.css` around tokens: navy surface scale,
+  `--radius`/`--shadow`/`--ring` primitives, and consistent buttons, inputs,
+  tabs, tables, badges, modals, toasts, empty states and focus rings.
+- Rebuilt the navigation as a sticky, translucent top bar with a brand mark,
+  grouped `Workspaces` (Remote, Chromium, VLESS), `Websites` and `Manage`
+  (Discord servers, Admin) menus, plus a `Menu` drawer under 1080px. Added a
+  skip link and `#main-content` landmarks across every page.
+- Page visibility and `remoteAvailable` filtering still apply inside the grouped
+  menus, and `/api/connections` is still fetched once, when `Websites` first
+  opens.
+- Dashboard now opens with a hero (greeting, description, primary actions) above
+  the tool cards; cards gained icon tiles, hover lift and an arrow affordance.
+- Login is a two-column screen: brand copy on the left, the unchanged
+  login/register card (same tab semantics and element ids) on the right.
+- Remote/WebRDP, SSH, Chromium, VLESS and the FnOS file pages now share the same
+  tokens and component styles; the Chromium address bar and file inputs use the
+  dark inset treatment.
+- Rewrote `frontend/static/css/files.css` against the shared tokens instead of
+  its own hard-coded grey-blue palette.
+- Bumped the stylesheet version query in `frontend/*.html` to `?v=20260917-ui2`.
+- Rebuilt the committed `website-part/public` bundle and updated
+  `test/frontend/nav.test.mjs` to cover the grouped menus, visibility filtering
+  inside them, and the single-open-menu behaviour.
+- Verified with `npm run check` (syntax checks, Vite build, 251 tests) and local
+  Chromium screenshots of all 13 pages at 390/1024/1280/1440 px. The Router
+  deployment has not been re-checked visually yet.
+
 ## Since `d17e122`
 
 - Added the FnOS file browser and sharing feature, confined to `/vol*/1000` over SFTP.

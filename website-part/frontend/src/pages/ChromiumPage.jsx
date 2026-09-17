@@ -64,7 +64,7 @@ export function ChromiumPage() {
   const mouseButton = button => (button === 2 ? 'right' : button === 1 ? 'middle' : 'left');
 
   return (
-    <main className="main-content chromium-page">
+    <main className="main-content chromium-page" id="main-content">
       <div className="page-heading">
         <div>
           <h1>Chromium</h1>

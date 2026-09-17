@@ -388,7 +388,7 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
   const sshUsesKey = sshForm.authType === 'key';
 
   return (
-    <main className="main-content remote-page">
+    <main className="main-content remote-page" id="main-content">
       <header className="remote-hero">
         <div>
           <p className="remote-eyebrow">REMOTE WORKSPACE / WEBRDP</p>

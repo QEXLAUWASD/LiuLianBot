@@ -33,6 +33,7 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - Interim VLESS Tunnel 頁面：將短期 VLESS 連線加入現有 VLESS 位址或 Clash / Mihomo YAML
 - FnOS 檔案管理頁：支援逐個帳號嘅讀取、寫入同分享授權，並可產生有效期內、可撤銷嘅免登入分享碼
 - Admin 提供頁面可見度設定，可按未登入訪客、全部登入用戶、指定網站群組或指定用戶控制顯示
+- 全站共用同一套深色設計系統：品牌藍配色、統一嘅顏色／間距／陰影 token、分組式置頂導覽列（窄螢幕自動收成 Menu 抽屜），以及一致嘅按鈕、表單、表格、modal 同空狀態樣式
 
 ## 專案結構
 
@@ -406,6 +407,11 @@ npm test
 ### 頁面可見度
 
 管理員可以開啟 Admin > Page Visibility，控制網站子頁面會唔會出現喺導覽列及儀表板連結。每個頁面可以設定畀未登入訪客、全部登入用戶、指定網站群組或指定用戶顯示。頁面路由亦會檢查設定；Remote 等功能原有嘅專屬權限要求仍然有效。
+
+導覽列將工作區頁面（`remote.html`、`chromium.html`、`vless-tunnel.html`）group
+喺 **Workspaces** 選單，管理頁面（`guild-manager.html`、`admin.html`）就 group 喺
+**Manage** 選單。頁面可見度同帳戶嘅 Remote 權限一樣會過濾選單內嘅項目，隱藏咗嘅頁面
+兩個位置都唔會出現。
 
 ### Chromium 工作區
 

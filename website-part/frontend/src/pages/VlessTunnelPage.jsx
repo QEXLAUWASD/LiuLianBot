@@ -105,7 +105,7 @@ export function VlessTunnelPage() {
   }, [tabs.activeId]);
 
   return (
-    <main className="main-content">
+    <main className="main-content" id="main-content">
       <div className="tunnel-container">
         <header className="tunnel-hero">
           <div>

@@ -243,7 +243,7 @@ export function FilesPage() {
   });
 
   return (
-    <main className="main-content file-page">
+    <main className="main-content file-page" id="main-content">
       <header className="file-hero">
         <div>
           <p className="panel-kicker">FNOS STORAGE</p>

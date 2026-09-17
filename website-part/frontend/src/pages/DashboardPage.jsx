@@ -50,18 +50,39 @@ export function DashboardPage() {
   const { status, user } = useAuth();
   const pages = usePageVisibility();
   const visibility = pages || USER_PAGE_FALLBACK;
+  const signedIn = status === 'signed-in';
 
   return (
-    <main className="main-content">
+    <main className="main-content" id="main-content">
       <div className="dashboard">
-        <h2>
-          Welcome, <span id="welcomeName">{status === 'signed-in' ? user.username : ''}</span>!
-        </h2>
-        <p className="dashboard-desc">
-          This is the LiuLianBot web dashboard. Use the R6 Roller to randomly pick
-          operators and maps.
-        </p>
+        <section className="dashboard-hero">
+          <p className="page-eyebrow">LiuLianBot console</p>
+          <h2>
+            Welcome, <span id="welcomeName">{signedIn ? user.username : ''}</span>!
+          </h2>
+          <p className="dashboard-desc">
+            {signedIn
+              ? 'Your home server in one place — roll Rainbow Six picks, plan events and reach the machines on your network.'
+              : 'This is the LiuLianBot web dashboard. Use the R6 Roller to randomly pick operators and maps.'}
+          </p>
 
+          <div className="hero-actions">
+            {visibility.roller === true && (
+              <>
+                <a className="btn btn-primary" href="/roller.html">Roll an operator</a>
+                <a className="btn btn-outline" href="/roller.html?tab=map">Roll a map</a>
+              </>
+            )}
+            {signedIn && visibility.account === true && (
+              <a className="btn btn-outline" href="/account.html">Account settings</a>
+            )}
+            {!signedIn && (
+              <a className="btn btn-outline" href="/login.html">Sign in</a>
+            )}
+          </div>
+        </section>
+
+        <h3 className="feature-heading">Tools</h3>
         <div className="feature-cards">
           {DASHBOARD_CARDS.map(card => {
             const pageKey = card.pageKey || 'roller';

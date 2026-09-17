@@ -82,7 +82,7 @@ export function SharePage({ location = globalThis.location } = {}) {
   const breadcrumbs = breadcrumbTrail(current);
 
   return (
-    <main className="main-content file-page">
+    <main className="main-content file-page" id="main-content">
       <header className="file-hero">
         <div>
           <p className="panel-kicker">LIULIANBOT SHARE</p>

@@ -140,7 +140,7 @@ export function AccountPage() {
   };
 
   return (
-    <main className="main-content">
+    <main className="main-content" id="main-content">
       <div className="account-container">
         <h2>Account settings</h2>
         <p className="account-desc">Manage your sign-in details.</p>

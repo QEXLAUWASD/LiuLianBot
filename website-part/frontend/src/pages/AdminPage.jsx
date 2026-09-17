@@ -485,7 +485,7 @@ export function AdminPage() {
   };
 
   return (
-    <main className="main-content">
+    <main className="main-content" id="main-content">
       <div className="admin-container tabs" onClick={handleTableClick}>
         <h2>⚙️ Admin Panel</h2>
 

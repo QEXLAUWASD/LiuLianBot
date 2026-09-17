@@ -106,7 +106,7 @@ export function EventsPage() {
   };
 
   return (
-    <main className="main-content events-page">
+    <main className="main-content events-page" id="main-content">
       <header className="page-heading">
         <div>
           <h1>R6 Events</h1>
