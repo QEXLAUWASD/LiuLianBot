@@ -36,6 +36,21 @@
   Chromium screenshots of all 13 pages at 390/1024/1280/1440 px. The Router
   deployment has not been re-checked visually yet.
 
+### Deployment verification (Router)
+
+- Pulled `6c75c63` and `049516e` into `/opt/website/LiuLianBot`; the local
+  `website-part/start.sh` modification is mode-only (100755) and was preserved.
+- Restarted PM2 `liulianbot-website` (127.0.0.1:30011). The process returned
+  online and its log shows one clean shutdown/start pair with no errors.
+- `/login.html`, `/share.html`, `/terms.html` and `/404.html` answer 200, while
+  `/index.html`, `/files.html` and `/admin.html` still redirect to the login page
+  without a session.
+- The served pages reference `style.css?v=20260917-ui2`, the new
+  `/assets/main-CY3Dw-ot.js` bundle answers 200 while the previous bundle is gone,
+  and the deployed `style.css` and bundle match the committed copies by SHA-256.
+- Opened the live login page through an SSH tunnel at 1280 px and 390 px to
+  confirm the redesigned layout renders on the deployed build.
+
 ## Since `d17e122`
 
 - Added the FnOS file browser and sharing feature, confined to `/vol*/1000` over SFTP.

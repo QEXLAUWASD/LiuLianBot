@@ -16,6 +16,14 @@
 - 驗證：`npm run check`（JSX／Node 語法檢查、Vite 建置、251 項測試）全數通過；另以本機 Chromium 對 13 個頁面與 390／1024／1280／1440 寬度截圖比對版面（截圖僅為本機驗證，未納入版本庫）。
 - 尚未在 Router 部署環境重新驗證外觀；部署後需以實際瀏覽器確認導覽抽屜與各工作區頁面。
 
+### 部署驗證（Router）
+
+- 已將 `6c75c63`、`049516e` 拉進 `/opt/website/LiuLianBot`；Router 上 `website-part/start.sh` 為僅權限差異（100755）的本機修改，已保留。
+- 已重啟 PM2 `liulianbot-website`（`127.0.0.1:30011`），程序回復 online，log 只有一次正常關閉／啟動且無錯誤。
+- `/login.html`、`/share.html`、`/terms.html`、`/404.html` 回應 200；`/index.html`、`/files.html`、`/admin.html` 未登入時仍 302 導向登入頁。
+- 站上頁面已引用 `style.css?v=20260917-ui2`，新的 `/assets/main-CY3Dw-ot.js` 回應 200、舊 bundle 已不存在；部署後的 `style.css` 與 bundle 以 SHA-256 比對與版控內容一致。
+- 透過 SSH 通道以 1280px 與 390px 實際開啟線上登入頁，確認新版版面在部署版本正常呈現。
+
 ## 已推送：FnOS 檔案管理與分享（`d17e122` → `6f6e233`）
 
 - 新增 Router 網站 FnOS 檔案管理與分享功能，限定存取 `/vol*/1000`。
