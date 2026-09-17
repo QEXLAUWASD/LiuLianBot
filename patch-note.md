@@ -12,6 +12,8 @@
 - 新增 SFTP 主機金鑰驗證、路徑與權限測試，以及前端 `files_page`／`share_page` 測試與無障礙頁面條目測試。
 - 已重建 `website-part/public` 建置產物，並更新 README／README_HK、`docs/API.md`、`docs/file-browser.md`。
 - 舊版前端曾在 Router 以 FnOS `liulian` 帳號完成七個磁碟的實機讀寫與分享驗證；改版後需在部署環境重新驗證。連線憑證僅保留於私有設定。
+- 已推送並部署至 Router（`/opt/website/LiuLianBot`，PM2 `liulianbot-website`，`127.0.0.1:30011`）：`start.sh` 執行權限保留，服務正常啟動；`/login.html`、`/share.html` 回應 200，`/files.html` 未登入時 302 導向登入頁，檔案 API 未登入回應 401、無效分享碼回應 404。
+- 部署後實測：migration `017`～`019` 均已記錄，`website_users.id` 及所有參照欄位為 `VARCHAR(64)`，11 個指向 `website_users` 的外鍵完整還原；以 36 字元 UUID 於交易內插入用戶成功並已 rollback（無殘留資料），SFTP 可列出 `vol1`～`vol7` 及 `vol1` 內容。
 
 > 涵蓋範圍：`5f342de`（2025-12-02，第一個 commit）至 `bf2875a`（2026-09-04，最新 commit）。共 193 個 commit。以下依 commit 時間排序；合併提交與小型修復亦完整保留。
 

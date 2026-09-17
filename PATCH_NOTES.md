@@ -22,6 +22,18 @@
   `docs/API.md`, and refreshed `docs/file-browser.md`, the READMEs and the
   environment table.
 
+### Deployment verification (Router)
+
+- Pulled both commits into `/opt/website/LiuLianBot`, kept the local `start.sh`
+  executable bit, and restarted PM2 `liulianbot-website` (127.0.0.1:30011).
+- `/login.html` and `/share.html` answer 200, `/files.html` redirects to the login
+  page when unauthenticated, `/api/files/access` answers 401 without a session,
+  and an unknown share code answers 404.
+- Migration `019` widened `website_users.id` and every referencing column to
+  `VARCHAR(64)` and restored all 11 foreign keys. A 36 character UUID user insert
+  succeeded inside a rolled back transaction, leaving no rows behind.
+- SFTP lists `vol1`-`vol7` and reads `vol1`, so the file browser is connected.
+
 ## Since `d921fe3ab06e76f7940726d55994ace22afe53aa`
 
 - Rewrote the website frontend as a React application built with Vite.
