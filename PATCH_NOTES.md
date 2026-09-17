@@ -36,7 +36,22 @@
   dashboard filter/sort/pagination behaviour.
 - Verified with `npm run check` (syntax checks, Vite build, 252 tests) and local
   Chromium screenshots of the dashboard (390/1024/1440 px, collapsed rail and
-  drawer) plus the other pages. Not deployed to the Router yet.
+  drawer) plus the other pages.
+
+### Deployment verification (Router)
+
+- Pulled `74f229e` into `/opt/website/LiuLianBot`; the local `start.sh` mode
+  change (100755) was preserved, and PM2 `liulianbot-website` restarted cleanly.
+- `/login.html`, `/share.html` and `/css/style.css` answer 200; `/index.html` and
+  `/files.html` still redirect to the login page without a session.
+- The deployed pages reference `style.css?v=20260917-ui3`, the new
+  `/assets/main-D7qD83zy.js` bundle answers 200, the previous bundle is gone, and
+  the deployed `style.css` (`a8281c38…`) and bundle (`554ef974…`) match the
+  committed copies by SHA-256. The served CSS contains the new `app-shell`,
+  `navbar.sidebar`, `stat-card` and `data-table` rules.
+- Opened the live login page through an SSH tunnel to confirm the deployed build
+  renders. The signed-in dashboard needs credentials, so it was verified through
+  the byte-identical bundle and CSS instead.
 
 ## Since `6f6e233`
 

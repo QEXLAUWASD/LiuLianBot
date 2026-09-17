@@ -12,7 +12,14 @@
 - 修正 `.main-content` 在窄螢幕會被內部表格撐寬的問題（改為 `width: 100%` 搭配 `max-width`），14 個頁面在 390／768／1024／1440px 皆無水平溢出。
 - `frontend/*.html` 樣式版本參數更新為 `?v=20260917-ui3`；`test/frontend/app_shell.test.mjs` 改為驗證新框架（側邊欄、頂列、KPI 卡、工具清單）並新增表格篩選／排序／分頁測試。
 - 驗證：`npm run check`（語法檢查、Vite 建置、252 項測試）全數通過；另以本機 Chromium 對儀表板（390／1024／1440px、收合圖示列、抽屜）及各頁截圖比對。
-- 尚未部署至 Router；部署後需以實際瀏覽器確認側邊欄與儀表板。
+
+### 部署驗證（Router）
+
+- 已將 `74f229e` 拉進 `/opt/website/LiuLianBot`；`website-part/start.sh` 的本機權限修改（100755）保留。
+- 已重啟 PM2 `liulianbot-website`（`127.0.0.1:30011`），程序回復 online，log 只有一次正常關閉／啟動且無錯誤。
+- `/login.html`、`/share.html`、`/css/style.css` 回應 200；`/index.html`、`/files.html` 未登入時仍 302 導向登入頁。
+- 站上頁面已引用 `style.css?v=20260917-ui3`，新的 `/assets/main-D7qD83zy.js` 回應 200、舊 bundle 已不存在；部署後的 `style.css`（`a8281c38…`）與 bundle（`554ef974…`）以 SHA-256 比對與版控內容一致，站上 CSS 亦已包含 `app-shell`／`navbar.sidebar`／`stat-card`／`data-table` 等新樣式。
+- 透過 SSH 通道實際開啟線上登入頁截圖確認部署版本正常；需要登入的儀表板與側邊欄因無帳密未在站上開啟，但 bundle 與 CSS 與本機已逐一截圖驗證的版本逐位元相同。
 
 ## 已推送：UI 設計系統重做（`6f6e233` → `e2794df`）
 
