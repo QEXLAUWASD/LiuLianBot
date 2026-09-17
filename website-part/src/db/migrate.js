@@ -479,6 +479,37 @@ const MIGRATIONS = [
       }
     },
   },
+  {
+    version: '018',
+    name: 'FnOS file permissions and expiring shares',
+    async up(conn) {
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_file_permissions (
+          user_id VARCHAR(64) NOT NULL PRIMARY KEY,
+          can_read TINYINT(1) NOT NULL DEFAULT 0,
+          can_write TINYINT(1) NOT NULL DEFAULT 0,
+          can_share TINYINT(1) NOT NULL DEFAULT 0,
+          requested_at DATETIME NULL,
+          FOREIGN KEY (user_id) REFERENCES website_users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS website_file_shares (
+          id CHAR(36) NOT NULL PRIMARY KEY,
+          owner_id VARCHAR(64) NOT NULL,
+          code_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+          source_path TEXT NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          is_directory TINYINT(1) NOT NULL,
+          expires_at DATETIME NOT NULL,
+          revoked_at DATETIME NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_file_shares_owner (owner_id),
+          FOREIGN KEY (owner_id) REFERENCES website_users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

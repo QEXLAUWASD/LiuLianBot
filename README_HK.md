@@ -31,6 +31,7 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - 提供 SSH 終端機及 RDP 連線檔，設定可選擇只保存喺瀏覽器或以 AES-256-GCM 加密保存喺伺服器
 - 提供使用 Puppeteer 同 Chrome DevTools Protocol screencast 嘅內建 Chromium 工作區頁面
 - Interim VLESS Tunnel 頁面：將短期 VLESS 連線加入現有 VLESS 位址或 Clash / Mihomo YAML
+- FnOS 檔案管理頁：支援逐個帳號嘅讀取、寫入同分享授權，並可產生有效期內、可撤銷嘅免登入分享碼
 - Admin 提供頁面可見度設定，可按未登入訪客、全部登入用戶、指定網站群組或指定用戶控制顯示
 
 ## 專案結構
@@ -310,6 +311,12 @@ docker rm --force liulianbot-website
 | `VLESS_TUNNEL_INTERNAL_TARGET` | `web server internal network` | 頁面顯示嘅路由目標說明；實際路由由 VLESS listener 設定。 |
 | `VLESS_TUNNEL_TTL_SECONDS` | `3600` | 輸出結果標示嘅有效時間，範圍 60 秒至 24 小時。 |
 | `VLESS_TUNNEL_ALLOW_INSECURE` | `false` | 是否在輸出中略過 TLS 憑證驗證；除非使用受信任內網憑證，否則應保持 `false`。 |
+| `FILES_OWNER_USER_ID` | 空白 | FnOS 檔案擁有者嘅網站用戶 ID（唔係用戶名稱）；留空即停用檔案頁。 |
+| `FILES_SFTP_HOST` | 空白 | 網站伺服器可經 SFTP 連線嘅 FnOS 主機。 |
+| `FILES_SFTP_PORT` | `22` | FnOS SFTP 連接埠。 |
+| `FILES_SFTP_USER` | 空白 | 用嚟讀寫 `/vol*/1000` 嘅 SFTP 帳號。 |
+| `FILES_SFTP_PASSWORD` | 空白 | 該 SFTP 帳號密碼；只保存喺 `website-part/.env`。 |
+| `FILES_SFTP_HOST_SHA256` | 空白 | SSH 主機金鑰指紋，格式為 64 個十六進位 SHA-256 字元；不符時拒絕連線。 |
 
 ### 遠端用戶端設定
 
@@ -382,12 +389,15 @@ npm test
 
 ## 網站頁面及路由
 
-公開頁面包括 `login.html`、`terms.html`、`roller.html` 同 `404.html`。登入後可
-使用 `index.html`、`account.html`、`events.html`、`remote.html` 同
-`chromium.html`、`vless-tunnel.html` 同 `guild-manager.html`；管理員另外可以使用 `admin.html`。
+公開頁面包括 `login.html`、`terms.html`、`roller.html`、`share.html` 同
+`404.html`。登入後可使用 `index.html`、`account.html`、`events.html`、
+`remote.html`、`chromium.html`、`vless-tunnel.html`、`files.html` 同
+`guild-manager.html`；管理員另外可以使用 `admin.html`。`share.html` 毋須登入，
+因為分享碼本身就代表指定路徑嘅唯讀存取權。
 
 網站喺 `/api` 提供登入、帳戶及 Discord 連結、R6 抽選、活動、網站連線、管理員、
-遠端設定、VLESS tunnel 合併及 RDP 檔案 API。已授權嘅 HTTP/WebSocket 網站連線位於
+遠端設定、VLESS tunnel 合併、RDP 檔案同 FnOS 檔案（含免登入分享碼 API）。
+已授權嘅 HTTP/WebSocket 網站連線位於
 `/connect/<slug>/`；SSH 使用 `/api/ssh` WebSocket endpoint。
 
 完整 endpoint、請求欄位、權限、錯誤回應同 WebSocket/Socket.IO 訊息協定，請參考
@@ -499,3 +509,25 @@ Discord Bot 嘅依賴已列喺 `discord-part/requirements.txt`。網站嘅依賴
 需設定穩定嘅 Base64 32-byte `REMOTE_CREDENTIAL_ENCRYPTION_KEY`；
 未設定時會顯示提示並停用儲存。密碼唔會寫入 localStorage。
 舊版單組設定仍保留，可從表單另存為命名設定。
+
+### FnOS 檔案管理與分享
+
+Router 網站嘅 `/files.html` 透過 SFTP 存取 FnOS `/vol*/1000`，頁面同其他頁面一樣
+由 React 建立：`frontend/files.html` 掛載共用 bundle，邏輯喺
+`frontend/src/pages/FilesPage.jsx`，經 `frontend/src/lib/filesApi.mjs` 呼叫
+`/api/files`。公開頁 `frontend/share.html` 就掛載 `SharePage`，分享碼只會出現喺
+URL fragment。
+
+`FILES_OWNER_USER_ID` 綁定一個網站帳號做檔案擁有者：佢可以讀寫、分享所有
+`/vol*/1000` 目錄，並授權其他帳號讀取、寫入同分享；一般管理員唔會自動獲得檔案
+權限，改名亦唔會轉移擁有權。未獲授權嘅登入用戶會見到申請面板，待擁有者核准。
+
+擁有者或獲分享權限者可以建立 1 至 168 小時嘅分享碼；分享碼只以 SHA-256 雜湊
+保存並只顯示一次。收到分享碼嘅人毋須登入，喺 `/share.html` 即可讀取分享嘅檔案或
+資料夾；資料夾分享係即時路徑，之後新增嘅內容同樣可讀，直到分享碼過期或被撤銷。
+上傳上限 1 GiB，同名檔案唔會被覆蓋。所有操作只限喺 `/vol*/1000` 之內，路徑跳脫、
+符號連結同特殊裝置檔案一律拒絕。
+
+網站啟動時 migration `018` 會建立 `website_file_permissions` 同
+`website_file_shares`。完整部署步驟、權限設定同功能限制請參考
+[`docs/file-browser.md`](docs/file-browser.md)。

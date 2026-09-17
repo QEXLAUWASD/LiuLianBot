@@ -34,6 +34,7 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   app.use('/api/auth/register', authRateLimiter);
   app.use('/api/auth', routers.auth);
   app.use('/api/roller', routers.roller);
+  if (routers.files) app.use('/api/files', routers.files);
   if (routers.events) app.use('/api/events', routers.events);
   if (routers.guildManager) app.use('/api/guild-manager', routers.guildManager);
   app.use('/api/admin', routers.admin);
@@ -43,6 +44,15 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   if (routers.remoteProfile) app.use('/api/remote-profile', routers.remoteProfile);
   if (routers.mobileConnections) app.use('/api/mobile', routers.mobileConnections);
   if (routers.vlessTunnel) app.use('/api/vless-tunnel', routers.vlessTunnel);
+
+  app.get('/files.html', requirePageAuth, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'files.html'));
+  });
+  app.get('/share.html', (req, res) => {
+    res.set('Referrer-Policy', 'no-referrer');
+    res.set('Cache-Control', 'no-store');
+    res.sendFile(path.join(PUBLIC_DIR, 'share.html'));
+  });
 
   app.get('/roller.html', requirePageVisibility('roller'), (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'roller.html'));

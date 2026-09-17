@@ -82,6 +82,7 @@ test('signed-in admins get account, admin and connected website menus', async ()
 
     assert.equal(document.getElementById('navUsername').textContent, '👤 alice');
     assert.equal(document.querySelector('a[href="/admin.html"]').textContent, 'Admin');
+    assert.equal(document.querySelector('a[href="/files.html"]')?.textContent, 'Files');
     assert.equal(
       document.querySelector('a[href="/remote.html"]')?.hidden,
       true,

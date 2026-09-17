@@ -29,6 +29,7 @@ export const NAV_LINKS = Object.freeze([
   { href: '/remote.html', label: 'Remote', pageKey: 'remote', signedInOnly: true },
   { href: '/chromium.html', label: 'Chromium', pageKey: 'chromium', signedInOnly: true },
   { href: '/vless-tunnel.html', label: 'VLESS Tunnel', pageKey: 'vless-tunnel', signedInOnly: true },
+  { href: '/files.html', label: 'Files', signedInOnly: true },
   { href: '/account.html', label: 'Account', pageKey: 'account' },
   { href: '/guild-manager.html', label: 'Discord Manager', signedInOnly: true },
 ]);

@@ -26,6 +26,8 @@ const PAGES = [
   ['remote.html', 'remote'],
   ['chromium.html', 'chromium'],
   ['vless-tunnel.html', 'vless-tunnel'],
+  ['files.html', 'files'],
+  ['share.html', 'share'],
   ['404.html', '404'],
   ['terms.html', 'terms'],
 ];
@@ -57,6 +59,8 @@ test('page entries mount the React bundle and keep install metadata', async () =
     ['remote.html', true],
     ['guild-manager.html', true],
     ['vless-tunnel.html', true],
+    ['files.html', true],
+    ['share.html', false],
     ['terms.html', false],
   ]) {
     const document = new JSDOM(await readFile(resolve(frontendDir, pageName), 'utf8')).window.document;

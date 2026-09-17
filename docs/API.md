@@ -79,6 +79,52 @@ Discord 帳戶。
 可見、狀態為 `open` 且尚未開始的事件會被一般使用者讀取及操作。活動額滿時加入
 回應 `409`。
 
+## FnOS 檔案及分享
+
+`/api/files` 由 `website-part/src/routes/files.js` 提供。所有回應都加上
+`Cache-Control: no-store` 及 `Referrer-Policy: no-referrer`，每個 IP 每分鐘最多
+60 次請求。除 `GET`／`HEAD` 外，必須帶 `X-Files-Request: 1`，所以跨站表單無法
+觸發任何檔案變更。
+
+檔案存取權由 migration `018` 建立的 `website_file_permissions` 決定，
+`FILES_OWNER_USER_ID` 綁定嘅擁有者擁有全部權限。`read` 可瀏覽及下載，`write`
+需要 `read`，`share` 亦需要 `read`；一般管理員身份不會帶來檔案權限。路徑一律
+相對 `/vol*/1000`，根目錄 `path=` 列出可用磁碟。
+
+### 公開分享（毋須登入）
+
+| 方法 | 路徑 | 請求 | 成功回應 |
+| --- | --- | --- | --- |
+| `POST` | `/api/files/shared/list` | `{ code, path? }`；`code` 為 32 位小寫十六進位 | `{ name, directory, path, expiresAt, entries }` |
+| `POST` | `/api/files/shared/download` | `{ code, path? }` | 檔案串流（`Content-Disposition: attachment`） |
+
+分享碼放在 POST body，避免出現在 access log URL。碼無效、已撤銷或已過期回應
+`404 { error: "分享碼無效或已過期" }`；單檔分享帶非空 `path` 回應 `403`。分享碼
+只保存 SHA-256 雜湊，建立時只顯示一次。
+
+### 需登入的檔案 API
+
+| 方法 | 路徑 | 權限 | 請求 | 成功回應 |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/files/access` | 登入 | 無 | `{ owner, userId, read, write, share, requested }` |
+| `POST` | `/api/files/access/request` | 登入 | 無 | `204` |
+| `GET` | `/api/files/list` | `read` | `path`（query，可空） | `{ path, entries: [{ name, directory, size, modified }] }` |
+| `GET` | `/api/files/download` | `read` | `path`（query） | 檔案串流 |
+| `GET` | `/api/files/permissions` | 擁有者 | 無 | `{ users: [{ user_id, username, can_read, can_write, can_share, requested_at }] }` |
+| `PUT` | `/api/files/permissions` | 擁有者 | `{ username, read, write, share }` | `204` |
+| `GET` | `/api/files/shares` | `share` | 無 | `{ shares: [{ id, name, is_directory, expires_at, created_at }] }`；擁有者看到全部 |
+| `POST` | `/api/files/shares` | `share` | `{ path, hours }`；`hours` 為 1 至 168 整數 | `201 { id, code, name, expiresAt }` |
+| `DELETE` | `/api/files/shares/:id` | `share` | 無 | `204`；擁有者可撤銷任何分享 |
+| `POST` | `/api/files/folder` | `write` | `{ path }` | `201` |
+| `POST` | `/api/files/rename` | `write` | `{ from, to }`；同一磁碟內 | `204` |
+| `DELETE` | `/api/files/entry` | `write` | `{ path }` | `204`；資料夾必須為空 |
+| `PUT` | `/api/files/upload` | `write` | `path`（query）＋ `Content-Type: application/octet-stream` body | `201` |
+
+沒有登入回應 `401`，權限不足回應 `403`，找不到項目回應 `404`，名稱重複、資料夾
+非空或空間不足回應 `409`，上傳超過 1 GiB 回應 `413`，SFTP 不可用回應 `502`，
+`FILES_OWNER_USER_ID` 或 SFTP 設定缺漏回應 `503`。上傳採排他建立
+（`flags: wx`），不會覆蓋既有檔案；路徑跳脫、符號連結及特殊裝置檔案一律拒絕。
+
 ## 網站連線及代理
 
 ### 使用者連線清單

@@ -32,6 +32,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - Built-in Chromium workspace using Puppeteer and Chrome DevTools Protocol screencast
 - Admin page-visibility controls for guests, all signed-in users, selected website groups, and selected users
 - An Interim VLESS Tunnel page that merges a short-lived VLESS profile into an existing VLESS address list or Clash/Mihomo YAML
+- An FnOS file browser with per-account read/write/share grants and expiring, revocable share links that work without signing in
 - Discord server managers can configure the temporary private-voice trigger channel from the website dashboard
 
 ## Project structure
@@ -365,6 +366,12 @@ runtime settings are read from `website-part/.env`.
 | `VLESS_TUNNEL_INTERNAL_TARGET` | `web server internal network` | Target description shown on the page; routing is performed by the VLESS listener. |
 | `VLESS_TUNNEL_TTL_SECONDS` | `3600` | Lifetime shown for generated output, clamped to 60 seconds-24 hours. |
 | `VLESS_TUNNEL_ALLOW_INSECURE` | `false` | Whether generated clients skip TLS certificate verification. |
+| `FILES_OWNER_USER_ID` | empty | Website user ID (not username) of the FnOS file owner; the browser is unavailable when empty. |
+| `FILES_SFTP_HOST` | empty | FnOS host reachable from the website server over SFTP. |
+| `FILES_SFTP_PORT` | `22` | FnOS SFTP port. |
+| `FILES_SFTP_USER` | empty | SFTP account used to read and write `/vol*/1000`. |
+| `FILES_SFTP_PASSWORD` | empty | Password for that SFTP account; kept in `website-part/.env` only. |
+| `FILES_SFTP_HOST_SHA256` | empty | Expected SSH host key as 64 hexadecimal SHA-256 characters; connections fail closed when it does not match. |
 
 ### Remote client configuration
 
@@ -438,13 +445,17 @@ Discord must be linked before creating an event. The website and bot share the s
 
 ## Website pages and routes
 
-The public pages are `login.html`, `terms.html`, `roller.html`, and `404.html`.
-Authenticated users can access `index.html`, `account.html`, `events.html`,
-`remote.html`, `chromium.html`, `vless-tunnel.html`, and `guild-manager.html`; administrators additionally have `admin.html`.
+The public pages are `login.html`, `terms.html`, `roller.html`, `share.html`, and
+`404.html`. Authenticated users can access `index.html`, `account.html`,
+`events.html`, `remote.html`, `chromium.html`, `vless-tunnel.html`, `files.html`,
+and `guild-manager.html`; administrators additionally have `admin.html`.
+`share.html` needs no session because the share code itself grants read-only
+access to the shared path.
 
 The website exposes JSON APIs under `/api` for authentication, account and Discord
 link management, R6 rolls, events, website connections, administration, remote
-profiles, and RDP file generation. The authenticated `remote.html` page also
+profiles, RDP file generation, and the FnOS file browser (including the public
+share-code endpoints). The authenticated `remote.html` page also
 provides an in-browser RDP workspace using the modular Canvas client, the bundled mstsc.js RLE decoder, and a
 Socket.IO bridge backed by `@electerm/rdpjs`. Authorized HTTP/WebSocket website
 connections are available under `/connect/<slug>/`. SSH uses the `/api/ssh`
@@ -640,3 +651,29 @@ Legacy single profiles are not deleted. When present, the page loads their
 details into a new entry named "舊版 RDP 設定" for explicit saving. Named
 profiles are loaded on selection; their passwords are not exposed in the
 profile list response or stored in localStorage.
+
+### FnOS file browser and sharing
+
+The Router-hosted website provides `/files.html` for browsing and writing FnOS
+`/vol*/1000` directories over SFTP. The page is implemented like every other
+page: `frontend/files.html` mounts the shared React bundle, and
+`frontend/src/pages/FilesPage.jsx` talks to `/api/files` through
+`frontend/src/lib/filesApi.mjs`. `frontend/share.html` mounts the public
+`SharePage` instead and keeps the share code in the URL fragment.
+
+`FILES_OWNER_USER_ID` pins one website account as the file owner. That account
+reads, writes and shares every `/vol*/1000` directory and grants read, write and
+share permissions to other accounts; general administrators do not inherit file
+access, and renaming a user does not move it. Other signed-in users see a request
+panel until the owner approves them.
+
+The owner (and anyone with the share grant) can create 1 to 168 hour share codes.
+Codes are stored as SHA-256 hashes and shown once; recipients open `/share.html`
+and read the shared file or folder without signing in. Folders are shared as live
+paths, so later files appear to recipients until the code expires or is revoked.
+Uploads are limited to 1 GiB and never overwrite an existing file. Everything
+stays confined to `/vol*/1000`: traversal, symlinks and device files are rejected.
+
+Migration `018` creates `website_file_permissions` and `website_file_shares` on
+startup. See [setup, permissions and limitations](docs/file-browser.md) for the
+full deployment checklist and the known limits of the feature.

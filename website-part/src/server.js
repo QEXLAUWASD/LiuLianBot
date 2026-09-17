@@ -13,6 +13,7 @@ const { attachChromiumServer } = require('./chromium_server');
 async function startServer() {
   await getPool();
   const auth = require('./routes/auth');
+  const files = require('./routes/files').createRouter();
   const roller = require('./routes/roller');
   const admin = require('./routes/admin');
   const adminConnections = require('./routes/admin_connections');
@@ -33,6 +34,7 @@ async function startServer() {
     sessionMiddleware,
     routers: {
       auth,
+      files,
       roller,
       admin,
       adminConnections,

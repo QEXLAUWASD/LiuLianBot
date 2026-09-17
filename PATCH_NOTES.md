@@ -1,5 +1,24 @@
 # Patch notes
 
+## Since `d17e122`
+
+- Added the FnOS file browser and sharing feature, confined to `/vol*/1000` over SFTP.
+- Ported its front end onto the React rewrite: `frontend/files.html` and
+  `frontend/share.html` mount the shared bundle, with `FilesPage.jsx`,
+  `SharePage.jsx`, `lib/filesApi.mjs`, and `static/css/files.css`.
+- Supports volume and folder navigation, per-folder filtering, streamed downloads,
+  uploads (1 GiB limit, exclusive create), folder creation, same-volume rename and
+  deletion of files or empty folders.
+- Pins `FILES_OWNER_USER_ID` as the file owner, which grants read, write and share
+  access to other accounts; the owner panel also approves pending requests.
+- Added 1-168 hour share codes stored as SHA-256 hashes, revocable by their creator
+  and readable from `/share.html` without signing in.
+- Added migration `018` for `website_file_permissions` and `website_file_shares`;
+  user ID columns use `VARCHAR(64)` where migration `017` widened them.
+- Rebuilt the committed `website-part/public` bundle, documented the endpoints in
+  `docs/API.md`, and refreshed `docs/file-browser.md`, the READMEs and the
+  environment table.
+
 ## Since `d921fe3ab06e76f7940726d55994ace22afe53aa`
 
 - Rewrote the website frontend as a React application built with Vite.

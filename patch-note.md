@@ -1,5 +1,17 @@
 # 完整更新紀錄
 
+## 未提交更新（基準：`d17e122`）
+
+- 新增 Router 網站 FnOS 檔案管理與分享功能，限定存取 `/vol*/1000`。
+- 依 `31efd56` 的 React 架構移植前端：`frontend/files.html` 與 `frontend/share.html` 掛載共用 bundle，邏輯在 `frontend/src/pages/FilesPage.jsx`、`SharePage.jsx`，API 包裝在 `frontend/src/lib/filesApi.mjs`，樣式在 `frontend/static/css/files.css`。
+- 支援目錄導覽、目前目錄搜尋、串流下載、上傳、新增資料夾、同磁碟重新命名及刪除檔案／空目錄；上傳上限 1 GiB 且不覆蓋同名檔案。
+- 綁定 LiuLian 帳號 ID 管理讀取、寫入及分享授權，其他帳號可提出存取申請。
+- 新增免登入分享碼，支援 1 至 168 小時期限、子目錄瀏覽、撤銷及 SHA-256 雜湊儲存。
+- 新增 migration `018` 建立檔案權限及分享資料表；用戶 ID 相關欄位依 migration `017` 使用 `VARCHAR(64)`，避免 UUID 寫入失敗。
+- 新增 SFTP 主機金鑰驗證、路徑與權限測試，以及前端 `files_page`／`share_page` 測試與無障礙頁面條目測試。
+- 已重建 `website-part/public` 建置產物，並更新 README／README_HK、`docs/API.md`、`docs/file-browser.md`。
+- 舊版前端曾在 Router 以 FnOS `liulian` 帳號完成七個磁碟的實機讀寫與分享驗證；改版後需在部署環境重新驗證。連線憑證僅保留於私有設定。
+
 > 涵蓋範圍：`5f342de`（2025-12-02，第一個 commit）至 `bf2875a`（2026-09-04，最新 commit）。共 193 個 commit。以下依 commit 時間排序；合併提交與小型修復亦完整保留。
 
 ## 版本總覽

@@ -16,6 +16,8 @@ const pageNames = [
   'remote',
   'chromium',
   'vless-tunnel',
+  'files',
+  'share',
   'terms',
   '404',
 ];
