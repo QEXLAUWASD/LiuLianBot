@@ -33,7 +33,7 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 - Interim VLESS Tunnel 頁面：將短期 VLESS 連線加入現有 VLESS 位址或 Clash / Mihomo YAML
 - FnOS 檔案管理頁：支援逐個帳號嘅讀取、寫入同分享授權，並可產生有效期內、可撤銷嘅免登入分享碼
 - Admin 提供頁面可見度設定，可按未登入訪客、全部登入用戶、指定網站群組或指定用戶控制顯示
-- 全站共用同一套深色設計系統：品牌藍配色、統一嘅顏色／間距／陰影 token、分組式置頂導覽列（窄螢幕自動收成 Menu 抽屜），以及一致嘅按鈕、表單、表格、modal 同空狀態樣式
+- 全站共用同一套深色設計系統：控制台式版面（左側導覽列＋頂列）、KPI 統計卡、帶篩選同分頁嘅列表／表格面板，以及一致嘅按鈕、表單、modal 同空狀態樣式
 
 ## 專案結構
 
@@ -409,9 +409,14 @@ npm test
 管理員可以開啟 Admin > Page Visibility，控制網站子頁面會唔會出現喺導覽列及儀表板連結。每個頁面可以設定畀未登入訪客、全部登入用戶、指定網站群組或指定用戶顯示。頁面路由亦會檢查設定；Remote 等功能原有嘅專屬權限要求仍然有效。
 
 導覽列將工作區頁面（`remote.html`、`chromium.html`、`vless-tunnel.html`）group
-喺 **Workspaces** 選單，管理頁面（`guild-manager.html`、`admin.html`）就 group 喺
-**Manage** 選單。頁面可見度同帳戶嘅 Remote 權限一樣會過濾選單內嘅項目，隱藏咗嘅頁面
-兩個位置都唔會出現。
+喺側邊欄 **Workspaces** 區塊，管理頁面（`guild-manager.html`、`admin.html`）就 group
+喺 **Administration** 區塊。頁面可見度同帳戶嘅 Remote 權限一樣會過濾區塊內嘅項目，
+隱藏咗嘅頁面兩個位置都唔會出現。
+
+已登入頁面會套用控制台式框架：左側導覽列（闊螢幕可收成圖示列，窄過 1080px 就變成由
+頂列打開嘅抽屜）加上顯示當前頁面名稱嘅頂列。儀表板就係首頁、四個 KPI 統計卡、
+「Priority」事件清單同「Tools」清單兩欄，再加一個有搜尋／狀態／排序篩選、事件表格同
+分頁嘅全寬面板。
 
 ### Chromium 工作區
 

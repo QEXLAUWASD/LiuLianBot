@@ -1,6 +1,20 @@
 # 完整更新紀錄
 
-## 未提交更新（基準：`6f6e233`）
+## 未提交更新（基準：`e2794df`）
+
+- 版面改為參考的控制台式框架：`App.jsx` 以 `.app-shell`（grid）包住左側導覽列與 `.app-main`（頂列＋頁面內容），已登入頁面全部套用；配色沿用原本品牌藍／青色，未改動色票。
+- `frontend/src/components/NavBar.jsx` 由頂部橫向導覽改寫為側邊欄：品牌、`Main` 連結（Home／R6 Roller／Events／Files／Account），再來是可收合的 `Workspaces`（Remote／Chromium／VLESS）、`Connected websites`（`/api/connections`，首次展開才載入）與 `Administration`（Discord servers／Admin panel），底部固定帳號、登出與收合按鈕。
+- 側邊欄支援寬螢幕圖示列收合（`data-nav-collapsed`，收合時圖示列仍可點擊，展開區塊會自動還原寬度）；≤1080px 改為覆蓋式抽屜，由頂列 ☰ 開啟，可用背景遮罩或 `Esc` 關閉。
+- 新增頂列（`.topbar`）：顯示 `App.jsx` 的 `PAGE_TITLES` 對應頁面名稱，各頁不需重複實作標題列。
+- 儀表板（`frontend/src/pages/DashboardPage.jsx`）重做：頁面標題＋主要動作、四張 KPI 卡（即將到來活動、我的報名、已連線網站、可用工具）、雙欄「Priority」事件清單與「Tools」工具清單，以及全寬面板（搜尋／狀態／排序篩選＋事件表格＋分頁）。
+- 儀表板改由 `/api/events`（活動與報名狀態）及 `/api/connections`（已連線網站數）取得真實資料；活動狀態分為 Joined／Signup open／Full，支援關鍵字搜尋、狀態篩選、依開始時間或報名人數排序、每頁 5 筆分頁，載入中與無資料皆有空狀態。
+- 共用樣式新增 token `--sidebar-width`、`--sidebar-rail`、`--topbar-height`，以及 `.app-shell`／`.sidebar`／`.topbar`／`.stat-card`／`.split-grid`／`.list-row`／`.tool-row`／`.filter-bar`／`.data-table`／`.pager` 等元件樣式；移除已不使用的 `.navbar-inner`、`.nav-toggle`、`.dashboard-hero`、`.feature-cards` 等規則。
+- 修正 `.main-content` 在窄螢幕會被內部表格撐寬的問題（改為 `width: 100%` 搭配 `max-width`），14 個頁面在 390／768／1024／1440px 皆無水平溢出。
+- `frontend/*.html` 樣式版本參數更新為 `?v=20260917-ui3`；`test/frontend/app_shell.test.mjs` 改為驗證新框架（側邊欄、頂列、KPI 卡、工具清單）並新增表格篩選／排序／分頁測試。
+- 驗證：`npm run check`（語法檢查、Vite 建置、252 項測試）全數通過；另以本機 Chromium 對儀表板（390／1024／1440px、收合圖示列、抽屜）及各頁截圖比對。
+- 尚未部署至 Router；部署後需以實際瀏覽器確認側邊欄與儀表板。
+
+## 已推送：UI 設計系統重做（`6f6e233` → `e2794df`）
 
 - 重做 website-part 前端 UI：以單一設計系統取代舊紫色主題與 Remote／VLESS 頁各自為政的配色，統一使用品牌藍 `#1c6ba0`（同時是 PWA theme color）搭配青色 `#66d9c5` 作為次要強調色。
 - `frontend/static/css/style.css` 改寫為 token 化設計系統：深藍色階表面、`--radius`／`--shadow`／`--ring` 等形狀與層次變數、一致的表單、按鈕（primary／outline／danger／roll）、tabs、表格、badge、modal、toast、empty state 與 focus ring。

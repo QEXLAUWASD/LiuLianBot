@@ -34,7 +34,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - An Interim VLESS Tunnel page that merges a short-lived VLESS profile into an existing VLESS address list or Clash/Mihomo YAML
 - An FnOS file browser with per-account read/write/share grants and expiring, revocable share links that work without signing in
 - Discord server managers can configure the temporary private-voice trigger channel from the website dashboard
-- One shared dark design system for every page: brand-blue accents, tokenised colours/spacing/elevation, a grouped sticky navigation bar with a mobile drawer, and consistent buttons, forms, tables, modals and empty states
+- One shared dark design system for every page: a console-style frame (left navigation rail plus top bar), KPI cards, list/table panels with filters and pagination, and consistent buttons, forms, modals and empty states
 
 ## Project structure
 
@@ -471,9 +471,10 @@ Administrators can open Admin > Page Visibility to control which website subpage
 
 The navigation groups the workspace screens (`remote.html`, `chromium.html`,
 `vless-tunnel.html`) under **Workspaces** and the administration screens
-(`guild-manager.html`, `admin.html`) under **Manage**. Page visibility and the
-per-account remote permission filter the entries inside those menus exactly like
-the top-level links, so a hidden page never appears in either place.
+(`guild-manager.html`, `admin.html`) under **Administration** in the sidebar.
+Page visibility and the per-account remote permission filter the entries inside
+those sections exactly like the top-level links, so a hidden page never appears
+in either place.
 
 ### Chromium workspace
 
@@ -584,11 +585,28 @@ components (buttons, form fields, tabs, tables, badges, modals, toasts, empty
 states). `frontend/static/css/files.css` layers the FnOS file browser and public
 share screens on top of the same tokens.
 
-The shared navigation lives in `frontend/src/components/NavBar.jsx`. It renders
-the brand, the primary links, the **Workspaces**, **Websites** and **Manage**
-menus, and the account chip; below 1080 px it collapses into a `Menu` drawer.
-Only one menu is open at a time, and both the menu state and the drawer close on
-`Escape` or an outside click.
+### App frame
+
+Authenticated pages render inside a console-style frame: `App.jsx` wraps the page
+in `.app-shell` (grid), which holds the navigation rail and `.app-main` (top bar
+plus page content).
+
+- The rail lives in `frontend/src/components/NavBar.jsx`: brand, **Main** links,
+  then the collapsible **Workspaces**, **Connected websites** and
+  **Administration** sections, with the account chip, logout and a collapse
+  control pinned to the bottom. Wide screens can fold it down to an icon rail;
+  below 1080 px the same rail becomes an overlay drawer opened from the top bar
+  (with a backdrop, `Escape` and outside-click closing it).
+- The top bar shows the section title from `PAGE_TITLES` in `App.jsx`, so every
+  page inherits the same header without repeating markup.
+- Page visibility and the per-account remote permission filter the rail and the
+  dashboard exactly as they did before.
+
+The dashboard (`frontend/src/pages/DashboardPage.jsx`) follows the same pattern:
+a page heading with actions, four KPI cards (upcoming events, your signups,
+connected websites, available tools), a two-column row of the priority event list
+and the tools list, then a full-width panel with a search/status/sort filter bar,
+an event table and pagination.
 
 Page entries reference the stylesheet with a version query
 (`/css/style.css?v=...`); bump that value whenever the CSS changes so browsers do

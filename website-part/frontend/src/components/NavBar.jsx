@@ -22,16 +22,18 @@ export const USER_PAGE_FALLBACK = Object.freeze({
   'vless-tunnel': true,
 });
 
+// `icon` is rendered through CSS (`content: attr(data-icon)`) so the link text
+// stays exactly the visible label for tests and assistive technology.
 export const NAV_LINKS = Object.freeze([
-  { href: '/index.html', label: 'Home' },
-  { href: '/roller.html', label: 'R6 Roller', pageKey: 'roller' },
-  { href: '/events.html', label: 'Events', pageKey: 'events' },
-  { href: '/files.html', label: 'Files', signedInOnly: true },
-  { href: '/account.html', label: 'Account', pageKey: 'account' },
+  { href: '/index.html', label: 'Home', icon: '🏠' },
+  { href: '/roller.html', label: 'R6 Roller', pageKey: 'roller', icon: '🎲' },
+  { href: '/events.html', label: 'Events', pageKey: 'events', icon: '📅' },
+  { href: '/files.html', label: 'Files', signedInOnly: true, icon: '🗂️' },
+  { href: '/account.html', label: 'Account', pageKey: 'account', icon: '👤' },
 ]);
 
-// Workspace screens live behind one menu so the top bar keeps a comfortable
-// width on laptops while every entry stays one click away.
+// The workspace and management screens live in collapsible sidebar sections so
+// the frame stays short while every entry remains one click away.
 export const WORKSPACE_LINKS = Object.freeze([
   { href: '/remote.html', label: 'Remote desktop & SSH', pageKey: 'remote', signedInOnly: true },
   { href: '/chromium.html', label: 'Chromium browser', pageKey: 'chromium', signedInOnly: true },
@@ -47,7 +49,12 @@ function isActiveLink(pathname, href) {
   return pathname === href || (href === '/index.html' && pathname === '/');
 }
 
-export function NavBar({ pathname = globalThis.location?.pathname || '' }) {
+export function NavBar({
+  pathname = globalThis.location?.pathname || '',
+  collapsed = false,
+  onNavigate,
+  onToggleCollapse,
+} = {}) {
   const { status, user, error } = useAuth();
   const pages = usePageVisibility();
   const signedIn = status === 'signed-in';
@@ -55,9 +62,8 @@ export function NavBar({ pathname = globalThis.location?.pathname || '' }) {
   const isAdmin = signedIn && user?.role === 'admin';
 
   const [logoutState, setLogoutState] = useState({ busy: false, message: '', error: false });
-  // Only one menu is open at a time; the mobile drawer is tracked separately.
+  // Only one sidebar section is open at a time.
   const [openMenu, setOpenMenu] = useState('');
-  const [menuOpen, setMenuOpen] = useState(false);
   const [connections, setConnections] = useState({ status: 'idle', items: [] });
   const navRef = useRef(null);
   const toggleRef = useRef(null);
@@ -73,23 +79,17 @@ export function NavBar({ pathname = globalThis.location?.pathname || '' }) {
   }, []);
 
   useEffect(() => {
-    if (!openMenu && !menuOpen) return undefined;
-    const onDocumentClick = event => {
-      if (!navRef.current?.contains(event.target)) setOpenMenu('');
-    };
+    if (!openMenu) return undefined;
     const onKeyDown = event => {
       if (event.key !== 'Escape') return;
       setOpenMenu('');
-      setMenuOpen(false);
       toggleRef.current?.focus();
     };
-    document.addEventListener('click', onDocumentClick);
     document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.removeEventListener('click', onDocumentClick);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [openMenu, menuOpen]);
+  }, [openMenu]);
 
   const toggleMenuSection = key => setOpenMenu(current => (current === key ? '' : key));
 
@@ -120,10 +120,13 @@ export function NavBar({ pathname = globalThis.location?.pathname || '' }) {
         href={link.href}
         hidden={isHiddenLink(link)}
         role={role}
+        title={link.label}
+        {...(link.icon ? { 'data-icon': link.icon } : {})}
         {...(link.pageKey ? { 'data-page-key': link.pageKey } : {})}
         {...(active ? { 'aria-current': 'page' } : {})}
+        onClick={onNavigate}
       >
-        <span>{link.label}</span>
+        <span className="nav-label">{link.label}</span>
         {role === 'menuitem' && <span className="nav-dropdown-open" aria-hidden="true">↗</span>}
       </a>
     );
@@ -136,113 +139,114 @@ export function NavBar({ pathname = globalThis.location?.pathname || '' }) {
   });
 
   return (
-    <nav id="siteNav" className="navbar" aria-label="Primary">
+    <nav
+      id="siteNav"
+      className="navbar sidebar"
+      aria-label="Primary"
+      data-collapsed={collapsed ? 'true' : 'false'}
+    >
       <a className="skip-link" href="#main-content">Skip to content</a>
 
-      <div className="navbar-inner">
-        <a className="nav-brand" href="/index.html">
+      <div className="sidebar-head">
+        <a className="nav-brand" href="/index.html" onClick={onNavigate}>
           <span className="nav-brand-mark" aria-hidden="true">🎮</span>
           <span className="nav-brand-text">
             <strong>LiuLianBot</strong>
             <span className="nav-brand-sub">Home server console</span>
           </span>
         </a>
+      </div>
 
-        <button
-          className="nav-toggle"
-          type="button"
-          aria-expanded={menuOpen}
-          aria-controls="siteNavLinks"
-          onClick={() => setMenuOpen(open => !open)}
-        >
-          <span className="nav-toggle-icon" aria-hidden="true">{menuOpen ? '✕' : '☰'}</span>
-          <span>Menu</span>
-        </button>
+      <div className="nav-links" id="siteNavLinks" ref={navRef}>
+        <p className="sidebar-section">Main</p>
+        {NAV_LINKS.filter(linkVisible).map(link => renderLink(link))}
 
-        <div className="nav-links" id="siteNavLinks" data-open={menuOpen ? 'true' : 'false'} ref={navRef}>
-          {NAV_LINKS.filter(linkVisible).map(link => renderLink(link))}
-
-          {workspaceLinks.length > 0 && (
-            <div className="nav-dropdown">
-              <button
-                className="nav-link nav-menu-toggle"
-                type="button"
-                aria-expanded={openMenu === 'workspaces'}
-                aria-controls="workspaceMenu"
-                onClick={() => toggleMenuSection('workspaces')}
-              >
-                <span>Workspaces</span>
-                <span className="dropdown-chevron" aria-hidden="true">▾</span>
-              </button>
-              <div className="nav-dropdown-menu" id="workspaceMenu" role="menu" hidden={openMenu !== 'workspaces'}>
-                {workspaceLinks.map(link => renderLink(link, { role: 'menuitem' }))}
-              </div>
+        {workspaceLinks.length > 0 && (
+          <div className="nav-dropdown">
+            <button
+              className="nav-link nav-menu-toggle"
+              type="button"
+              data-icon="🖥️"
+              aria-expanded={openMenu === 'workspaces'}
+              aria-controls="workspaceMenu"
+              onClick={() => toggleMenuSection('workspaces')}
+            >
+              <span className="nav-label">Workspaces</span>
+              <span className="dropdown-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div className="nav-dropdown-menu" id="workspaceMenu" role="menu" hidden={openMenu !== 'workspaces'}>
+              {workspaceLinks.map(link => renderLink(link, { role: 'menuitem' }))}
             </div>
-          )}
+          </div>
+        )}
 
-          {signedIn && (
-            <div className="nav-dropdown" id="websiteDropdown">
-              <button
-                ref={toggleRef}
-                className="nav-link nav-dropdown-toggle"
-                type="button"
-                aria-expanded={dropdownOpen}
-                aria-controls="websiteDropdownMenu"
-                onClick={toggleWebsites}
-              >
-                <span>Websites</span>
-                <span className="dropdown-chevron" aria-hidden="true">▾</span>
-              </button>
-              <div
-                className="nav-dropdown-menu"
-                id="websiteDropdownMenu"
-                role="menu"
-                hidden={!dropdownOpen}
-              >
-                {connections.status === 'ready' && connections.items.length === 0 && (
-                  <div className="nav-dropdown-status">No websites available</div>
-                )}
-                {connections.status === 'error' && (
-                  <div className="nav-dropdown-status nav-dropdown-error">Unable to load websites</div>
-                )}
-                {connections.status !== 'ready' && connections.status !== 'error' && (
-                  <div className="nav-dropdown-status">Loading...</div>
-                )}
-                {connections.status === 'ready' && connections.items.map(connection => (
-                  <a
-                    key={connection.slug}
-                    href={`/connect/${encodeURIComponent(connection.slug)}/`}
-                    role="menuitem"
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    <span>{connection.name}</span>
-                    <span className="nav-dropdown-open" aria-hidden="true">↗</span>
-                  </a>
-                ))}
-              </div>
+        {signedIn && (
+          <div className="nav-dropdown" id="websiteDropdown">
+            <button
+              ref={toggleRef}
+              className="nav-link nav-dropdown-toggle"
+              type="button"
+              data-icon="🔗"
+              aria-expanded={dropdownOpen}
+              aria-controls="websiteDropdownMenu"
+              onClick={toggleWebsites}
+            >
+              <span className="nav-label">Connected websites</span>
+              <span className="dropdown-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div
+              className="nav-dropdown-menu"
+              id="websiteDropdownMenu"
+              role="menu"
+              hidden={!dropdownOpen}
+            >
+              {connections.status === 'ready' && connections.items.length === 0 && (
+                <div className="nav-dropdown-status">No websites available</div>
+              )}
+              {connections.status === 'error' && (
+                <div className="nav-dropdown-status nav-dropdown-error">Unable to load websites</div>
+              )}
+              {connections.status !== 'ready' && connections.status !== 'error' && (
+                <div className="nav-dropdown-status">Loading...</div>
+              )}
+              {connections.status === 'ready' && connections.items.map(connection => (
+                <a
+                  key={connection.slug}
+                  className="nav-link nav-menu-link"
+                  href={`/connect/${encodeURIComponent(connection.slug)}/`}
+                  role="menuitem"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <span className="nav-label">{connection.name}</span>
+                  <span className="nav-dropdown-open" aria-hidden="true">↗</span>
+                </a>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {manageLinks.length > 0 && (
-            <div className="nav-dropdown">
-              <button
-                className="nav-link nav-menu-toggle"
-                type="button"
-                aria-expanded={openMenu === 'manage'}
-                aria-controls="manageMenu"
-                onClick={() => toggleMenuSection('manage')}
-              >
-                <span>Manage</span>
-                <span className="dropdown-chevron" aria-hidden="true">▾</span>
-              </button>
-              <div className="nav-dropdown-menu" id="manageMenu" role="menu" hidden={openMenu !== 'manage'}>
-                {manageLinks.map(link => renderLink(link, { role: 'menuitem' }))}
-              </div>
+        {manageLinks.length > 0 && (
+          <div className="nav-dropdown">
+            <button
+              className="nav-link nav-menu-toggle"
+              type="button"
+              data-icon="⚙️"
+              aria-expanded={openMenu === 'manage'}
+              aria-controls="manageMenu"
+              onClick={() => toggleMenuSection('manage')}
+            >
+              <span className="nav-label">Administration</span>
+              <span className="dropdown-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div className="nav-dropdown-menu" id="manageMenu" role="menu" hidden={openMenu !== 'manage'}>
+              {manageLinks.map(link => renderLink(link, { role: 'menuitem' }))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
+      <div className="sidebar-foot">
         <div className="nav-user" id="navUser">
           {signedIn && (
             <a
@@ -282,6 +286,16 @@ export function NavBar({ pathname = globalThis.location?.pathname || '' }) {
             {logoutState.message}
           </span>
         </div>
+
+        <button
+          className="sidebar-collapse"
+          type="button"
+          aria-pressed={collapsed}
+          onClick={onToggleCollapse}
+        >
+          <span className="sidebar-collapse-icon" aria-hidden="true">{collapsed ? '»' : '«'}</span>
+          <span className="nav-label">{collapsed ? 'Expand' : 'Collapse navigation'}</span>
+        </button>
       </div>
     </nav>
   );

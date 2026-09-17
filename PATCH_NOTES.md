@@ -1,5 +1,43 @@
 # Patch notes
 
+## Since `e2794df`
+
+- Rebuilt the authenticated layout as a console-style frame: `App.jsx` wraps each
+  page in `.app-shell` (grid) with the navigation rail next to `.app-main`
+  (top bar plus content). The palette is unchanged.
+- Turned `frontend/src/components/NavBar.jsx` into a sidebar: brand, the **Main**
+  links, collapsible **Workspaces** (Remote, Chromium, VLESS), **Connected
+  websites** (`/api/connections`, still fetched once on first open) and
+  **Administration** (Discord servers, Admin panel) sections, with the account
+  chip, logout and collapse control pinned to the bottom.
+- Wide screens can fold the rail down to an icon rail; below 1080 px it becomes an
+  overlay drawer opened from the top bar and closed by the backdrop, an outside
+  click or `Escape`.
+- Added a top bar that renders the section name from `PAGE_TITLES` in `App.jsx`,
+  so pages no longer repeat their own header chrome.
+- Rebuilt the dashboard: page heading with actions, four KPI cards (upcoming
+  events, your signups, connected websites, available tools), a two-column row of
+  the priority event list and the tools list, and a full-width panel with a
+  search/status/sort filter bar, an event table and pagination.
+- The dashboard now reads real data from `/api/events` (join state, capacity) and
+  `/api/connections`; event state is Joined / Signup open / Full with search,
+  status filter, sorting by start time or signups, five rows per page, and empty
+  states while loading or when nothing matches.
+- Added `--sidebar-width`, `--sidebar-rail` and `--topbar-height` tokens plus
+  `.app-shell`, `.sidebar`, `.topbar`, `.stat-card`, `.split-grid`, `.list-row`,
+  `.tool-row`, `.filter-bar`, `.data-table` and `.pager` styles, and removed the
+  now-unused `.navbar-inner`, `.nav-toggle`, `.dashboard-hero` and
+  `.feature-cards` rules.
+- Fixed `.main-content` being widened by its own table on narrow screens
+  (`width: 100%` with `max-width`), so all 14 pages now fit without horizontal
+  overflow at 390/768/1024/1440 px.
+- Bumped the stylesheet query to `?v=20260917-ui3` and rewrote
+  `test/frontend/app_shell.test.mjs` for the new frame, adding coverage for the
+  dashboard filter/sort/pagination behaviour.
+- Verified with `npm run check` (syntax checks, Vite build, 252 tests) and local
+  Chromium screenshots of the dashboard (390/1024/1440 px, collapsed rail and
+  drawer) plus the other pages. Not deployed to the Router yet.
+
 ## Since `6f6e233`
 
 - Rebuilt the website UI on one shared design system, replacing the old purple
