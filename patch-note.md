@@ -313,7 +313,7 @@
 ## 目前版本重點
 
 - Discord 端支援 R6 抽選、私人語音頻道、權限與管理指令、多語系、事件／稽核記錄及 Git 更新器。
-- Website 端支援帳號與 session、RBAC、群組／伺服器管理、活動公告、連線代理、SSH／RDP／WebRDP、Chromium CDP 與 VLESS Tunnel。
+- Website 端為 React（Vite 建置）多頁應用，支援帳號與 session、RBAC、群組／伺服器管理、活動公告、連線代理、SSH／RDP／WebRDP、Chromium CDP 與 VLESS Tunnel。
 - 部署需特別確認 session secret、SSH／RDP／Chromium allowlist、資料庫設定、簽署 Git commit 信任鏈及網站服務啟動方式。
 
 
@@ -351,3 +351,13 @@
 - 修正 production session secret 測試 fixture，使其符合程式要求的至少 32 字元長度。
 - 更新 WebSocket proxy header 測試，驗證目前保留 upstream browser security policy headers 的行為。
 - 本機工作區工具暫時無法啟動，因此修正已直接提交至 `master`，待 GitHub Actions 重新驗證。
+
+## 2026-09-17 — 網站前端改寫為 React
+
+- 以 React 18 與 Vite 重寫 website-part 前端，Express 路由、session、頁面權限與 page visibility 行為維持不變。
+- 保留原本的頁面網址（`/login.html`、`/index.html`、`/roller.html`、`/admin.html`、`/remote.html` 等），每個入口只掛載同一個 React bundle。
+- 新增 `website-part/frontend/`：`src/pages` 為各頁面元件、`src/components` 為導覽／tabs／modal／toast、`src/hooks` 為 auth、page visibility、busy-state 與 toast hooks。
+- 與框架無關的邏輯改放在 `frontend/src/lib`：API client、auth store、dialog 焦點管理、Chromium session 及 RDP client／input／bitmap。
+- CSS、圖示、manifest 與 Socket.IO／RDP 解碼器等第三方資源移至 `frontend/static`，建置後輸出到 `website-part/public`（含 `/assets/*.js`，已納入版本控制）。
+- 前端測試改為 React 元件測試，使用 `node:test` + jsdom，並以 esbuild JSX loader 轉換 `.jsx` 與 JSX 測試檔；CI 新增重建檢查，`website-part/public` 過期會直接失敗。
+- 未連線實際 Windows RDP 主機或 MySQL 驗證；`npm run check`（語法檢查、建置、227 項測試）全部通過。

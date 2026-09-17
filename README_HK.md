@@ -48,7 +48,10 @@ LiuLianBot/
 |   |-- updater/                  # Git 更新功能
 |   `-- utils/                    # 資料庫及日誌工具
 |-- website-part/                 # Node.js / Express 網站
-|   |-- public/                   # HTML、CSS 同瀏覽器端 JavaScript（包括 chromium.html）
+|   |-- frontend/                 # React 原始碼、頁面入口同靜態資源
+|   |   |-- src/                  # 元件、hooks、頁面同瀏覽器端模組
+|   |   `-- static/               # CSS、圖示、manifest 同第三方瀏覽器資源
+|   |-- public/                   # 建置產物（Express 直接提供嘅 React bundle）
 |   |-- src/                      # App、路由、中介層、資料庫 repository 及服務
 |   `-- test/                     # Node.js 測試
 |-- docs/
@@ -183,11 +186,17 @@ python discord-part/main.py
 cd website-part
 cp .env.example .env
 npm ci
+npm run build
 npm start
 ```
 
-本機開發時，`npm run dev` 會使用同一個伺服器入口。網站預設監聽
-`127.0.0.1:3000`。
+`npm run build` 會將 React 前端編譯到 `website-part/public`（已納入版本控制），
+所以只跑網站嘅主機只需要 `npm ci` 加 `npm start`。
+
+本機開發時，`npm run dev` 會使用同一個伺服器入口。要即時預覽 React 變更，
+可同時啟動 API 伺服器同 Vite（`npm run dev:frontend`，會將 `/api`、`/connect`
+同 WebSocket 代理到 `http://127.0.0.1:3000`，可用 `WEBSITE_DEV_PROXY` 覆寫）。
+網站預設監聽 `127.0.0.1:3000`。
 
 Linux 生產環境可以用 PM2 管理：
 
@@ -426,7 +435,7 @@ npm ci
 npm run check
 ```
 
-`npm run check` 會解析瀏覽器 JavaScript 並執行完整 Node.js 測試。資料庫相關
+`npm run check` 會檢查 Node.js 及 JSX 語法、重新建置 React bundle，並執行完整 Node.js 測試。資料庫相關
 測試需要連到測試 MySQL 資料庫，但唔會啟動正式網站伺服器。
 
 ## 安全注意事項

@@ -10,66 +10,10 @@
   <title>LiuLianBot - Account</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
-  <link rel="stylesheet" href="/css/style.css?v=20260722-3">
+  <link rel="stylesheet" href="/css/style.css?v=20260917-react">
+  <script type="module" crossorigin src="/assets/main-M15fPkkZ.js"></script>
 </head>
-<body>
-  <nav id="siteNav" class="navbar" aria-label="Primary"></nav>
-
-  <main class="main-content">
-    <div class="account-container">
-      <h2>Account settings</h2>
-      <p class="account-desc">Manage your sign-in details.</p>
-
-      <div class="account-grid">
-        <section class="settings-card" aria-labelledby="usernameHeading">
-          <h3 id="usernameHeading">Change username</h3>
-          <form id="usernameForm">
-            <div class="form-group">
-              <label for="newUsername">Username</label>
-              <input type="text" id="newUsername" required minlength="3" maxlength="20" autocomplete="username">
-            </div>
-            <div class="form-group">
-              <label for="usernameCurrentPassword">Current password</label>
-              <input type="password" id="usernameCurrentPassword" required autocomplete="current-password">
-            </div>
-            <div class="status-msg" id="usernameStatus" aria-live="polite"></div>
-            <button type="submit" class="btn btn-primary" disabled aria-busy="true">Save username</button>
-          </form>
-        </section>
-
-        <section class="settings-card" aria-labelledby="passwordHeading">
-          <h3 id="passwordHeading">Change password</h3>
-          <form id="passwordForm">
-            <div class="form-group">
-              <label for="passwordCurrentPassword">Current password</label>
-              <input type="password" id="passwordCurrentPassword" required autocomplete="current-password">
-            </div>
-            <div class="form-group">
-              <label for="newPassword">New password</label>
-              <input type="password" id="newPassword" required minlength="6" maxlength="128" autocomplete="new-password">
-            </div>
-            <div class="form-group">
-              <label for="confirmPassword">Confirm new password</label>
-              <input type="password" id="confirmPassword" required minlength="6" maxlength="128" autocomplete="new-password">
-            </div>
-            <div class="status-msg" id="passwordStatus" aria-live="polite"></div>
-            <button type="submit" class="btn btn-primary" disabled aria-busy="true">Save password</button>
-          </form>
-        </section>
-
-        <section class="settings-card" aria-labelledby="discordHeading">
-          <h3 id="discordHeading">Connect Discord</h3>
-          <p class="account-desc">Link this account so Discord event commands use the same signup.</p>
-          <div id="discordLinkState" class="status-msg" role="status" aria-live="polite">Loading...</div>
-          <div id="discordLinkCode" class="link-code" hidden></div>
-          <button id="generateDiscordLink" class="btn btn-primary" type="button">Generate link code</button>
-          <button id="unlinkDiscord" class="btn btn-outline" type="button" hidden>Unlink Discord</button>
-        </section>
-      </div>
-    </div>
-  </main>
-
-  <script type="module" src="/js/app.mjs"></script>
-  <script type="module" src="/js/account.mjs"></script>
+<body data-page="account">
+  <div id="root"></div>
 </body>
 </html>

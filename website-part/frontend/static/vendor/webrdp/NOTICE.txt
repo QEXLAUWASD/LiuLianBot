@@ -1,0 +1,3 @@
+WebRDP client assets are derived from the WebRDP project and mstsc.js.
+Copyright (c) 2015 Sylvain Peyrefitte and WebRDP contributors.
+Licensed under the GNU General Public License version 3 or later.

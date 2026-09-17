@@ -1,16 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import { JSDOM } from 'jsdom';
 
-import { createDialog } from '../../public/js/dialog.mjs';
-import { setupAdminDialogs } from '../../public/js/admin_dialogs.mjs';
-
-const testDir = dirname(fileURLToPath(import.meta.url));
-const publicDir = resolve(testDir, '../../public');
+import { createDialog } from '../../frontend/src/lib/dialog.mjs';
 
 function createFixture({ controls = true } = {}) {
   const dom = new JSDOM(`
@@ -411,106 +404,5 @@ test('open and close are idempotent and do not duplicate lifecycle events', () =
   assert.equal(controller.close(), true);
   assert.equal(controller.close(), false);
   assert.deepEqual({ opens, closes }, { opens: 1, closes: 1 });
-  dom.window.close();
-});
-
-test('admin dialogs have native hidden state and complete dialog semantics', async () => {
-  const html = await readFile(resolve(publicDir, 'admin.html'), 'utf8');
-  const dom = new JSDOM(html);
-  const document = dom.window.document;
-  const dialogs = [...document.querySelectorAll('[role="dialog"]')];
-
-  assert.deepEqual(dialogs.map(dialog => dialog.id), [
-    'userEditModal',
-    'groupEditModal',
-    'connectionEditModal',
-    'pageVisibilityEditModal',
-    'guildDetailModal',
-    'confirmDialog',
-  ]);
-  for (const dialog of dialogs) {
-    assert.equal(dialog.hidden, true, `${dialog.id} should use hidden`);
-    assert.equal(dialog.getAttribute('aria-modal'), 'true');
-    assert.equal(dialog.hasAttribute('style'), false, `${dialog.id} should not use inline display`);
-    const labelId = dialog.getAttribute('aria-labelledby');
-    assert.ok(labelId, `${dialog.id} needs aria-labelledby`);
-    assert.equal(document.querySelectorAll(`#${labelId}`).length, 1, `${labelId} must be unique`);
-    assert.ok(dialog.contains(document.getElementById(labelId)), `${labelId} must label its dialog`);
-    assert.ok(dialog.querySelectorAll('[data-dialog-close]').length >= 1);
-  }
-  assert.equal(document.querySelectorAll('[data-dialog-close][onclick]').length, 0);
-  assert.ok([...document.querySelectorAll('[data-dialog-close]')].every(button => button.type === 'button'));
-  dom.window.close();
-});
-
-test('admin dialog integration wires existing helpers, close controls, and backdrop clicks', async () => {
-  const [html, adminSource, css] = await Promise.all([
-    readFile(resolve(publicDir, 'admin.html'), 'utf8'),
-    readFile(resolve(publicDir, 'js/admin.mjs'), 'utf8'),
-    readFile(resolve(publicDir, 'css/style.css'), 'utf8'),
-  ]);
-  assert.match(html, /type="module" src="\/js\/admin\.mjs/);
-  assert.match(adminSource, /setupAdminDialogs\(document\)/);
-  assert.match(adminSource, /dialogs\.open\(modalId,\s*opener\)/);
-  assert.match(adminSource, /dialogs\.close\(modalId,\s*reason\)/);
-  assert.match(adminSource, /openModal\('confirmDialog'/);
-  assert.match(adminSource, /closeModal\('confirmDialog'/);
-  assert.match(adminSource, /confirmDialog.*addEventListener\('dialog:close'/s);
-  assert.match(css, /\[role=['"]?dialog['"]?\]\[hidden\]\s*{\s*display:\s*none/);
-
-  const dom = new JSDOM(html, { url: 'https://example.test/admin.html' });
-  const document = dom.window.document;
-  const controllers = setupAdminDialogs(document);
-  const opener = document.getElementById('users-tab');
-  controllers.open('groupEditModal', opener);
-  const dialog = document.getElementById('groupEditModal');
-  dialog.querySelector('[data-dialog-close]').click();
-  assert.equal(dialog.hidden, true);
-  assert.equal(document.activeElement.id, opener.id);
-
-  controllers.open('groupEditModal', opener);
-  dialog.querySelector('.modal').click();
-  assert.equal(dialog.hidden, false, 'content click must not close the dialog');
-  dialog.click();
-  assert.equal(dialog.hidden, true, 'backdrop click closes the dialog');
-  dom.window.close();
-});
-
-test('admin confirmation executes OK once and cancellation paths only clear the callback', async () => {
-  const html = await readFile(resolve(publicDir, 'admin.html'), 'utf8');
-  const dom = new JSDOM(html, {
-    url: 'https://example.test/admin.html',
-  });
-  const { document } = dom.window;
-  const originalDocument = globalThis.document;
-  const originalWindow = globalThis.window;
-  globalThis.document = document;
-  globalThis.window = dom.window;
-  const { showConfirm } = await import(`../../public/js/admin.mjs?dialog-test=${Date.now()}`);
-  const confirmDialog = document.getElementById('confirmDialog');
-  let calls = 0;
-
-  showConfirm('Delete', 'First', () => calls += 1);
-  document.getElementById('confirmOkBtn').click();
-  document.getElementById('confirmOkBtn').click();
-  assert.equal(calls, 1);
-  assert.equal(confirmDialog.hidden, true);
-
-  showConfirm('Delete', 'Cancel', () => calls += 1);
-  confirmDialog.querySelector('[data-dialog-close]').click();
-  document.getElementById('confirmOkBtn').click();
-  assert.equal(calls, 1);
-
-  showConfirm('Delete', 'Escape', () => calls += 1);
-  keydown(dom, confirmDialog, 'Escape');
-  document.getElementById('confirmOkBtn').click();
-  assert.equal(calls, 1);
-
-  showConfirm('Delete', 'Backdrop', () => calls += 1);
-  confirmDialog.click();
-  document.getElementById('confirmOkBtn').click();
-  assert.equal(calls, 1);
-  globalThis.document = originalDocument;
-  globalThis.window = originalWindow;
   dom.window.close();
 });

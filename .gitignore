@@ -219,3 +219,6 @@ config.json
 node_modules/
 .env
 .worktrees/
+
+# Website frontend (Vite)
+website-part/frontend/.vite/

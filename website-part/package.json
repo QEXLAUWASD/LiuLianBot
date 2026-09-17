@@ -6,9 +6,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "test": "node --test",
+    "dev:frontend": "vite",
+    "build": "vite build",
+    "test": "node --test --import ./test/support/jsx-loader.mjs",
     "check:js": "node tools/check-js.js",
-    "check": "npm run check:js && npm test",
+    "check": "npm run check:js && npm run build && npm test",
     "test:rdp-browser": "node tools/rdp-smoke.js"
   },
   "dependencies": {
@@ -27,6 +29,10 @@
     "ws": "^8.21.1"
   },
   "devDependencies": {
-    "jsdom": "^26.1.0"
+    "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^26.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.21"
   }
 }

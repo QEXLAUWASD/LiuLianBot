@@ -5,6 +5,8 @@ WORKDIR /app/website-part
 COPY website-part/package.json website-part/package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
+# `public/` contains the prebuilt React bundle (see README: Website frontend),
+# so the runtime image needs no Vite/React toolchain.
 COPY website-part/ ./
 
 # The database configuration is supplied as a read-only runtime mount at

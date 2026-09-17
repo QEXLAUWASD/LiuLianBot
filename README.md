@@ -53,7 +53,10 @@ LiuLianBot/
 |   |-- updater/                  # Git-based updater
 |   `-- utils/                    # Database and logging utilities
 |-- website-part/                 # Node.js and Express website
-|   |-- public/                   # HTML, CSS, and browser JavaScript (including chromium.html)
+|   |-- frontend/                 # React sources, page entries, and static assets
+|   |   |-- src/                  # Components, hooks, pages, and browser libraries
+|   |   `-- static/               # CSS, icons, manifest, and vendored browser assets
+|   |-- public/                   # Generated React build output served by Express
 |   |-- src/                      # App, routes, middleware, repositories, and services
 |   `-- test/                     # Node.js test suite
 |-- docs/
@@ -222,11 +225,19 @@ Create the website environment file from its template. Set a strong, unique `SES
 cd website-part
 cp .env.example .env
 npm ci
+npm run build
 npm start
 ```
 
-For local development, `npm run dev` uses the same server entry point. The website
-binds to `127.0.0.1:3000` by default.
+`npm run build` compiles the React frontend into `website-part/public`, which the
+Express server serves; the built output is committed, so a plain `npm ci` plus
+`npm start` is enough on a host that only runs the website.
+
+For local development, `npm run dev` uses the same server entry point. To edit the
+React frontend with hot reload, run the API server and the Vite dev server side by
+side (`npm run dev:frontend` proxies `/api`, `/connect`, and WebSockets to
+`http://127.0.0.1:3000`, override it with `WEBSITE_DEV_PROXY`). The website binds to
+`127.0.0.1:3000` by default.
 
 When updating an existing PM2 deployment after a dependency change, reinstall the
 production dependencies before restarting the process:
@@ -243,13 +254,15 @@ from `src/rdp_socket.js` or `src/services/vless_tunnel.js` means this dependency
 installation step has not completed on the deployment host.
 
 If the remote page reports that WebRDP client assets failed to load, verify the
-three static files from the deployed site. Each request must return `200`:
+vendored static files from the deployed site. Each request must return `200`:
 
 ```bash
 curl -I https://your-domain.example/vendor/socket.io.min.js
 curl -I https://your-domain.example/vendor/webrdp/rle.js
-curl -I https://your-domain.example/js/rdp_client.mjs
+curl -I https://your-domain.example/css/style.css
 ```
+
+The RDP client itself is bundled into `/assets/*.js` by the Vite build.
 
 For a Linux production deployment managed by PM2:
 
@@ -483,9 +496,10 @@ npm ci
 npm run check
 ```
 
-`npm run check` parses browser JavaScript and runs the complete Node.js test suite.
-The Node.js tests inject database fakes where needed, so they do not require a
-live MySQL server or start the production server.
+`npm run check` syntax-checks the Node.js and JSX sources, rebuilds the React
+bundle, and runs the complete Node.js test suite. The Node.js tests inject
+database fakes where needed, so they do not require a live MySQL server or start
+the production server.
 
 Run the Ruff command from the repository root so both the Discord bot and shared
 Python modules are checked together. The configured baseline includes import,
@@ -515,7 +529,7 @@ graceful `SIGINT` or `SIGTERM` shutdown.
 
 The Discord bot dependencies are pinned in `discord-part/requirements.txt`. The website dependencies and lockfile are in `website-part/package.json` and `website-part/package-lock.json`.
 
-Key runtime packages include `discord.py`, `PyMySQL`, `Express`, `express-session`, `express-rate-limit`, `bcryptjs`, `mysql2`, `http-proxy-middleware`, `ssh2`, `ws`, `socket.io`, and `@electerm/rdpjs`.
+Key runtime packages include `discord.py`, `PyMySQL`, `Express`, `express-session`, `express-rate-limit`, `bcryptjs`, `mysql2`, `http-proxy-middleware`, `ssh2`, `ws`, `socket.io`, and `@electerm/rdpjs`. The frontend is built with `React`, `React DOM`, and `Vite` (development dependencies; the browser bundle is committed under `website-part/public/assets`).
 
 ## License
 
@@ -525,12 +539,39 @@ This project is for personal and community use. All rights reserved.
 
 Issues and pull requests are welcome. Keep changes scoped to either `discord-part/`, `website-part/`, or `shared/` unless a cross-project change is required.
 
+## Website frontend (React)
+
+The website is a multi-page React application built with Vite:
+
+- `frontend/*.html` keeps one entry per guarded route (`/login.html`,
+  `/roller.html`, `/admin.html`, ...); Express still authorizes each page before
+  it is served, and every entry renders `<App />` from `frontend/src/main.jsx`.
+- `frontend/src/pages/` contains one component per page,
+  `frontend/src/components/` holds the shared navigation, tabs, modal and toast
+  components, and `frontend/src/hooks/` holds the auth, visibility, busy-state
+  and toast hooks.
+- Framework-independent logic lives next to the components:
+  `frontend/src/lib/apiClient.mjs`, `authStore.mjs`, `dialog.mjs`,
+  `chromiumSession.mjs`, and `frontend/src/lib/rdp/`.
+- `frontend/static/` is the Vite public directory; its CSS, icons, manifest and
+  vendored Socket.IO/RDP decoder files are copied to `public/` on build.
+
+The build writes the page entries into `website-part/public` and bundles the
+React app into `/assets/*.js`. Because the output is committed, CI rebuilds it and
+fails when `website-part/public` is stale (`npm run build && git diff --exit-code
+-- website-part/public`).
+
+Frontend tests run on `node:test` with jsdom. `test/support/dom-env.mjs` installs
+a jsdom window before React DOM loads, and `test/support/jsx-loader.mjs` compiles
+`.jsx` (and the JSX test files) with the esbuild build that ships with Vite.
+
 ## RDP client lifecycle and verification
 
-The RDP page uses `public/js/rdp_client.mjs` for connection state,
-`rdp_input.mjs` for focused keyboard/pointer input, and `rdp_bitmap.mjs` for
+The RDP page uses `frontend/src/lib/rdp/rdpClient.mjs` for connection state,
+`rdpInput.mjs` for focused keyboard/pointer input, and `rdpBitmap.mjs` for
 bitmap conversion. The old bundled `webrdp.js` client has been removed;
-the RLE decoder and its attribution remain under `public/vendor/webrdp/`.
+the RLE decoder and its attribution remain under
+`frontend/static/vendor/webrdp/` and are copied to `public/vendor/webrdp/`.
 
 Click the desktop to direct keyboard input to Windows. Moving focus to a
 form or another window releases held keys. Fit-to-window mode rescales

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ApiError, requestJSON } from '../../public/js/api_client.mjs';
+import { ApiError, requestJSON, sendJSON } from '../../frontend/src/lib/apiClient.mjs';
 
 function response(body, { status = 200, contentType = 'application/json' } = {}) {
   return new Response(body, {

@@ -71,7 +71,14 @@ async function main() {
     await page.setViewport({ width: 1440, height: 1000 });
     await page.goto('http://127.0.0.1:' + server.address().port + '/remote.html', { waitUntil: 'networkidle0' });
     assert.equal(await page.$eval('#rdpConnect', element => element.disabled), false);
-    const fill = async (selector, value) => page.$eval(selector, (element, value) => { element.value = value; }, value);
+    // React tracks input values, so the helper has to write through the native
+    // setter and dispatch the same input event a real keystroke produces.
+    const fill = async (selector, value) => page.$eval(selector, (element, value) => {
+      const setter = Object.getOwnPropertyDescriptor(element.constructor.prototype, 'value')?.set;
+      if (setter) setter.call(element, value);
+      else element.value = value;
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+    }, value);
     const connect = async host => {
       await fill('#rdpHost', host);
       await fill('#rdpUsername', 'test-user');

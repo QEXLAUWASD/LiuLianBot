@@ -1,75 +1,155 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { JSDOM } from 'jsdom';
-import { renderNavbar } from '../../public/js/nav.mjs';
+import test from 'node:test';
 
-const publicDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../public');
+import { NavBar } from '../../frontend/src/components/NavBar.jsx';
+import { authState } from '../../frontend/src/lib/authStore.mjs';
+import { click, flush, mockFetch, render, setupDom, stubLocation } from '../support/react.mjs';
 
-test('navbar renders stable navigation and authentication hooks', () => {
-  const dom = new JSDOM('<nav id="siteNav"></nav>', { url: 'https://example.test/roller.html' });
-  const originalDocument = globalThis.document;
-  globalThis.document = dom.window.document;
+const PAGES = {
+  roller: true,
+  events: true,
+  account: true,
+  remote: true,
+  chromium: false,
+  'vless-tunnel': true,
+};
 
+function setup({ me, pages = PAGES, connections = { connections: [] }, location } = {}) {
+  authState.reset();
+  const locationRef = location || stubLocation();
+  const dom = setupDom('<div id="root"></div>', { location: locationRef });
+  const fetchMock = mockFetch({
+    'GET /api/auth/me': { payload: me },
+    'GET /api/page-visibility': { payload: { pages } },
+    'GET /api/connections': { payload: connections },
+    'POST /api/auth/logout': { payload: { success: true } },
+  });
+
+  return {
+    dom,
+    document: dom.document,
+    location: locationRef,
+    fetchMock,
+    teardown() {
+      fetchMock.restore();
+      dom.cleanup();
+    },
+  };
+}
+
+test('guests see the login link and only page-visible navigation', async () => {
+  const { document, teardown } = setup({ me: { loggedIn: false } });
   try {
-    const refs = renderNavbar(document.getElementById('siteNav'), dom.window.location);
+    render(<NavBar pathname="/roller.html" />);
+    await flush();
 
-    assert.equal(document.querySelector('a[href="/index.html"]').textContent, 'Home');
-    assert.equal(document.querySelector('a[href="/roller.html"]').classList.contains('active'), true);
-    assert.equal(document.querySelector('a[href="/roller.html"]').dataset.pageKey, 'roller');
-    assert.equal(document.querySelector('a[href="/chromium.html"]').textContent, 'Chromium');
-    assert.ok(document.querySelector('[data-admin-only]'));
-    assert.ok(document.querySelector('[data-logout]'));
-    assert.ok(document.querySelector('#websiteDropdownMenu[role="menu"]'));
-    assert.equal(refs.user.id, 'navUser');
-    assert.equal(refs.logout.hidden, true);
-    assert.equal(refs.login.hidden, true);
+    const login = document.querySelector('a[href="/login.html"]');
+    assert.equal(login.textContent, 'Login');
+    assert.equal(document.getElementById('logoutBtn'), null);
+    assert.equal(document.querySelector('a[href="/admin.html"]'), null);
+    assert.equal(document.querySelector('a[href="/remote.html"]'), null);
+
+    const active = document.querySelector('a[href="/roller.html"]');
+    assert.equal(active.classList.contains('active'), true);
+    assert.equal(active.getAttribute('aria-current'), 'page');
+
+    // Hidden by page visibility, while "events" stays visible for guests.
+    assert.equal(document.querySelector('a[href="/chromium.html"]'), null);
+    assert.equal(document.querySelector('a[href="/events.html"]') !== null, true);
+    assert.equal(document.getElementById('logoutStatus').textContent, '');
   } finally {
-    globalThis.document = originalDocument;
-    dom.window.close();
+    teardown();
   }
 });
 
-test('navbar does not parse hostile labels as markup', () => {
-  const dom = new JSDOM('<nav id="siteNav"></nav>');
-  const originalDocument = globalThis.document;
-  globalThis.document = dom.window.document;
+test('signed-in admins get account, admin and connected website menus', async () => {
+  const { document, fetchMock, teardown } = setup({
+    me: {
+      loggedIn: true,
+      user: { username: 'alice', role: 'admin', remoteAvailable: false },
+    },
+    connections: {
+      connections: [
+        { slug: 'internal-dashboard', name: 'Internal dashboard' },
+        { slug: '/connect/evil?x=1', name: '<img src=x onerror=alert(1)>' },
+      ],
+    },
+  });
 
   try {
-    const refs = renderNavbar(document.getElementById('siteNav'));
-    const hostile = '<img src=x onerror=alert(1)>';
-    refs.username.textContent = hostile;
+    render(<NavBar pathname="/index.html" />);
+    await flush();
 
-    assert.equal(refs.username.textContent, hostile);
-    assert.equal(document.querySelector('img'), null);
+    assert.equal(document.getElementById('navUsername').textContent, '👤 alice');
+    assert.equal(document.querySelector('a[href="/admin.html"]').textContent, 'Admin');
+    assert.equal(
+      document.querySelector('a[href="/remote.html"]')?.hidden,
+      true,
+      'remote access is disabled for this account',
+    );
+    assert.equal(document.querySelector('a[href="/login.html"]') === null, true);
+
+    const toggle = document.querySelector('.nav-dropdown-toggle');
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+    click(toggle);
+    await flush();
+
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+    assert.equal(fetchMock.callsTo('GET', '/api/connections').length, 1);
+
+    const menu = document.getElementById('websiteDropdownMenu');
+    const links = [...menu.querySelectorAll('a[role="menuitem"]')];
+    assert.equal(links.length, 2);
+    assert.equal(links[0].getAttribute('href'), '/connect/internal-dashboard/');
+    assert.equal(links[0].getAttribute('target'), '_blank');
+    assert.equal(links[1].textContent.includes('<img src=x'), true, 'names stay text');
+    assert.equal(menu.querySelectorAll('img').length, 0);
+    assert.equal(links[1].getAttribute('href').startsWith('/connect/'), true);
+    assert.equal(links[1].getAttribute('href').includes('<'), false);
   } finally {
-    globalThis.document = originalDocument;
-    dom.window.close();
+    teardown();
   }
 });
 
-test('English pages share one empty navbar mount and safe app rendering', async () => {
-  const pageNames = ['index.html', 'account.html', 'roller.html', 'admin.html', 'login.html', '404.html'];
-  for (const pageName of pageNames) {
-    const html = await readFile(resolve(publicDir, pageName), 'utf8');
-    const dom = new JSDOM(html);
-    assert.equal(dom.window.document.documentElement.lang, 'en', `${pageName} should declare English`);
+test('an unreadable account shows the shared error status', async () => {
+  authState.reset();
+  const dom = setupDom();
+  const fetchMock = mockFetch({
+    'GET /api/auth/me': { status: 500, payload: { error: 'boom' } },
+    'GET /api/page-visibility': { payload: { pages: PAGES } },
+  });
 
-    if (!['login.html', '404.html'].includes(pageName)) {
-      const nav = dom.window.document.getElementById('siteNav');
-      assert.ok(nav, `${pageName} should provide the shared navbar mount`);
-      assert.equal(nav.childElementCount, 0, `${pageName} should not duplicate navbar children`);
-    }
-    dom.window.close();
+  try {
+    render(<NavBar />);
+    await flush();
+
+    const status = dom.document.getElementById('logoutStatus');
+    assert.equal(status.textContent, 'Unable to load account');
+    assert.equal(status.classList.contains('status-error'), true);
+    assert.equal(status.getAttribute('title'), 'boom');
+  } finally {
+    fetchMock.restore();
+    dom.cleanup();
   }
+});
 
-  const chromiumHtml = await readFile(resolve(publicDir, 'chromium.html'), 'utf8');
-  assert.equal(new JSDOM(chromiumHtml).window.document.documentElement.lang, 'zh-Hant');
+test('logout posts to the API and redirects to the login page', async () => {
+  const location = stubLocation();
+  const { document, fetchMock, teardown, location: locationRef } = setup({
+    me: { loggedIn: true, user: { username: 'alice', role: 'user', remoteAvailable: true } },
+    location,
+  });
 
-  const appSource = await readFile(resolve(publicDir, 'js/app.mjs'), 'utf8');
-  assert.match(appSource, /renderNavbar/);
-  assert.doesNotMatch(appSource, /\.innerHTML\s*=/);
-  assert.doesNotMatch(appSource, /escapeHTML/);
+  try {
+    render(<NavBar />);
+    await flush();
+
+    click(document.getElementById('logoutBtn'));
+    await flush();
+
+    assert.equal(fetchMock.callsTo('POST', '/api/auth/logout').length, 1);
+    assert.equal(locationRef.href, '/login.html');
+  } finally {
+    teardown();
+  }
 });

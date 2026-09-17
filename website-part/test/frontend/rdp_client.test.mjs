@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { EventEmitter } from 'node:events';
 import { JSDOM } from 'jsdom';
-import { RdpClient } from '../../public/js/rdp_client.mjs';
-import { pointerPosition } from '../../public/js/rdp_input.mjs';
-import { decodeBitmap } from '../../public/js/rdp_bitmap.mjs';
+import { RdpClient } from '../../frontend/src/lib/rdp/rdpClient.mjs';
+import { pointerPosition } from '../../frontend/src/lib/rdp/rdpInput.mjs';
+import { decodeBitmap } from '../../frontend/src/lib/rdp/rdpBitmap.mjs';
 
 class Socket extends EventEmitter {
   connected = false;
@@ -125,7 +125,7 @@ test('compressed bitmap copies decoded memory before free and frees after decode
 });
 
 test('bundled RLE decoder renders 16/24-bit literal runs with correct colors and row order', () => {
-  const module = createRequire(import.meta.url)('../../public/vendor/webrdp/rle.js');
+  const module = createRequire(import.meta.url)('../../frontend/static/vendor/webrdp/rle.js');
   for (const [bpp, bytes] of [[16, [0x82,0x1f,0,0,0xf8]], [24, [0x82,255,0,0,0,0,255]]]) {
     const result = decodeBitmap(bitmap({ bitsPerPixel: bpp, isCompress: true, data: Uint8Array.from(bytes) }), module);
     assert.deepEqual([...result.data], [255,0,0,255, 0,0,255,255]);
