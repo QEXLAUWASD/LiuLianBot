@@ -47,6 +47,61 @@ const USER_ID_COLUMNS = [
   ['website_announcements', 'created_by'],
 ];
 
+// Widens `website_users.id` and every referencing user id column to hold UUIDs,
+// restoring the foreign keys it has to drop first. Every step checks the current
+// column width, so the migration is safe to replay and safe to run again from a
+// later version (see migration 019).
+async function widenUserIdColumns(conn) {
+  // Foreign keys have to be dropped first: InnoDB refuses to change a column
+  // that a foreign key still uses, even with FOREIGN_KEY_CHECKS disabled.
+  const [referencingKeys] = await conn.execute(
+    `SELECT k.TABLE_NAME AS table_name, k.COLUMN_NAME AS column_name,
+            k.CONSTRAINT_NAME AS constraint_name,
+            r.DELETE_RULE AS delete_rule, r.UPDATE_RULE AS update_rule
+       FROM information_schema.KEY_COLUMN_USAGE k
+       JOIN information_schema.REFERENTIAL_CONSTRAINTS r
+         ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
+        AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+      WHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME = 'website_users'`
+  );
+
+  const keys = referencingKeys.map(row => ({
+    table: row.table_name ?? row.TABLE_NAME,
+    column: row.column_name ?? row.COLUMN_NAME,
+    constraint: row.constraint_name ?? row.CONSTRAINT_NAME,
+    deleteRule: row.delete_rule ?? row.DELETE_RULE,
+    updateRule: row.update_rule ?? row.UPDATE_RULE,
+  }));
+
+  for (const key of keys) {
+    await conn.execute(
+      `ALTER TABLE ${quoteIdentifier(key.table)} DROP FOREIGN KEY ${quoteIdentifier(key.constraint)}`
+    );
+  }
+
+  await widenColumn(conn, 'website_users', 'id', 'VARCHAR(64) NOT NULL');
+
+  const widened = new Set(keys.map(key => `${key.table}.${key.column}`));
+  for (const key of keys) {
+    await widenColumn(conn, key.table, key.column, 'VARCHAR(64) NOT NULL');
+  }
+  // Reference columns that exist without a foreign key still have to fit a
+  // UUID, so widen the known list as well.
+  for (const [table, column] of USER_ID_COLUMNS) {
+    if (widened.has(`${table}.${column}`)) continue;
+    await widenColumn(conn, table, column, 'VARCHAR(64) NOT NULL');
+  }
+
+  for (const key of keys) {
+    await conn.execute(
+      `ALTER TABLE ${quoteIdentifier(key.table)}
+         ADD CONSTRAINT ${quoteIdentifier(key.constraint)}
+         FOREIGN KEY (${quoteIdentifier(key.column)}) REFERENCES website_users (id)
+         ON DELETE ${key.deleteRule} ON UPDATE ${key.updateRule}`
+    );
+  }
+}
+
 const MIGRATIONS = [
   {
     version: '001',
@@ -428,56 +483,7 @@ const MIGRATIONS = [
   {
     version: '017',
     name: 'widen website user identifiers for uuid ids',
-    async up(conn) {
-      // Foreign keys have to be dropped first: InnoDB refuses to change a column
-      // that a foreign key still uses, even with FOREIGN_KEY_CHECKS disabled.
-      const [referencingKeys] = await conn.execute(
-        `SELECT k.TABLE_NAME AS table_name, k.COLUMN_NAME AS column_name,
-                k.CONSTRAINT_NAME AS constraint_name,
-                r.DELETE_RULE AS delete_rule, r.UPDATE_RULE AS update_rule
-           FROM information_schema.KEY_COLUMN_USAGE k
-           JOIN information_schema.REFERENTIAL_CONSTRAINTS r
-             ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
-            AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
-          WHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_NAME = 'website_users'`
-      );
-
-      const keys = referencingKeys.map(row => ({
-        table: row.table_name ?? row.TABLE_NAME,
-        column: row.column_name ?? row.COLUMN_NAME,
-        constraint: row.constraint_name ?? row.CONSTRAINT_NAME,
-        deleteRule: row.delete_rule ?? row.DELETE_RULE,
-        updateRule: row.update_rule ?? row.UPDATE_RULE,
-      }));
-
-      for (const key of keys) {
-        await conn.execute(
-          `ALTER TABLE ${quoteIdentifier(key.table)} DROP FOREIGN KEY ${quoteIdentifier(key.constraint)}`
-        );
-      }
-
-      await widenColumn(conn, 'website_users', 'id', 'VARCHAR(64) NOT NULL');
-
-      const widened = new Set(keys.map(key => `${key.table}.${key.column}`));
-      for (const key of keys) {
-        await widenColumn(conn, key.table, key.column, 'VARCHAR(64) NOT NULL');
-      }
-      // Reference columns that exist without a foreign key still have to fit a
-      // UUID, so widen the known list as well.
-      for (const [table, column] of USER_ID_COLUMNS) {
-        if (widened.has(`${table}.${column}`)) continue;
-        await widenColumn(conn, table, column, 'VARCHAR(64) NOT NULL');
-      }
-
-      for (const key of keys) {
-        await conn.execute(
-          `ALTER TABLE ${quoteIdentifier(key.table)}
-             ADD CONSTRAINT ${quoteIdentifier(key.constraint)}
-             FOREIGN KEY (${quoteIdentifier(key.column)}) REFERENCES website_users (id)
-             ON DELETE ${key.deleteRule} ON UPDATE ${key.updateRule}`
-        );
-      }
-    },
+    up: widenUserIdColumns,
   },
   {
     version: '018',
@@ -509,6 +515,14 @@ const MIGRATIONS = [
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
     },
+  },
+  {
+    // A deployment that ran the unreleased file-browser migration recorded 017
+    // as the file migration, so the uuid widening was skipped on that database.
+    // Re-running it here is safe: every column is only widened when it is short.
+    version: '019',
+    name: 'ensure uuid-wide user identifiers after the file-browser migration',
+    up: widenUserIdColumns,
   },
 ];
 

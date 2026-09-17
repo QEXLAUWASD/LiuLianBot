@@ -529,5 +529,6 @@ URL fragment。
 符號連結同特殊裝置檔案一律拒絕。
 
 網站啟動時 migration `018` 會建立 `website_file_permissions` 同
-`website_file_shares`。完整部署步驟、權限設定同功能限制請參考
+`website_file_shares`；migration `019` 會再次檢查用戶 ID 欄位寬度，令早前將未發佈
+檔案 migration 記為 `017` 嘅資料庫仍可完成 UUID 欄位加寬。完整部署步驟、權限設定同功能限制請參考
 [`docs/file-browser.md`](docs/file-browser.md)。

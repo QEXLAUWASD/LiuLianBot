@@ -675,5 +675,7 @@ Uploads are limited to 1 GiB and never overwrite an existing file. Everything
 stays confined to `/vol*/1000`: traversal, symlinks and device files are rejected.
 
 Migration `018` creates `website_file_permissions` and `website_file_shares` on
-startup. See [setup, permissions and limitations](docs/file-browser.md) for the
+startup, and migration `019` re-checks the UUID-width user id columns so a
+database that recorded the unreleased file migration as `017` still gets the id
+widening. See [setup, permissions and limitations](docs/file-browser.md) for the
 full deployment checklist and the known limits of the feature.

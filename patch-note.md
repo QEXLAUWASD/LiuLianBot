@@ -8,6 +8,7 @@
 - 綁定 LiuLian 帳號 ID 管理讀取、寫入及分享授權，其他帳號可提出存取申請。
 - 新增免登入分享碼，支援 1 至 168 小時期限、子目錄瀏覽、撤銷及 SHA-256 雜湊儲存。
 - 新增 migration `018` 建立檔案權限及分享資料表；用戶 ID 相關欄位依 migration `017` 使用 `VARCHAR(64)`，避免 UUID 寫入失敗。
+- 新增 migration `019` 修正版本衝突：舊版未發佈的檔案 migration 曾佔用 `017`，令部分資料庫略過 UUID 欄位加寬，`019` 會重新逐欄檢查並套用。
 - 新增 SFTP 主機金鑰驗證、路徑與權限測試，以及前端 `files_page`／`share_page` 測試與無障礙頁面條目測試。
 - 已重建 `website-part/public` 建置產物，並更新 README／README_HK、`docs/API.md`、`docs/file-browser.md`。
 - 舊版前端曾在 Router 以 FnOS `liulian` 帳號完成七個磁碟的實機讀寫與分享驗證；改版後需在部署環境重新驗證。連線憑證僅保留於私有設定。

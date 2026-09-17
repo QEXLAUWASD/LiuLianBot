@@ -39,6 +39,10 @@ FILES_SFTP_HOST_SHA256=<64-character hex SHA-256 of the SSH host key>
 
 不可提交真實憑證。SSH 主機金鑰不符或設定缺漏時服務拒絕連線。FnOS 需啟用 SFTP，該帳號需能讀取 `/` 中的磁碟名稱及已授權的 `/vol*/1000`；若要使用寫入，亦需相應的檔案系統權限。網站帳號授權與 FnOS 檔案權限是兩個獨立層次。
 
-啟動時 migration `018` 建立 `website_file_permissions` 與 `website_file_shares`（migration `017` 已將用戶 ID 欄位擴至 `VARCHAR(64)`，檔案相關欄位亦依此設定）。既有 session、帳號及網站功能不變。部署前備份修改檔案與 `.env`，然後以原有程序管理器重新啟動網站。反向代理必須允許預期的上傳大小與持續時間。
+啟動時 migration `018` 建立 `website_file_permissions` 與 `website_file_shares`（migration `017` 已將用戶 ID 欄位擴至 `VARCHAR(64)`，檔案相關欄位亦依此設定）。
+
+已部署過本功能舊版的資料庫有個特別情況：當時未發佈嘅檔案 migration 已佔用版本 `017`，令 `017` 的 UUID 欄位加寬被略過。`019` 會重新執行同一段加寬邏輯（逐欄檢查，已足夠寬就跳過），所以無論資料庫係全新、已套用上游 `017`，抑或由舊版檔案功能升級，最終欄位寬度都一致。
+
+既有 session、帳號及網站功能不變。部署前備份修改檔案與 `.env`，然後以原有程序管理器重新啟動網站。反向代理必須允許預期的上傳大小與持續時間。
 
 驗證：在 `website-part/` 執行 `npm run check`（會檢查 JSX 語法、重新建置 `public/` 並執行後端及前端測試，包括 `test/files.test.js`、`test/frontend/files_page.test.mjs` 及 `test/frontend/share_page.test.mjs`）。`public/` 係已提交嘅建置產物，改動前端後必須一併重建。實機需另確認 SFTP 登入、磁碟清單、上傳／下載、LiuLian 授權以及未登入分享頁；自動化測試不代表實機 SFTP 驗證已完成。

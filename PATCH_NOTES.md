@@ -15,6 +15,9 @@
   and readable from `/share.html` without signing in.
 - Added migration `018` for `website_file_permissions` and `website_file_shares`;
   user ID columns use `VARCHAR(64)` where migration `017` widened them.
+- Added migration `019`, which repeats the id widening for databases that had
+  already recorded the unreleased file migration as `017` and therefore skipped
+  it (the deployed Router database was in exactly that state).
 - Rebuilt the committed `website-part/public` bundle, documented the endpoints in
   `docs/API.md`, and refreshed `docs/file-browser.md`, the READMEs and the
   environment table.

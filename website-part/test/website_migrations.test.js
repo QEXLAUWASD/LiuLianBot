@@ -77,3 +77,50 @@ test('migration 017 leaves wide columns untouched', async () => {
   assert.equal(statements.some(sql => /MODIFY COLUMN/.test(sql)), false);
   assert.equal(statements.some(sql => /DROP FOREIGN KEY/.test(sql)), false);
 });
+
+test('migration 019 repeats the uuid widening for databases that recorded 017 as the file migration', async () => {
+  const migration = MIGRATIONS.find(item => item.version === '019');
+  assert.ok(migration, 'migration 019 must exist');
+
+  const statements = [];
+  const conn = {
+    async execute(sql) {
+      statements.push(sql);
+      if (sql.includes('information_schema.KEY_COLUMN_USAGE')) {
+        return [[{
+          table_name: 'website_events',
+          column_name: 'created_by',
+          constraint_name: 'website_events_ibfk_1',
+          delete_rule: 'SET NULL',
+          update_rule: 'RESTRICT',
+        }]];
+      }
+      if (sql.includes('CHARACTER_MAXIMUM_LENGTH')) return [[{ length: 30 }]];
+      return [[]];
+    },
+  };
+
+  await migration.up(conn);
+  const sql = statements.join('\n');
+
+  assert.match(sql, /ALTER TABLE `website_users` MODIFY COLUMN `id` VARCHAR\(64\) NOT NULL/);
+  assert.match(sql, /ALTER TABLE `website_events` MODIFY COLUMN `created_by` VARCHAR\(64\) NOT NULL/);
+  assert.match(sql, /ADD CONSTRAINT `website_events_ibfk_1`[\s\S]*ON DELETE SET NULL ON UPDATE RESTRICT/);
+});
+
+test('migration 019 is a no-op once the identifiers are wide enough', async () => {
+  const migration = MIGRATIONS.find(item => item.version === '019');
+  const statements = [];
+  const conn = {
+    async execute(sql) {
+      statements.push(sql);
+      if (sql.includes('CHARACTER_MAXIMUM_LENGTH')) return [[{ length: 64 }]];
+      return [[]];
+    },
+  };
+
+  await migration.up(conn);
+
+  assert.equal(statements.some(sql => /MODIFY COLUMN/.test(sql)), false);
+  assert.equal(statements.some(sql => /DROP FOREIGN KEY/.test(sql)), false);
+});
