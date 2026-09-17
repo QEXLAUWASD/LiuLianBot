@@ -222,3 +222,5 @@ node_modules/
 
 # Website frontend (Vite)
 website-part/frontend/.vite/
+# The generic `lib/` rule above must not hide the frontend browser libraries.
+!website-part/frontend/src/lib/
