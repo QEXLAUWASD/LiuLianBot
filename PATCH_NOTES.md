@@ -29,6 +29,9 @@
 - Rebuilt the committed `website-part/public` bundle and updated
   `test/frontend/nav.test.mjs` to cover the grouped menus, visibility filtering
   inside them, and the single-open-menu behaviour.
+- Updated both READMEs (design-system section plus the new `Manage > Discord
+  servers` navigation path) and `.gitignore` (symlinked `node_modules` installs
+  and browser crash dumps).
 - Verified with `npm run check` (syntax checks, Vite build, 251 tests) and local
   Chromium screenshots of all 13 pages at 390/1024/1280/1440 px. The Router
   deployment has not been re-checked visually yet.

@@ -372,7 +372,7 @@ npm test
 
 ### 伺服器管理頁及分類記錄
 
-先在網站 **Account** 產生代碼並以 `>link <code>` 連結 Discord 身分，之後開啟 **Discord Manager**。只有已連結嘅伺服器擁有者、已設定嘅伺服器管理員或 Bot 管理員先會見到相應伺服器。頁面可以設定 Bot 語言、全域 `all` 記錄頻道同各個分類嘅覆寫頻道。
+先在網站 **Account** 產生代碼並以 `>link <code>` 連結 Discord 身分，之後開啟 **Manage > Discord servers**（或直接開 `/guild-manager.html`）。只有已連結嘅伺服器擁有者、已設定嘅伺服器管理員或 Bot 管理員先會見到相應伺服器。頁面可以設定 Bot 語言、全域 `all` 記錄頻道同各個分類嘅覆寫頻道。
 
 伺服器管理員亦可以喺 Discord 使用：
 `/setlogchannel <all|useraction|voiceaction|groupaction|messageaction|channelaction|roleaction> <channel>`。

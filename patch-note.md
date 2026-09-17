@@ -12,6 +12,7 @@
 - `frontend/static/css/files.css` 以共用 token 重寫（檔案列表、分享面板、breadcrumbs、上傳欄位），不再使用獨立的灰藍色硬編碼。
 - `frontend/*.html` 的樣式版本參數更新為 `?v=20260917-ui2`，避免部署後瀏覽器沿用舊 CSS。
 - 重新建置 `website-part/public` 產物，並更新 `test/frontend/nav.test.mjs`：改為驗證分組選單（Workspaces／Manage）、`page-visibility` 於選單內仍生效，以及一次僅開啟一個選單。
+- 更新 README／README_HK（新增設計系統段落，並修正 Discord 伺服器管理頁的新導覽路徑）與 `.gitignore`（涵蓋 symlink 形式嘅 `node_modules` 及瀏覽器 crash dump）。
 - 驗證：`npm run check`（JSX／Node 語法檢查、Vite 建置、251 項測試）全數通過；另以本機 Chromium 對 13 個頁面與 390／1024／1280／1440 寬度截圖比對版面（截圖僅為本機驗證，未納入版本庫）。
 - 尚未在 Router 部署環境重新驗證外觀；部署後需以實際瀏覽器確認導覽抽屜與各工作區頁面。
 

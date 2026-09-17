@@ -428,7 +428,7 @@ Discord command picker for command-specific usage.
 
 ### Server manager and categorized logs
 
-Link the website account from **Account** with `>link <code>`, then open **Discord Manager**. The page only exposes servers where the linked Discord account is the server owner, a configured guild administrator, or a configured bot administrator. It can change the bot language and select a fallback `all` log channel plus per-category overrides.
+Link the website account from **Account** with `>link <code>`, then open **Manage > Discord servers** (or `/guild-manager.html`). The page only exposes servers where the linked Discord account is the server owner, a configured guild administrator, or a configured bot administrator. It can change the bot language and select a fallback `all` log channel plus per-category overrides.
 
 Guild administrators can set the same log routing in Discord:
 `/setlogchannel <all|useraction|voiceaction|groupaction|messageaction|channelaction|roleaction> <channel>`.
