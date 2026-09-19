@@ -1,5 +1,12 @@
 # 完整更新紀錄
 
+## 檔案列表部署驗證（基準：`2e9e3df`）
+
+- Router 已更新至 `2e9e3df`；本節僅補充該 commit 之後的部署紀錄。部署前備份位於 `/opt/website/backups/files-ui-20260919T140805Z/`，並保留原本啟動腳本修改的 Git stash。
+- 已保留 `website-part/start.sh` 原內容與 100755 權限，SHA-256 驗證通過；私有 `.env` 校驗一致。Router 唯一 tracked 本機差異仍為 `start.sh` 的可執行權限。
+- 將原為 stopped 的 `liulianbot-website` 啟動至 online，成功儲存 PM2 清單；OpenWrt 開機服務維持啟用。
+- Router 本機 HTTP 驗證：`/login.html`、`/share.html`、新版 CSS 與 JavaScript 回應 200，未登入 `/files.html` 回應 302。HTTP 傳回的 CSS／JavaScript 與部署檔案逐位元一致。未以已登入帳號進行線上檔案操作。
+
 ## 檔案列表樣式與 OpenWrt 啟動修正（基準：`68dc757`）
 
 - 檔案頁依參考圖片改為深色緊密列表、藍色資料夾圖示、修改時間／儲存空間／類型／大小／建立時間欄位，操作收進每列「•••」選單；窄螢幕可水平捲動。資料夾顯示真實修改時間，缺少的建立時間顯示「—」。更新 README、檔案功能文件、CSS 版本及 public 建置產物。
