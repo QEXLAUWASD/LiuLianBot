@@ -280,6 +280,29 @@ The MySQL session cleanup job logs transient cleanup failures without disabling
 new login sessions. After deploying session-store changes, restart the PM2 app
 with `./start.sh restart`.
 
+On **OpenWrt / iStoreOS**, `pm2 startup` cannot detect the init system. After
+initializing the website, run this as root instead:
+
+```bash
+bash website-part/start.sh startup # from the repository root
+/etc/init.d/pm2-pm2 enabled
+```
+
+This saves the current PM2 list and installs/enables an OpenWrt `rc.common`
+service with `HOME=/root` and `PM2_HOME=/root/.pm2`. It requires `/usr/bin/pm2`
+and backs up any previous `/etc/init.d/pm2-pm2` under
+`/root/.pm2/startup-backups/`. Without the explicit PM2 directory, boot may
+restore an empty `/.pm2` instead of the website's saved process list.
+PM2 supervises the applications; the boot hook runs `pm2 resurrect` once.
+Installing the hook does not restart running applications. To exercise it
+without rebooting, run `/etc/init.d/pm2-pm2 start`.
+
+The service restores **all root PM2 processes** saved with `pm2 save`; stopping
+it stops that PM2 daemon and all its applications. Save again after intentional
+process-list changes. Ensure the website filesystem and database are available
+at boot. Check HTTP as well as `pm2 list`: an `online` process alone does not
+prove the website finished connecting to its database or started listening.
+
 ### Run the website with Docker CLI
 
 The following image contains only `website-part/` and its production Node.js
@@ -698,6 +721,10 @@ profiles are loaded on selection; their passwords are not exposed in the
 profile list response or stored in localStorage.
 
 ### FnOS file browser and sharing
+
+The file page uses a compact dark detail list with blue folder icons, storage
+volume and type columns, and per-row action menus. Missing creation timestamps
+are displayed as a dash. See [file browser details](docs/file-browser.md).
 
 The Router-hosted website provides `/files.html` for browsing and writing FnOS
 `/vol*/1000` directories over SFTP. The page is implemented like every other

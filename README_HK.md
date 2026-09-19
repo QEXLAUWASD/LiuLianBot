@@ -213,6 +213,24 @@ cd website-part
 MySQL Session 背景清理遇到暫時性錯誤時只會記錄錯誤，唔會停用新登入
 Session。部署 Session Store 修正後，請執行 `./start.sh restart` 重啟 PM2 程式。
 
+**OpenWrt / iStoreOS 開機啟動**：`pm2 startup` 無法辨識呢個系統。初始化
+網站後，請用 root 喺 repository 根目錄執行：
+
+```bash
+bash website-part/start.sh startup
+/etc/init.d/pm2-pm2 enabled
+```
+
+指令會儲存 PM2 清單，安裝並啟用 `/etc/init.d/pm2-pm2`，固定
+`HOME=/root`、`PM2_HOME=/root/.pm2`，避免開機讀取空白嘅 `/.pm2`。
+需要 `/usr/bin/pm2`；原有服務會備份到 `/root/.pm2/startup-backups/`。
+由 PM2 監管應用程式，OpenWrt 開機掛鉤只執行一次 `pm2 resurrect`。
+安裝唔會重啟現有程序；可以用 `/etc/init.d/pm2-pm2 start` 測試還原。
+服務會還原 root 用 `pm2 save` 儲存嘅所有程序，停止服務亦會停止該 PM2
+daemon 同所有應用程式。更改程序清單後請再次 `pm2 save`。
+開機時網站磁碟同資料庫必須可用；請同時確認 HTTP 回應，PM2 顯示 online
+唔代表網站已成功連接資料庫或開始監聽。
+
 如果更新咗網站依賴（例如 Interim VLESS Tunnel 新增嘅 `js-yaml`），要先喺
 實際 PM2 使用嘅 website 目錄重新安裝 production dependencies，再重啟：
 

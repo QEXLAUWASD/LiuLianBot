@@ -1,0 +1,25 @@
+#!/bin/sh /etc/rc.common
+# The PM2 daemon supervises applications. Do not pass the short-lived
+# `pm2 resurrect` CLI to procd as a foreground service.
+START=99
+STOP=10
+
+export HOME=/root
+export PM2_HOME=/root/.pm2
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+start() {
+    if [ ! -s "$PM2_HOME/dump.pm2" ]; then
+        echo "No saved PM2 process list. Run website-part/start.sh init first." >&2
+        return 1
+    fi
+    /usr/bin/pm2 resurrect
+}
+
+stop() {
+    # Never start a fresh daemon just to stop it. Keep the explicitly saved
+    # boot configuration instead of overwriting it with temporary runtime state.
+    [ -s "$PM2_HOME/pm2.pid" ] || return 0
+    kill -0 "$(cat "$PM2_HOME/pm2.pid")" 2>/dev/null || return 0
+    /usr/bin/pm2 kill
+}

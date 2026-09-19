@@ -1,5 +1,5 @@
 /* FnOS file browser and public share pages.
-   Loaded after style.css and built only from the shared design tokens. */
+   Loaded after style.css; the detail list uses a neutral FnOS palette. */
 
 .file-page { max-width: 1180px; margin: 0 auto; padding-bottom: 4rem; }
 
@@ -112,3 +112,35 @@
   .file-panel { padding: 1rem; }
   .file-page { padding-left: 0.75rem; padding-right: 0.75rem; }
 }
+
+/* Dense FnOS-style detail list. */
+#browserPanel { padding: 1rem; }
+#browserPanel .file-table-scroll { border-color: #343434; border-radius: 4px; background: #202020; color-scheme: dark; }
+.file-detail-table { min-width: 1060px; table-layout: fixed; color: #f1f1f1; font-size: 14px; }
+.file-detail-table th { padding: 9px 12px; background: #262626; color: #bdbdbd; border-color: #363636; font-size: 12px; font-weight: 500; letter-spacing: normal; }
+.file-detail-table th:nth-child(1) { width: 27%; }
+.file-detail-table th:nth-child(2), .file-detail-table th:nth-child(6) { width: 17%; }
+.file-detail-table th:nth-child(3) { width: 13%; }
+.file-detail-table th:nth-child(4) { width: 9%; }
+.file-detail-table th:nth-child(5) { width: 9%; }
+.file-detail-table th:nth-child(7) { width: 8%; }
+.file-detail-table td { height: 38px; padding: 3px 12px; border-color: #333; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.file-detail-table td:first-child, .file-detail-table td:last-child { min-width: 0; }
+.file-detail-table tbody tr:nth-child(even) { background: #242424; }
+.file-detail-table tbody tr:hover td, .file-detail-table tbody tr:focus-within td { background: #303030; }
+.file-detail-table .file-name { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; margin: 0; padding: 0; min-height: 30px; color: inherit; text-decoration: none; }
+.file-detail-table .file-name-static { cursor: default; }
+.file-entry-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chevron, .file-chevron-spacer { flex: 0 0 5px; width: 5px; }
+.file-chevron { height: 5px; border-top: 1px solid #ccc; border-right: 1px solid #ccc; transform: rotate(45deg); }
+.file-entry-icon { position: relative; display: inline-block; flex-shrink: 0; }
+.file-entry-icon.is-folder { width: 24px; height: 19px; margin-top: 3px; border-radius: 2px 3px 3px 3px; background: linear-gradient(150deg, #35c5f8, #1686cf 75%, #1164a2); box-shadow: inset 0 1px 0 #74d7fa, 0 1px 2px #1118; }
+.file-entry-icon.is-folder::before { content: ''; position: absolute; left: 0; top: -3px; width: 11px; height: 5px; border-radius: 3px 3px 0 0; background: #3ebbea; }
+.file-entry-icon.is-document { width: 18px; height: 23px; margin: 0 3px; border-radius: 2px; background: linear-gradient(45deg, #a4bdcd, #edf4f8); clip-path: polygon(0 0, 65% 0, 100% 28%, 100% 100%, 0 100%); }
+.file-detail-table .file-actions { vertical-align: top; }
+.file-actions summary { cursor: pointer; list-style: none; text-align: center; line-height: 30px; border-radius: 4px; color: #bbb; }
+.file-actions summary::-webkit-details-marker { display: none; }
+.file-actions summary:hover, .file-actions details[open] summary { background: #414141; color: #fff; }
+.file-action-menu { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding: 4px 0; }
+.file-detail-table .file-action-menu .btn { padding: 4px 6px; margin: 0; font-size: 12px; color: #eee; border-color: #555; background: #303030; white-space: nowrap; }
+.file-detail-table :is(button, a, summary):focus-visible { outline: 2px solid #52c4ff; outline-offset: 2px; }

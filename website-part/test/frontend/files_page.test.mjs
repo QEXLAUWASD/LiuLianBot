@@ -15,7 +15,7 @@ const VOLUMES = {
 const VOLUME_1 = {
   path: 'vol1',
   entries: [
-    { name: '相片', directory: true, size: 0, modified: null },
+    { name: '相片', directory: true, size: 0, modified: '2026-01-02T03:04:05.000Z' },
     { name: 'a.txt', directory: false, size: 2048, modified: '2026-01-02T03:04:05.000Z' },
   ],
 };
@@ -50,7 +50,7 @@ test('the owner browses volumes from the FnOS root', async () => {
 
     assert.equal(document.getElementById('fileStatus').textContent, '2 個項目');
     const rows = [...document.querySelectorAll('#fileRows tr')];
-    assert.deepEqual(rows.map(row => row.querySelector('td').textContent), ['📁 vol1', '📁 vol2']);
+    assert.deepEqual(rows.map(row => row.querySelector('td').textContent), ['vol1', 'vol2']);
     assert.equal(document.querySelector('#fileRows a'), null, 'directories are not downloadable');
 
     // Write tools need a current directory; the root only lists volumes.
@@ -78,6 +78,11 @@ test('entering a volume lists files with download, rename and delete controls', 
 
     const rows = [...document.querySelectorAll('#fileRows tr')];
     assert.equal(rows.length, 2);
+    assert.notEqual(rows[0].cells[1].textContent, '—', 'folder modification times are shown');
+    assert.equal(rows[0].cells[2].textContent, '儲存空間1');
+    assert.equal(rows[0].cells[3].textContent, '資料夾');
+    assert.equal(rows[0].cells[5].textContent, '—', 'missing creation time is not fabricated');
+    click(rows[1].querySelector('summary'));
     assert.match(rows[1].textContent, /2\.0 KiB/);
     assert.match(rows[1].textContent, /重新命名/);
     assert.match(rows[1].textContent, /刪除/);

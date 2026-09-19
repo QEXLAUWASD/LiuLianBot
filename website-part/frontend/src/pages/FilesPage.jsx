@@ -13,6 +13,18 @@ import {
   joinPath,
 } from '../lib/filesApi.mjs';
 
+function listTime(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  const pad = number => String(number).padStart(2, '0');
+  return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+}
+
+function EntryIcon({ directory }) {
+  return <span className={directory ? 'file-entry-icon is-folder' : 'file-entry-icon is-document'} aria-hidden="true" />;
+}
+
 const DEFAULT_GRANT_FORM = Object.freeze({ username: '', read: true, write: false, share: false });
 
 function permissionLabel(user) {
@@ -351,25 +363,32 @@ export function FilesPage() {
           />
 
           <div className="file-table-scroll">
-            <table className="file-table">
+            <table className="file-table file-detail-table" aria-label="檔案與資料夾">
               <thead>
-                <tr><th>名稱</th><th>大小</th><th>更新時間</th><th>操作</th></tr>
+                <tr><th scope="col">名稱</th><th scope="col">修改時間</th><th scope="col">儲存空間</th><th scope="col">類型</th><th scope="col">大小</th><th scope="col">建立時間</th><th scope="col">操作</th></tr>
               </thead>
               <tbody id="fileRows">
                 {visibleEntries.map(entry => {
                   const path = joinPath(current, entry.name);
+                  const volume = path.split('/')[0].match(/^vol(\d+)$/)?.[1];
                   return (
                     <tr key={entry.name}>
                       <td>
                         {entry.directory ? (
                           <button className="file-name" type="button" onClick={() => run(() => openFolder(path))}>
-                            {`📁 ${entry.name}`}
+                            <span className="file-chevron" aria-hidden="true" /><EntryIcon directory /><span className="file-entry-label" title={entry.name}>{entry.name}</span>
                           </button>
-                        ) : `📄 ${entry.name}`}
+                         ) : <span className="file-name file-name-static"><span className="file-chevron-spacer" aria-hidden="true" /><EntryIcon directory={false} /><span className="file-entry-label" title={entry.name}>{entry.name}</span></span>}
                       </td>
+                      <td>{listTime(entry.modified)}</td>
+                      <td>{volume ? '儲存空間' + volume : '—'}</td>
+                      <td>{entry.directory ? '資料夾' : '檔案'}</td>
                       <td>{entry.directory ? '—' : formatSize(entry.size)}</td>
-                      <td>{entry.directory ? '—' : formatTime(entry.modified)}</td>
-                      <td>
+                      <td>{listTime(entry.created)}</td>
+                      <td className="file-actions">
+                        {(!entry.directory || canShare || (write && current)) && <details>
+                          <summary aria-label={entry.name + ' 的操作'}>•••</summary>
+                          <div className="file-action-menu">
                         {!entry.directory && (
                           <a
                             className="btn btn-outline"
@@ -396,6 +415,8 @@ export function FilesPage() {
                             </button>
                           </>
                         )}
+                          </div>
+                        </details>}
                       </td>
                     </tr>
                   );

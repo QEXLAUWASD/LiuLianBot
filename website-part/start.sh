@@ -17,6 +17,51 @@ require_pm2() {
     fi
 }
 
+is_openwrt() {
+    [ -f /etc/openwrt_release ] && [ -f /etc/rc.common ]
+}
+
+startup() {
+    require_pm2
+    if ! is_openwrt; then
+        "${PM2_BIN}" startup
+        return
+    fi
+
+    # This service restores the root account's complete saved PM2 process list.
+    if [ "$(id -u)" -ne 0 ] || [ "${PM2_HOME:-${HOME}/.pm2}" != /root/.pm2 ]; then
+        log "OpenWrt startup requires root with PM2_HOME=/root/.pm2."
+        exit 1
+    fi
+    if [ "$(command -v "${PM2_BIN}")" != /usr/bin/pm2 ]; then
+        log "The OpenWrt service requires PM2 at /usr/bin/pm2."
+        exit 1
+    fi
+    if ! is_initialized; then
+        log "${APP_NAME} is not initialized. Run: $0 init"
+        exit 1
+    fi
+
+    local template="${SCRIPT_DIR}/deploy/openwrt/pm2-pm2"
+    local service=/etc/init.d/pm2-pm2
+    [ -f "${template}" ] || { log "Missing service template: ${template}"; exit 1; }
+    sh -n "${template}"
+    PM2_HOME=/root/.pm2 "${PM2_BIN}" save
+    if [ -e "${service}" ]; then
+        local backup
+        mkdir -p /root/.pm2/startup-backups
+        chmod 700 /root/.pm2/startup-backups
+        backup="$(mktemp /root/.pm2/startup-backups/pm2-pm2.XXXXXX)"
+        cp -p "${service}" "${backup}"
+        log "Previous startup service saved to ${backup}"
+    fi
+    cp "${template}" "${service}"
+    chmod 755 "${service}"
+    "${service}" enable
+    log "OpenWrt startup enabled: ${service} (PM2_HOME=/root/.pm2)."
+    log "Use '${service} start' to restore saved processes; current processes were not restarted."
+}
+
 is_initialized() {
     "${PM2_BIN}" describe "${APP_NAME}" >/dev/null 2>&1
 }
@@ -90,7 +135,11 @@ init() {
     "${PM2_BIN}" save
 
     log "PM2 initialization complete."
-    log "For startup after reboot, run 'pm2 startup' once and follow its instructions."
+    if is_openwrt; then
+        log "For startup after reboot on OpenWrt/iStoreOS, run: bash ${BASH_SOURCE[0]} startup"
+    else
+        log "For startup after reboot, run 'pm2 startup' once and follow its instructions."
+    fi
 }
 
 case "${1:-}" in
@@ -106,8 +155,11 @@ case "${1:-}" in
     init)
         init
         ;;
+    startup)
+        startup
+        ;;
     *)
-        echo "Usage: $0 {start|stop|restart|init}"
+        echo "Usage: $0 {start|stop|restart|init|startup}"
         exit 1
         ;;
 esac

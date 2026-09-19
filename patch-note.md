@@ -1,6 +1,18 @@
 # 完整更新紀錄
 
-## 未提交更新（基準：`e2794df`）
+## 檔案列表樣式與 OpenWrt 啟動修正（基準：`68dc757`）
+
+- 檔案頁依參考圖片改為深色緊密列表、藍色資料夾圖示、修改時間／儲存空間／類型／大小／建立時間欄位，操作收進每列「•••」選單；窄螢幕可水平捲動。資料夾顯示真實修改時間，缺少的建立時間顯示「—」。更新 README、檔案功能文件、CSS 版本及 public 建置產物。
+- 推送前驗證：最新完整 `npm run check`（語法檢查、Vite 建置、252 項測試）、Bash／POSIX shell 語法與 `git diff --check` 全數通過。部署前 Router 網站 PM2 程序為 stopped；本次將備份既有內容、保留 `start.sh` 與其 100755 權限，更新版本後啟動及驗證 HTTP。
+
+- 修正 iStoreOS / OpenWrt 的 PM2 開機啟動：新增 `website-part/deploy/openwrt/pm2-pm2`，使用 `rc.common` 開機掛鉤執行 `pm2 resurrect`，固定 `HOME=/root` 與 `PM2_HOME=/root/.pm2`，避免讀取空白的 `/.pm2`。不再把短暫執行的 PM2 CLI 當成 procd 前景服務。
+- `website-part/start.sh` 新增 `startup` 指令，檢查 root、PM2 路徑與網站初始化狀態，儲存清單、備份既有服務並啟用開機啟動；`init` 在 OpenWrt 顯示適用指令，其他系統保留 PM2 原生流程。
+- README／README_HK 補上安裝、驗證、root PM2 清單的作用範圍，以及資料庫與 HTTP 就緒狀態說明。
+- 已部署 Router 並保留 `start.sh` 原有 100755 權限；原腳本備份位於 `/opt/website/backups/pm2-startup-2026-09-19T13-56-48-029Z/`，原服務備份位於 `/root/.pm2/startup-backups/pm2-pm2.JoacfA`。
+- 驗證：Bash／POSIX shell 語法與 `git diff --check` 通過；Router 開機服務已啟用，在清空環境變數後停止並啟動 PM2，成功從 `/root/.pm2/dump.pm2` 還原網站。`/login.html` 與 `/share.html` 回應 200，未登入 `/files.html` 回應 302。未實際重啟 Router。
+- 診斷期間發現資料庫 `localhost:33306` 拒絕連線，已由使用者修復；本次未修改資料庫設定或 npm 依賴。
+
+## 已提交：控制台式框架與 Router 部署（`e2794df` → `68dc757`）
 
 - 版面改為參考的控制台式框架：`App.jsx` 以 `.app-shell`（grid）包住左側導覽列與 `.app-main`（頂列＋頁面內容），已登入頁面全部套用；配色沿用原本品牌藍／青色，未改動色票。
 - `frontend/src/components/NavBar.jsx` 由頂部橫向導覽改寫為側邊欄：品牌、`Main` 連結（Home／R6 Roller／Events／Files／Account），再來是可收合的 `Workspaces`（Remote／Chromium／VLESS）、`Connected websites`（`/api/connections`，首次展開才載入）與 `Administration`（Discord servers／Admin panel），底部固定帳號、登出與收合按鈕。
