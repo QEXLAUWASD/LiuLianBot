@@ -60,6 +60,31 @@
 - Verified with `npm run check` (syntax check, Vite build, 286 tests). The
   generated ZIP was also read back with an independent unzip implementation.
 
+### Deployment verification (Router)
+
+- Fast-forwarded `/opt/website/LiuLianBot` from `32635dc` to `645c125`. The local
+  `start.sh` change (mode 100755) survived with identical content
+  (`2c3402dc…`), the private `.env` was untouched, and PM2
+  `liulianbot-website` restarted cleanly on `127.0.0.1:30011`.
+- Pre-deployment backup: `/opt/website/backups/zip-pack-20260921T015459Z/`
+  (previous HEAD, `start.sh` copy, `.env`/`start.sh` hashes and a tarball of
+  `website-part` without `node_modules`).
+- `/login.html`, `/share.html`, `/robots.txt`, `/healthz` and the new
+  `/assets/FilesPage-CCWVyV-Z.js` answer 200; `/files.html` still redirects to the
+  login page without a session, and `/api/files/list` plus
+  `POST /api/files/archive` answer 401. First-party responses carry the new
+  `Content-Security-Policy`.
+- The deployed `public/assets/FilesPage-CCWVyV-Z.js` (`67778cb8…`),
+  `public/files.html` (`1782211f…`) and `src/services/zip_archive.js`
+  (`67c74ddf…`) match the committed copies by SHA-256, and the JavaScript served
+  over HTTP matches the file on disk.
+- Live packing test with the deployed code: `vol1/office` (subtree) plus
+  `vol1/adguard/docker-compose.yml` produced a 67-entry, 64 kB archive in 10.8 s.
+  Every entry passed the CRC check, the Router's own `unzip -t` reported no
+  errors, relative entry names and empty folders were correct, and the temporary
+  check script plus the sample archive were deleted afterwards. Nothing was
+  written to the NAS.
+
 ## Since `e2794df`
 
 - Rebuilt the authenticated layout as a console-style frame: `App.jsx` wraps each

@@ -472,3 +472,15 @@
 - 前端在使用者點擊當下先取得儲存位置並把建議檔名送到伺服器（伺服器會重新驗證檔名後回應相同名稱）；不支援 File System Access API 時回退為 blob 下載，取消儲存對話框不會送出打包請求。
 - 更新 `docs/file-browser.md`、`docs/API.md`、`README.md` 及 `README_HK.md`。
 - 驗證：`npm run check` 全數通過（語法檢查、重新建置 `public/`、286 項測試）；產出的 ZIP 另以獨立解壓實作讀回驗證。
+
+### 部署驗證（Router）
+
+- 已將 `/opt/website/LiuLianBot` 從 `32635dc` fast-forward 到 `645c125`；`website-part/start.sh` 的本機修改（100755）內容不變（SHA-256 `2c3402dc…`），私有 `.env` 未更動，PM2 `liulianbot-website` 正常重啟於 `127.0.0.1:30011`。
+- 部署前備份位於 `/opt/website/backups/zip-pack-20260921T015459Z/`（原 HEAD、`start.sh`、`.env`／`start.sh` 雜湊與不含 `node_modules` 的 `website-part` 壓縮檔）。
+- Router 本機 HTTP 驗證：`/login.html`、`/share.html`、`/robots.txt`、`/healthz` 與新版 `/assets/FilesPage-CCWVyV-Z.js` 回應 200；未登入 `/files.html` 302、`/api/files/list` 與 `POST /api/files/archive` 回應 401；第一方回應帶新的 `Content-Security-Policy`。
+- 部署檔案與已提交版本逐位元一致：`public/assets/FilesPage-CCWVyV-Z.js`（`67778cb8…`）、`public/files.html`（`1782211f…`）、`src/services/zip_archive.js`（`67c74ddf…`），HTTP 實際回應的 JavaScript 亦相同。
+- 實機打包驗證：以部署後程式碼把 `vol1/office` 子樹與 `vol1/adguard/docker-compose.yml` 打包成 67 個項目、64 KB 的 ZIP（10.8 秒），所有項目 CRC 通過，Router 內建 `unzip -t` 無錯誤，相對路徑與空資料夾皆正確；驗證後已刪除暫存腳本與測試壓縮檔，未在 NAS 寫入資料。
+
+### 待辦
+
+- 尚未以已登入帳號在瀏覽器實際操作打包下載（需要網站帳號）；目前的實機驗證是在 Router 上直接呼叫部署後的服務層與 FnOS。
