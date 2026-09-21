@@ -2,6 +2,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { htmlHeadPlugin } from './vite-plugins/html-head.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const frontend = resolve(here, 'frontend');
@@ -28,7 +29,7 @@ const pageNames = [
 export default defineConfig({
   root: frontend,
   publicDir: resolve(frontend, 'static'),
-  plugins: [react()],
+  plugins: [react(), htmlHeadPlugin()],
   build: {
     outDir: resolve(here, 'public'),
     emptyOutDir: true,

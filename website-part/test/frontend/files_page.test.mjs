@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { FilesPage } from '../../frontend/src/pages/FilesPage.jsx';
-import { click, flush, mockFetch, render, setupDom, stubLocation, typeInto } from '../support/react.mjs';
+import { click, flush, mockFetch, render, setupDom, stubLocation, toggle, typeInto } from '../support/react.mjs';
 
 const OWNER = { owner: true, userId: 'owner', read: true, write: true, share: true, requested: false };
 const VOLUMES = {
@@ -50,7 +50,7 @@ test('the owner browses volumes from the FnOS root', async () => {
 
     assert.equal(document.getElementById('fileStatus').textContent, '2 個項目');
     const rows = [...document.querySelectorAll('#fileRows tr')];
-    assert.deepEqual(rows.map(row => row.querySelector('td').textContent), ['vol1', 'vol2']);
+    assert.deepEqual(rows.map(row => row.querySelectorAll('td')[1].textContent), ['vol1', 'vol2']);
     assert.equal(document.querySelector('#fileRows a'), null, 'directories are not downloadable');
 
     // Write tools need a current directory; the root only lists volumes.
@@ -78,10 +78,10 @@ test('entering a volume lists files with download, rename and delete controls', 
 
     const rows = [...document.querySelectorAll('#fileRows tr')];
     assert.equal(rows.length, 2);
-    assert.notEqual(rows[0].cells[1].textContent, '—', 'folder modification times are shown');
-    assert.equal(rows[0].cells[2].textContent, '儲存空間1');
-    assert.equal(rows[0].cells[3].textContent, '資料夾');
-    assert.equal(rows[0].cells[5].textContent, '—', 'missing creation time is not fabricated');
+    assert.notEqual(rows[0].cells[2].textContent, '—', 'folder modification times are shown');
+    assert.equal(rows[0].cells[3].textContent, '儲存空間1');
+    assert.equal(rows[0].cells[4].textContent, '資料夾');
+    assert.equal(rows[0].cells[6].textContent, '—', 'missing creation time is not fabricated');
     click(rows[1].querySelector('summary'));
     assert.match(rows[1].textContent, /2\.0 KiB/);
     assert.match(rows[1].textContent, /重新命名/);
@@ -215,6 +215,193 @@ test('a failed listing surfaces the server message', async () => {
     assert.equal(status.textContent, '無法存取 FnOS，請稍後再試');
     assert.equal(status.classList.contains('status-error'), true);
   } finally {
+    dom.cleanup();
+  }
+});
+
+// Downloading an archive ends in a blob URL plus a synthetic anchor click. The
+// stub captures both so the tests never navigate jsdom away from the page.
+const ARCHIVE_RESPONSE = () => new Response('PK\u0003\u0004', {
+  status: 200,
+  headers: {
+    'content-type': 'application/zip',
+    'content-disposition': "attachment; filename=\"__.zip\"; filename*=UTF-8''%E7%9B%B8%E7%89%87.zip",
+  },
+});
+
+function stubDownload() {
+  const saved = [];
+  // jsdom keeps HTMLAnchorElement off the global object, so the prototype is
+  // taken from a real anchor. `click` lives on HTMLElement, hence the override.
+  const anchors = Object.getPrototypeOf(globalThis.document.createElement('a'));
+  const original = {
+    create: globalThis.URL.createObjectURL,
+    revoke: globalThis.URL.revokeObjectURL,
+    click: anchors.click,
+  };
+  globalThis.URL.createObjectURL = () => 'blob:test';
+  globalThis.URL.revokeObjectURL = () => {};
+  anchors.click = function captureClick() {
+    saved.push({ download: this.download, href: this.href });
+  };
+  return {
+    saved,
+    restore() {
+      globalThis.URL.createObjectURL = original.create;
+      globalThis.URL.revokeObjectURL = original.revoke;
+      anchors.click = original.click;
+    },
+  };
+}
+
+async function enterVolume1(document) {
+  await flush();
+  click([...document.querySelectorAll('#fileRows tr')][0].querySelector('button'));
+  await flush();
+}
+
+test('checked entries are packed into one ZIP download', async () => {
+  const { dom, document, fetchMock } = mount({
+    routes: {
+      'GET /api/files/list?path=vol1': { payload: VOLUME_1 },
+      'POST /api/files/archive': ARCHIVE_RESPONSE(),
+    },
+  });
+  // The stub has to follow `mount`, because the document it patches is jsdom's.
+  const download = stubDownload();
+  try {
+    await enterVolume1(document);
+
+    assert.equal(document.getElementById('selectionTools'), null, 'the toolbar needs a selection');
+    const rows = [...document.querySelectorAll('#fileRows tr')];
+    toggle(rows[1].querySelector('input[type="checkbox"]'));
+    await flush();
+
+    assert.equal(document.getElementById('selectionCount').textContent, '已選 1 個項目');
+    click(document.getElementById('archiveSelection'));
+    await flush();
+
+    assert.deepEqual(
+      fetchMock.callsTo('POST', '/api/files/archive')[0].body,
+      { paths: ['vol1/a.txt'], name: 'a.txt.zip' },
+    );
+    assert.deepEqual(download.saved, [{ download: '相片.zip', href: 'blob:test' }]);
+    assert.equal(document.getElementById('fileStatus').textContent, '已開始下載 相片.zip。');
+  } finally {
+    download.restore();
+    dom.cleanup();
+  }
+});
+
+test('the header checkbox selects the listing and navigating clears the selection', async () => {
+  const { dom, document } = mount({ routes: { 'GET /api/files/list?path=vol1': { payload: VOLUME_1 } } });
+  try {
+    await enterVolume1(document);
+
+    toggle(document.getElementById('selectAllFiles'));
+    await flush();
+    assert.equal(document.getElementById('selectionCount').textContent, '已選 2 個項目');
+
+    click(document.getElementById('clearSelection'));
+    await flush();
+    assert.equal(document.getElementById('selectionTools'), null);
+
+    toggle(document.getElementById('selectAllFiles'));
+    await flush();
+    click(document.getElementById('breadcrumbs').querySelector('button'));
+    await flush();
+    assert.equal(document.getElementById('selectionTools'), null, 'entering a folder resets the selection');
+  } finally {
+    dom.cleanup();
+  }
+});
+
+test('a folder row can be packed on its own from the action menu', async () => {
+  const { dom, document, fetchMock } = mount({
+    routes: {
+      'GET /api/files/list?path=vol1': { payload: VOLUME_1 },
+      'POST /api/files/archive': ARCHIVE_RESPONSE(),
+    },
+  });
+  const download = stubDownload();
+  try {
+    await enterVolume1(document);
+
+    const folderRow = [...document.querySelectorAll('#fileRows tr')][0];
+    click(folderRow.querySelector('summary'));
+    const packButton = [...folderRow.querySelectorAll('button')].find(button => button.textContent === '打包下載');
+    assert.ok(packButton, 'folders offer packing without checking the row first');
+    click(packButton);
+    await flush();
+
+    assert.deepEqual(
+      fetchMock.callsTo('POST', '/api/files/archive')[0].body,
+      { paths: ['vol1/相片'], name: '相片.zip' },
+    );
+    assert.equal(download.saved.length, 1);
+  } finally {
+    download.restore();
+    dom.cleanup();
+  }
+});
+
+test('a browser with the File System Access API streams into the picked file', async () => {
+  const chunks = [];
+  const suggested = [];
+  globalThis.showSaveFilePicker = async options => {
+    suggested.push(options.suggestedName);
+    return {
+      createWritable: async () => new WritableStream({
+        write(chunk) { chunks.push(Buffer.from(chunk)); },
+      }),
+    };
+  };
+  const { dom, document, fetchMock } = mount({
+    routes: {
+      'GET /api/files/list?path=vol1': { payload: VOLUME_1 },
+      'POST /api/files/archive': ARCHIVE_RESPONSE(),
+    },
+  });
+  try {
+    await enterVolume1(document);
+    toggle([...document.querySelectorAll('#fileRows tr')][1].querySelector('input[type="checkbox"]'));
+    await flush();
+    click(document.getElementById('archiveSelection'));
+    await flush();
+
+    assert.deepEqual(suggested, ['a.txt.zip'], 'the save dialog opens with the suggested name');
+    assert.deepEqual(
+      fetchMock.callsTo('POST', '/api/files/archive')[0].body,
+      { paths: ['vol1/a.txt'], name: 'a.txt.zip' },
+    );
+    assert.equal(Buffer.concat(chunks).toString(), 'PK\u0003\u0004');
+    assert.equal(document.getElementById('fileStatus').textContent, '已開始下載 相片.zip。');
+  } finally {
+    delete globalThis.showSaveFilePicker;
+    dom.cleanup();
+  }
+});
+
+test('cancelling the save dialog stops the request', async () => {
+  globalThis.showSaveFilePicker = async () => {
+    const error = new Error('cancelled');
+    error.name = 'AbortError';
+    throw error;
+  };
+  const { dom, document, fetchMock } = mount({
+    routes: { 'GET /api/files/list?path=vol1': { payload: VOLUME_1 } },
+  });
+  try {
+    await enterVolume1(document);
+    toggle([...document.querySelectorAll('#fileRows tr')][1].querySelector('input[type="checkbox"]'));
+    await flush();
+    click(document.getElementById('archiveSelection'));
+    await flush();
+
+    assert.equal(fetchMock.callsTo('POST', '/api/files/archive').length, 0, 'nothing is packed');
+    assert.equal(document.getElementById('fileStatus').textContent, '已取消打包下載。');
+  } finally {
+    delete globalThis.showSaveFilePicker;
     dom.cleanup();
   }
 });

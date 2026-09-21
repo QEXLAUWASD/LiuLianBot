@@ -12,9 +12,10 @@ import { flush, mockFetch, render, setupDom } from '../support/react.mjs';
 const testDir = dirname(fileURLToPath(import.meta.url));
 const frontendDir = resolve(testDir, '../../frontend');
 const staticDir = resolve(frontendDir, 'static');
+const publicDir = resolve(testDir, '../../public');
 
-// Pages are built from `frontend/*.html`; the npm build copies them and the
-// static assets into `public/`.
+// Pages are built from `frontend/*.html`; the Vite html-head plugin injects the
+// shared install/social metadata into the `public/` output at build time.
 const PAGES = [
   ['index.html', 'dashboard'],
   ['login.html', 'login'],
@@ -47,26 +48,11 @@ test('page entries mount the React bundle and keep install metadata', async () =
     assert.match(document.querySelector('link[rel="stylesheet"]').getAttribute('href'), /^\/css\/style\.css/);
   }
 
-  for (const [pageName, withInstallMetadata] of [
-    ['index.html', true],
-    ['login.html', true],
-    ['account.html', true],
-    ['roller.html', true],
-    ['admin.html', true],
-    ['events.html', true],
-    ['chromium.html', true],
-    ['404.html', true],
-    ['remote.html', true],
-    ['guild-manager.html', true],
-    ['vless-tunnel.html', true],
-    ['files.html', true],
-    ['share.html', false],
-    ['terms.html', false],
-  ]) {
-    const document = new JSDOM(await readFile(resolve(frontendDir, pageName), 'utf8')).window.document;
-    if (!withInstallMetadata) continue;
+  for (const [pageName] of PAGES) {
+    const document = new JSDOM(await readFile(resolve(publicDir, pageName), 'utf8')).window.document;
     assert.equal(document.querySelector('link[rel="manifest"]')?.getAttribute('href'), '/manifest.webmanifest');
     assert.equal(document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href'), '/img/apple-touch-icon.png');
+    assert.equal(document.querySelector('link[rel="icon"]')?.getAttribute('href'), '/img/icon-192.png');
     assert.equal(document.querySelector('meta[name="theme-color"]')?.getAttribute('content'), '#1c6ba0');
     assert.equal(document.querySelector('meta[name="apple-mobile-web-app-capable"]')?.getAttribute('content'), 'yes');
     assert.equal(document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute('content'), 'LiuLianBot');
@@ -75,7 +61,8 @@ test('page entries mount the React bundle and keep install metadata', async () =
   const manifest = JSON.parse(await readFile(resolve(staticDir, 'manifest.webmanifest'), 'utf8'));
   assert.equal(manifest.name, 'LiuLianBot');
   assert.equal(manifest.display, 'standalone');
-  assert.equal(manifest.start_url, '/index.html');
+  assert.equal(manifest.start_url, '/login.html');
+  assert.equal(manifest.background_color, '#070b12');
 
   for (const icon of ['apple-touch-icon.png', 'icon-192.png', 'icon-512.png']) {
     const data = await readFile(resolve(staticDir, 'img', icon));

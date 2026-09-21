@@ -5,7 +5,9 @@ import { useAsyncAction } from '../hooks/useAsyncAction.mjs';
 import {
   SHARE_HOURS,
   UPLOAD_LIMIT,
+  ARCHIVE_LIMIT,
   breadcrumbTrail,
+  downloadArchive,
   entryName,
   filesRequest,
   formatSize,
@@ -51,12 +53,14 @@ export function FilesPage() {
   const [renameTarget, setRenameTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [selected, setSelected] = useState([]);
   const navigation = useRef(0);
   const uploadInput = useRef(null);
   const renameAction = useAsyncAction();
   const deleteAction = useAsyncAction();
   const folderAction = useAsyncAction();
   const uploadAction = useAsyncAction();
+  const archiveAction = useAsyncAction();
 
   const report = useCallback((message, tone = '') => setStatus({ message, tone }), []);
 
@@ -82,6 +86,7 @@ export function FilesPage() {
     setCurrent(data.path);
     setEntries(data.entries);
     setFilter('');
+    setSelected([]);
     report(`${data.entries.length} 個項目`);
   }, [report]);
 
@@ -118,6 +123,9 @@ export function FilesPage() {
   const canShare = Boolean(grant?.share);
   const filterValue = filter.trim().toLocaleLowerCase();
   const visibleEntries = entries.filter(entry => entry.name.toLocaleLowerCase().includes(filterValue));
+  const visiblePaths = visibleEntries.map(entry => joinPath(current, entry.name));
+  const allVisibleSelected = visiblePaths.length > 0 && visiblePaths.every(path => selected.includes(path));
+  const toggleVisible = () => setSelected(allVisibleSelected ? [] : [...new Set([...selected, ...visiblePaths])]);
 
   const requestAccess = () => run(async () => {
     await filesRequest('/access/request', { method: 'POST' });
@@ -130,6 +138,25 @@ export function FilesPage() {
     if (grant?.share) await loadShares();
     if (grant?.owner) await loadPermissions();
   });
+
+  // Checked rows are packed into one ZIP on the server, so a large folder never
+  // has to be downloaded file by file.
+  const toggleSelected = path => setSelected(list => list.includes(path)
+    ? list.filter(item => item !== path)
+    : [...list, path]);
+
+  const packSelection = paths => attempt(archiveAction.run(async () => {
+    if (!paths.length) return;
+    if (paths.length > ARCHIVE_LIMIT) throw new Error(`單次最多打包 ${ARCHIVE_LIMIT} 個項目`);
+    report(`正在打包 ${paths.length} 個項目，資料夾較大時需要一些時間…`);
+    try {
+      const filename = await downloadArchive(paths);
+      report(`已開始下載 ${filename}。`);
+    } catch (error) {
+      if (error?.name !== 'AbortError') throw error;
+      report('已取消打包下載。');
+    }
+  }));
 
   const createFolder = () => attempt(folderAction.run(async () => {
     const name = entryName(newFolder.trim());
@@ -304,6 +331,24 @@ export function FilesPage() {
             </button>
           </div>
 
+          {selected.length > 0 && (
+            <div id="selectionTools" className="file-toolbar">
+              <span id="selectionCount">{`已選 ${selected.length} 個項目`}</span>
+              <button
+                id="archiveSelection"
+                className="btn btn-primary"
+                type="button"
+                disabled={archiveAction.busy}
+                onClick={() => packSelection(selected)}
+              >
+                打包成 ZIP 下載
+              </button>
+              <button id="clearSelection" className="btn btn-outline" type="button" onClick={() => setSelected([])}>
+                清除選取
+              </button>
+            </div>
+          )}
+
           {write && current && (
             <form id="newFolderForm" className="file-toolbar" onSubmit={event => { event.preventDefault(); createFolder(); }}>
               <label htmlFor="newFolderName">新增資料夾</label>
@@ -365,7 +410,18 @@ export function FilesPage() {
           <div className="file-table-scroll">
             <table className="file-table file-detail-table" aria-label="檔案與資料夾">
               <thead>
-                <tr><th scope="col">名稱</th><th scope="col">修改時間</th><th scope="col">儲存空間</th><th scope="col">類型</th><th scope="col">大小</th><th scope="col">建立時間</th><th scope="col">操作</th></tr>
+                <tr>
+                  <th scope="col" className="file-select-cell">
+                    <input
+                      id="selectAllFiles"
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={toggleVisible}
+                      aria-label="選取全部項目"
+                    />
+                  </th>
+                  <th scope="col">名稱</th><th scope="col">修改時間</th><th scope="col">儲存空間</th><th scope="col">類型</th><th scope="col">大小</th><th scope="col">建立時間</th><th scope="col">操作</th>
+                </tr>
               </thead>
               <tbody id="fileRows">
                 {visibleEntries.map(entry => {
@@ -373,6 +429,14 @@ export function FilesPage() {
                   const volume = path.split('/')[0].match(/^vol(\d+)$/)?.[1];
                   return (
                     <tr key={entry.name}>
+                      <td className="file-select-cell">
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(path)}
+                          onChange={() => toggleSelected(path)}
+                          aria-label={`選取 ${entry.name}`}
+                        />
+                      </td>
                       <td>
                         {entry.directory ? (
                           <button className="file-name" type="button" onClick={() => run(() => openFolder(path))}>
@@ -386,7 +450,7 @@ export function FilesPage() {
                       <td>{entry.directory ? '—' : formatSize(entry.size)}</td>
                       <td>{listTime(entry.created)}</td>
                       <td className="file-actions">
-                        {(!entry.directory || canShare || (write && current)) && <details>
+                        {(!entry.directory || read || canShare || (write && current)) && <details>
                           <summary aria-label={entry.name + ' 的操作'}>•••</summary>
                           <div className="file-action-menu">
                         {!entry.directory && (
@@ -400,6 +464,11 @@ export function FilesPage() {
                         )}
                         {canShare && (
                           <button className="btn btn-outline" type="button" onClick={() => share(path)}>分享</button>
+                        )}
+                        {entry.directory && (
+                          <button className="btn btn-outline" type="button" onClick={() => packSelection([path])}>
+                            打包下載
+                          </button>
                         )}
                         {write && current && (
                           <>

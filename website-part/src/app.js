@@ -5,13 +5,30 @@ const path = require('path');
 
 const { requirePageAuth } = require('./middleware/auth');
 const { AUTH_RATE_LIMIT } = require('./middleware/auth_rate_limit');
+const { createLoginThrottle } = require('./middleware/login_throttle');
+const { originCheck } = require('./middleware/origin_check');
 const { requireAdmin } = require('./middleware/admin_auth');
 const { requireRemotePageAccess } = require('./middleware/remote_auth');
 const { requirePageVisibility } = require('./middleware/page_visibility');
 const { requestContext } = require('./middleware/request_context');
 const { errorHandler } = require('./middleware/error_handler');
+const { securityHeaders } = require('./middleware/security_headers');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+
+// Vite fingerprints `assets/` filenames, so those can be cached forever, while
+// HTML entry points must be revalidated so a deploy is picked up immediately.
+const ASSETS_DIR = `${path.sep}assets${path.sep}`;
+
+function setStaticCacheHeaders(res, filePath) {
+  if (filePath.includes(ASSETS_DIR)) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  } else {
+    // HTML, CSS, images, the manifest and robots.txt are not fingerprinted, so
+    // they must revalidate (ETag) instead of risking a stale deploy.
+    res.setHeader('Cache-Control', 'no-cache');
+  }
+}
 
 function homeRedirectPath(session) {
   return session?.user ? '/index.html' : '/login.html';
@@ -20,17 +37,23 @@ function homeRedirectPath(session) {
 function createApp({ sessionOptions, sessionMiddleware, routers }) {
   const app = express();
 
+  // Security headers come first so even redirects and errors carry them.
+  app.use(securityHeaders);
   if (sessionOptions.cookie.secure) app.set('trust proxy', 1);
   app.use(sessionMiddleware || session(sessionOptions));
+  if (routers.health) app.use('/healthz', routers.health);
   if (routers.connectionProxy.redirectRootRelativeRequest) {
     app.use(routers.connectionProxy.redirectRootRelativeRequest);
   }
   app.use('/api', requestContext);
+  app.use('/api', originCheck);
   app.use('/api', express.json({ limit: '32kb' }));
   app.use('/api', express.urlencoded({ extended: false, limit: '16kb' }));
   app.use('/api/admin/connections', routers.adminConnections);
   const authRateLimiter = rateLimit(AUTH_RATE_LIMIT);
+  const loginThrottle = createLoginThrottle();
   app.use('/api/auth/login', authRateLimiter);
+  app.use('/api/auth/login', loginThrottle);
   app.use('/api/auth/register', authRateLimiter);
   app.use('/api/auth', routers.auth);
   app.use('/api/roller', routers.roller);
@@ -86,7 +109,7 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   });
 
   app.use('/connect/:slug', routers.connectionProxy);
-  app.use(express.static(PUBLIC_DIR, { index: false }));
+  app.use(express.static(PUBLIC_DIR, { index: false, setHeaders: setStaticCacheHeaders }));
   app.get('/', (req, res) => {
     res.redirect(homeRedirectPath(req.session));
   });
@@ -98,4 +121,4 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   return app;
 }
 
-module.exports = { createApp, homeRedirectPath };
+module.exports = { createApp, homeRedirectPath, setStaticCacheHeaders };

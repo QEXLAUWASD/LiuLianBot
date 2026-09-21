@@ -26,6 +26,7 @@ async function startServer() {
   const pageVisibility = require('./routes/page_visibility');
   const guildManager = require('./routes/guild_manager');
   const vlessTunnel = require('./routes/vless_tunnel');
+  const health = require('./routes/health').createRouter({ getPool });
   const sessionStore = new MySqlSessionStore();
   const sessionOptions = buildSessionOptions(process.env, sessionStore);
   const sessionMiddleware = session(sessionOptions);
@@ -47,6 +48,7 @@ async function startServer() {
       pageVisibility,
       guildManager,
       vlessTunnel,
+      health,
     },
   });
   const listenOptions = buildListenOptions(process.env);

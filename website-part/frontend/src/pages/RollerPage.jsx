@@ -45,6 +45,8 @@ function OperatorResult({ operator }) {
         className={`op-icon ${className}`}
         src={operator.icon || FALLBACK_ICON}
         alt={operator.name || 'Operator'}
+        width="98"
+        height="98"
         onError={event => {
           if (event.currentTarget.src !== FALLBACK_ICON) event.currentTarget.src = FALLBACK_ICON;
         }}

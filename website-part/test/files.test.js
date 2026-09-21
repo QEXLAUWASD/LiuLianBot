@@ -58,6 +58,11 @@ test('files API enforces approval, separate write/share grants, public share con
     inspect: async path => ({ path, name: path.split('/').pop(), directory: !path.endsWith('.txt') }),
     list: async path => { calls.push(['list', path]); return [{ name: '<img src=x onerror=alert(1)>', directory: false, size: 3 }]; },
     download: async (path, res) => { calls.push(['download', path]); res.send('abc'); },
+    archive: async (paths, res, options) => {
+      calls.push(['archive', paths, options?.name]);
+      res.set('Content-Type', 'application/zip');
+      res.end('PK');
+    },
     mkdir: async path => calls.push(['mkdir', path]), rename: async (from, to) => calls.push(['rename', from, to]),
     remove: async path => calls.push(['remove', path]), upload: async path => calls.push(['upload', path]),
   };
@@ -91,6 +96,20 @@ test('files API enforces approval, separate write/share grants, public share con
   assert.equal((await request(null, 'POST', '/shared/download', { code: share.code, path: '/etc/passwd' })).status, 400);
   assert.equal((await request(null, 'POST', '/shared/download', { code: share.code, path: 'child/a.txt' })).status, 200);
   assert.deepEqual(calls.at(-1), ['download', 'vol1/private/shared/child/a.txt']);
+  const archived = await request('reader', 'POST', '/archive', { paths: ['vol1/相片', 'vol1/a.txt'] });
+  assert.equal(archived.status, 200);
+  assert.equal(archived.headers.get('content-type'), 'application/zip');
+  assert.deepEqual(calls.at(-1), ['archive', ['vol1/相片', 'vol1/a.txt'], undefined]);
+  assert.equal((await request('reader', 'POST', '/archive', { paths: ['vol1/a.txt'], name: '備份.zip' })).status, 200);
+  assert.deepEqual(calls.at(-1), ['archive', ['vol1/a.txt'], '備份.zip'], 'the suggested name reaches storage');
+  // The archive endpoint is read-only, but it is still a mutation-style call.
+  assert.equal((await request('reader', 'POST', '/archive', { paths: ['vol1/a.txt'] }, false)).status, 403);
+  assert.equal((await request('pending', 'POST', '/archive', { paths: ['vol1/a.txt'] })).status, 403);
+  assert.equal((await request('reader', 'POST', '/archive', {})).status, 400);
+  assert.equal((await request('reader', 'POST', '/archive', { paths: [] })).status, 400);
+  assert.equal((await request('reader', 'POST', '/archive', { paths: ['../etc'] })).status, 400);
+  assert.equal((await request('reader', 'POST', '/archive',
+    { paths: Array.from({ length: 51 }, (_, index) => `vol1/f${index}`) })).status, 400);
   assert.equal((await request('owner', 'POST', '/shares', { path: 'vol1/private/shared', hours: 169 })).status, 400);
   const fileShare = await (await request('owner', 'POST', '/shares', { path: 'vol1/a.txt', hours: 1 })).json();
   assert.equal((await request(null, 'POST', '/shared/download', { code: fileShare.code, path: 'other' })).status, 403);

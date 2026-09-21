@@ -15,9 +15,15 @@ test('normalizes usernames and enforces username length', () => {
 });
 
 test('validates new password length', () => {
-  assert.equal(validateNewPassword('secret1'), 'secret1');
-  assert.throws(() => validateNewPassword('short'), /6-128 characters/);
-  assert.throws(() => validateNewPassword('x'.repeat(129)), /6-128 characters/);
+  assert.equal(validateNewPassword('secret-passphrase'), 'secret-passphrase');
+  assert.throws(() => validateNewPassword('short12'), /8-128 characters/);
+  assert.throws(() => validateNewPassword('x'.repeat(129)), /8-128 characters/);
+});
+
+test('rejects the most common passwords', () => {
+  assert.throws(() => validateNewPassword('password'), /too common/);
+  assert.throws(() => validateNewPassword('Password123'), /too common/);
+  assert.equal(validateNewPassword('correct-horse-battery'), 'correct-horse-battery');
 });
 
 test('requires the current password and matching new passwords', () => {

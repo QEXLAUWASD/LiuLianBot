@@ -1,5 +1,19 @@
 # 完整更新紀錄
 
+## 網站安全強化、前端拆分與建置產物精簡（基準：`32635dc`）
+
+- 新增無依賴的 `src/middleware/security_headers.js`：所有第一方回應帶上 CSP（`default-src 'self'`、`frame-ancestors 'none'`、`script-src 'self'`）、HSTS（僅 HTTPS）、`X-Content-Type-Options`、`X-Frame-Options`、`Referrer-Policy`、`Permissions-Policy` 等；`/connect/<slug>/` 代理的第三方頁面會跳過，避免破壞上游網站。
+- 新增 `src/middleware/origin_check.js`，對 `/api` 的非安全方法檢查 `Origin`／`Sec-Fetch-Site`，跨站請求回應 `403`。
+- 新增 `src/middleware/login_throttle.js`，按帳號累計 `401` 失敗次數，超限回應 `429` 及 `Retry-After`；成功登入會清除計數。
+- 密碼政策由 6 提高至 8 字元並加入常見密碼清單；登入端點仍接受既有較短密碼，前端註冊與改密碼輸入同步更新。
+- 前端拆分：`App.jsx` 以 `PAGE_LOADERS` 動態載入各頁並以 `React.lazy`／`Suspense` 呈現，主 bundle 由 287.89 kB（gzip 87.65 kB）降至 166.50 kB（gzip 54.14 kB）；新增 `ErrorBoundary` 避免單頁錯誤造成白屏。
+- 新增 `vite-plugins/html-head.mjs` 於建置時注入 favicon、manifest、theme-color、Open Graph 與私有頁 `noindex`；14 份 `frontend/*.html` 精簡為標題、樣式與入口，並修正 `chromium`／`remote`／`vless-tunnel` 的 `lang` 為 `en`。
+- 新增 `frontend/static/robots.txt`；manifest `background_color` 改為 `#070b12`、`start_url` 改為 `/login.html`。
+- 靜態快取：`/assets` 設 `public, max-age=31536000, immutable`，其餘設 `no-cache`，並移除手動 `?v=` 版本號。
+- 新增 `GET /healthz`：資料庫可連線回應 `200 { status: "ok" }`，否則 `503`。
+- 文件：更新 `README.md`、`README_HK.md`、`docs/API.md`。
+- 驗證：`npm run check`（語法檢查、Vite 建置、274 項測試）全數通過；重複建置 SHA-256 一致（可重現）。
+
 ## 檔案列表部署驗證（基準：`2e9e3df`）
 
 - Router 已更新至 `2e9e3df`；本節僅補充該 commit 之後的部署紀錄。部署前備份位於 `/opt/website/backups/files-ui-20260919T140805Z/`，並保留原本啟動腳本修改的 Git stash。
@@ -447,3 +461,14 @@
 - 原因：migration 001 將 `website_users.id` 及所有 `user_id`／`created_by` 欄位設為 `VARCHAR(30)`，但程式使用 `crypto.randomUUID()`（36 字元），因此由 migration 建立的新資料庫完全無法新增帳號。
 - 新增 migration 017：先由 `information_schema` 讀出參照 `website_users` 的外鍵（含刪除／更新規則）並 drop，將上述欄位擴為 `VARCHAR(64)`，再依原規則重建外鍵；長度已足夠的欄位會跳過，可安全重跑。
 - 驗證：以本機 MariaDB 10.11 實際套用，16 個欄位變為 `varchar(64)`、9 個外鍵全部還原，之後註冊、登入、頁面與 API 請求全部成功；另新增 2 個 migration 回歸測試。
+
+## 2026-09-21 — 檔案頁新增 ZIP 打包下載
+
+- 檔案列表新增核取方塊與表頭全選；勾選後可按「打包成 ZIP 下載」，資料夾列的「•••」選單亦提供「打包下載」。
+- 新增 `POST /api/files/archive`：直接從 FnOS 串流讀取並產生單一 ZIP，Router 不暫存整份內容；同樣需要 `X-Files-Request` 標頭與讀取權限。
+- 新增 `src/services/zip_archive.js`：不依賴第三方套件，以 deflate／store、資料描述元、CRC-32 與 UTF-8 檔名串流寫入 ZIP。
+- 限制：單次最多 50 個選取項目、2000 個壓縮項目，未壓縮內容上限 4 GiB；目錄遞迴展開並保留空資料夾，符號連結略過，已壓縮的影音／壓縮檔以原樣存放。
+- 不同磁碟的同名項目改用 `/vol*/1000` 相對路徑避免覆蓋；單選檔名為「名稱.zip」，多選為 `FnOS-YYYYMMDD-HHMM.zip`，非 ASCII 名稱以 `Content-Disposition` 的 UTF-8 形式傳遞。
+- 前端在使用者點擊當下先取得儲存位置並把建議檔名送到伺服器（伺服器會重新驗證檔名後回應相同名稱）；不支援 File System Access API 時回退為 blob 下載，取消儲存對話框不會送出打包請求。
+- 更新 `docs/file-browser.md`、`docs/API.md`、`README.md` 及 `README_HK.md`。
+- 驗證：`npm run check` 全數通過（語法檢查、重新建置 `public/`、286 項測試）；產出的 ZIP 另以獨立解壓實作讀回驗證。

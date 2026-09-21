@@ -1,5 +1,65 @@
 # Patch notes
 
+## Since `32635dc`
+
+- Added dependency-free `src/middleware/security_headers.js`: every first-party
+  response now carries a strict CSP (`default-src 'self'`, `frame-ancestors
+  'none'`, `script-src 'self'`), HSTS (HTTPS only), `X-Content-Type-Options`,
+  `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and related headers.
+  Third-party pages proxied under `/connect/<slug>/` skip them so the upstream
+  site keeps working.
+- Added `src/middleware/origin_check.js`, which checks `Origin`/`Sec-Fetch-Site`
+  for every non-safe `/api` method and returns `403` for cross-site requests.
+- Added `src/middleware/login_throttle.js`, which counts failed (`401`) logins per
+  account and returns `429` with `Retry-After`; a successful login clears it.
+- Raised the password minimum from 6 to 8 characters and added a common-password
+  deny-list. The login endpoint still accepts existing shorter passwords; the
+  register and change-password inputs were updated to match.
+- Code-split the frontend: `App.jsx` exports `PAGE_LOADERS` and renders them with
+  `React.lazy`/`Suspense`, so the login and share pages no longer download the
+  admin, RDP or file-browser chunks. The main bundle dropped from 287.89 kB
+  (gzip 87.65 kB) to 166.50 kB (gzip 54.14 kB). Added a page-level
+  `ErrorBoundary` so a single failing page cannot blank the document.
+- Added `vite-plugins/html-head.mjs`, which injects the favicon, manifest,
+  theme colour, Open Graph metadata and the private-page `noindex` policy at
+  build time. The 14 `frontend/*.html` entries now only keep their title,
+  stylesheets and entry script, and `chromium`/`remote`/`vless-tunnel` use
+  `lang="en"` to match their English content.
+- Added `frontend/static/robots.txt`; fixed the manifest `background_color` to
+  `#070b12` and its `start_url` to `/login.html`.
+- Static caching: `/assets` is served `public, max-age=31536000, immutable`,
+  everything else `no-cache`, and the manual `?v=` query strings are gone.
+- Added `GET /healthz`, reporting `200 { status: "ok" }` when the database pool
+  answers and `503` otherwise.
+- Docs: updated `README.md`, `README_HK.md` and `docs/API.md`.
+- Verified with `npm run check` (syntax check, Vite build, 274 tests); rebuilding
+  twice produced identical SHA-256 hashes.
+
+- Added a "pack into one file" action to the file browser: every row has a
+  checkbox (with a select-all header) and folders offer 打包下載 in their action
+  menu. `POST /api/files/archive` streams the selection as a single ZIP straight
+  from FnOS, and `src/services/zip_archive.js` is a dependency-free streaming
+  writer (deflate or store, data descriptors, CRC-32, UTF-8 names), so the Router
+  never buffers a whole archive.
+- Archive limits: 50 selections, 2000 entries and 4 GiB of uncompressed content
+  (Zip32). Directories expand recursively and keep empty folders, symlinks are
+  skipped, already-compressed media and archives are stored as-is, and clashing
+  names from different disks fall back to their `/vol*/1000` relative path.
+  Single selections download as `<name>.zip`, multiple as `FnOS-YYYYMMDD-HHMM.zip`,
+  with the UTF-8 name carried in `Content-Disposition`.
+- The frontend asks for the save target while the click is still a user gesture,
+  sends that suggestion along, and the server re-validates it before echoing it
+  in `Content-Disposition`, so both sides agree on the name. Browsers without
+  the File System Access API fall back to a blob download; cancelling the dialog
+  stops the request before anything is packed.
+- Docs: updated `docs/file-browser.md`, `docs/API.md`, `README.md` and
+  `README_HK.md`.
+- Tests: added `website-part/test/file_archive.test.js` (writer plus archive plan,
+  parsing the produced ZIP structure) and extended `test/files.test.js` and
+  `test/frontend/files_page.test.mjs`.
+- Verified with `npm run check` (syntax check, Vite build, 286 tests). The
+  generated ZIP was also read back with an independent unzip implementation.
+
 ## Since `e2794df`
 
 - Rebuilt the authenticated layout as a console-style frame: `App.jsx` wraps each

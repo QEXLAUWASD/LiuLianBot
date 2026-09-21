@@ -566,6 +566,11 @@ graceful `SIGINT` or `SIGTERM` shutdown.
 - Browser-local remote profiles use `localStorage`; do not use browser storage on shared or untrusted devices.
 - Named RDP profiles optionally store passwords encrypted with AES-256-GCM; passwords are never written to browser localStorage. Legacy remote profiles still exclude passwords.
 - Keep `REMOTE_CREDENTIAL_ENCRYPTION_KEY` outside source control and back it up securely; it protects stored SSH private keys and RDP connection details.
+- New passwords must be 8-128 characters and are checked against a small common-password deny-list. The login endpoint still accepts existing shorter passwords so current accounts are not locked out.
+- First-party responses send a strict `Content-Security-Policy` plus `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and related headers (`website-part/src/middleware/security_headers.js`). Requests proxied to a linked third-party site under `/connect/<slug>/` skip these headers so the upstream page keeps working.
+- State-changing `/api` requests are additionally checked against `Origin`/`Sec-Fetch-Site` (`website-part/src/middleware/origin_check.js`), and repeated failed logins for one account are throttled per username (`website-part/src/middleware/login_throttle.js`).
+- `GET /healthz` reports `ok`/`unavailable` from the database pool without a session and without exposing configuration; use it for PM2/monitoring probes.
+- `frontend/static/robots.txt` disallows the authenticated pages, and the build marks them `noindex, nofollow` as a second layer.
 
 ## Dependencies
 
@@ -597,6 +602,16 @@ The website is a multi-page React application built with Vite:
   `chromiumSession.mjs`, and `frontend/src/lib/rdp/`.
 - `frontend/static/` is the Vite public directory; its CSS, icons, manifest and
   vendored Socket.IO/RDP decoder files are copied to `public/` on build.
+- Heavy pages are code-split: `frontend/src/App.jsx` exports `PAGE_LOADERS`
+  (dynamic `import()`) and renders them through `React.lazy`/`Suspense`, so the
+  login and public share pages do not download the admin, RDP or file-browser
+  chunks. `NotFoundPage`, `LoginPage` and `TermsPage` stay in the main bundle.
+- `vite-plugins/html-head.mjs` injects the shared `<head>` metadata (icons,
+  manifest, theme colour, social preview, and the `noindex` policy for private
+  pages) at build time, so `frontend/*.html` only keeps the per-page title,
+  stylesheets and entry script.
+- A page-level `ErrorBoundary` (`frontend/src/components/ErrorBoundary.jsx`)
+  shows a retry screen instead of a blank document when a page throws.
 
 ### Design system
 
@@ -743,8 +758,11 @@ The owner (and anyone with the share grant) can create 1 to 168 hour share codes
 Codes are stored as SHA-256 hashes and shown once; recipients open `/share.html`
 and read the shared file or folder without signing in. Folders are shared as live
 paths, so later files appear to recipients until the code expires or is revoked.
-Uploads are limited to 1 GiB and never overwrite an existing file. Everything
-stays confined to `/vol*/1000`: traversal, symlinks and device files are rejected.
+Uploads are limited to 1 GiB and never overwrite an existing file. Checking rows
+(or picking "打包下載" on a folder) packs the selection into one ZIP that streams
+straight from FnOS through the Router; a run is capped at 50 selections, 2000
+entries and 4 GiB of uncompressed content. Everything stays confined to
+`/vol*/1000`: traversal, symlinks and device files are rejected.
 
 Migration `018` creates `website_file_permissions` and `website_file_shares` on
 startup, and migration `019` re-checks the UUID-width user id columns so a

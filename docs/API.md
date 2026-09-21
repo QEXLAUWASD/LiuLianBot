@@ -15,8 +15,23 @@
   `{ "code": "代碼" }`。
 - 未登入一般回應 `401`；沒有管理員或遠端權限回應 `403`；找不到資源回應 `404`；
   輸入驗證通常回應 `400`；重複或狀態衝突通常回應 `409`。
-- `POST /api/auth/login` 和 `POST /api/auth/register` 有專用 rate limit。
+- `POST /api/auth/login` 和 `POST /api/auth/register` 有專用 rate limit；`login`
+  另外按帳號累計失敗次數，同一帳號連續失敗會回傳 `429` 及 `Retry-After`。
+- 所有 `/api` 的非安全方法（`POST`／`PUT`／`PATCH`／`DELETE`）會檢查 `Origin`
+  與 `Sec-Fetch-Site`；跨站請求回應 `403 { error: "Cross-site request blocked" }`，
+  不帶瀏覽器來源標頭的原生／伺服器請求則不受影響。
+- 第一方回應都會帶上 `Content-Security-Policy`、`X-Content-Type-Options`、
+  `X-Frame-Options`、`Referrer-Policy`、`Permissions-Policy` 等安全標頭；
+  `/connect/` 代理的外部網站會跳過這些標頭，避免破壞第三方頁面。
 - Discord ID（guild、channel、user）必須是 15 至 20 位數字字串。
+
+### 健康檢查
+
+| 方法 | 路徑 | 權限 | 成功回應 |
+| --- | --- | --- | --- |
+| `GET` | `/healthz` | 公開 | 可連線資料庫時 `200 { status: "ok" }`；否則 `503 { status: "unavailable" }` |
+
+健康檢查不需要 session，也不回傳任何設定細節。
 
 ## 認證及帳戶
 
@@ -31,9 +46,10 @@
 | `POST` | `/api/auth/terms` | 已登入 | `{ termsAccepted: true }` | `200 { success: true }` |
 | `GET` | `/api/auth/me` | 公開 | 無 | 未登入 `{ loggedIn: false }`；已登入回傳 `{ loggedIn: true, user: { id, username, role, termsAccepted, remoteAvailable } }` |
 
-註冊及改密碼的 username 長度是 3 至 20 個字元，密碼長度是 6 至 128 個字元。
-Terms required 時，註冊必須傳入 `termsAccepted: true`。登入的 `remember: true`
-會將 session 最長保存 30 日。
+註冊及改密碼的 username 長度是 3 至 20 個字元，密碼長度是 8 至 128 個字元，
+且會拒絕常見密碼。Terms required 時，註冊必須傳入 `termsAccepted: true`。登入的
+`remember: true` 會將 session 最長保存 30 日；登入端點沿用既有帳號，因此仍接受
+較短的舊密碼。
 
 ### 帳戶管理（需登入）
 
@@ -110,6 +126,7 @@ Discord 帳戶。
 | `POST` | `/api/files/access/request` | 登入 | 無 | `204` |
 | `GET` | `/api/files/list` | `read` | `path`（query，可空） | `{ path, entries: [{ name, directory, size, modified }] }` |
 | `GET` | `/api/files/download` | `read` | `path`（query） | 檔案串流 |
+| `POST` | `/api/files/archive` | `read` | `{ paths: [...], name? }`；最多 50 個路徑，選填 `name` 為建議檔名 | ZIP 串流（`Content-Disposition: attachment`） |
 | `GET` | `/api/files/permissions` | 擁有者 | 無 | `{ users: [{ user_id, username, can_read, can_write, can_share, requested_at }] }` |
 | `PUT` | `/api/files/permissions` | 擁有者 | `{ username, read, write, share }` | `204` |
 | `GET` | `/api/files/shares` | `share` | 無 | `{ shares: [{ id, name, is_directory, expires_at, created_at }] }`；擁有者看到全部 |
@@ -124,6 +141,13 @@ Discord 帳戶。
 非空或空間不足回應 `409`，上傳超過 1 GiB 回應 `413`，SFTP 不可用回應 `502`，
 `FILES_OWNER_USER_ID` 或 SFTP 設定缺漏回應 `503`。上傳採排他建立
 （`flags: wx`），不會覆蓋既有檔案；路徑跳脫、符號連結及特殊裝置檔案一律拒絕。
+
+`/api/files/archive` 把選取的路徑打包成單一 ZIP 並直接串流，Router 不暫存整份內容。
+它同樣是 `POST`，所以要帶 `X-Files-Request: 1`。單次最多 50 個選取項目、2000 個
+壓縮項目，未壓縮總大小上限 4 GiB；超限回應 `413`。目錄會遞迴展開（含空目錄），
+已壓縮的影音與壓縮檔副檔名以原樣存放，各種符號連結在列舉時會被略過。前端若已先
+開啟儲存位置，會一併帶上建議檔名（`name`）；伺服器只取檔名部分、要求 `.zip`
+結尾且不接受控制字元，否則改用預設名稱。
 
 ## 網站連線及代理
 

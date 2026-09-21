@@ -80,8 +80,8 @@ export function LoginPage() {
       setRegisterError('Username must be at least 3 characters');
       return;
     }
-    if (register.password.length < 6) {
-      setRegisterError('Password must be at least 6 characters');
+    if (register.password.length < 8) {
+      setRegisterError('Password must be at least 8 characters');
       return;
     }
     if (termsRequired && !register.termsAccepted) {
@@ -202,9 +202,9 @@ export function LoginPage() {
             <input
               type="password"
               id="regPassword"
-              placeholder="6-128 characters"
+              placeholder="8-128 characters"
               required
-              minLength="6"
+              minLength="8"
               maxLength="128"
               autoComplete="new-password"
               value={register.password}

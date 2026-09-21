@@ -1,7 +1,7 @@
 const express = require('express');
 const { randomBytes, randomUUID, createHash } = require('node:crypto');
 const { rateLimit } = require('express-rate-limit');
-const { createStorage, relativePath } = require('../services/file_storage');
+const { createStorage, relativePath, ARCHIVE_MAX_SELECTION } = require('../services/file_storage');
 const { createRepository } = require('../db/file_shares');
 const { createRepository: createPermissions } = require('../db/file_permissions');
 const { findUserByUsername } = require('../db/users');
@@ -75,6 +75,14 @@ function createRouter({ storage = createStorage(), repo = createRepository(), pe
     res.json({ path, entries: await storage.list(path) });
   }));
   router.get('/download', requirePermission('read'), wrap(async (req, res) => storage.download(relativePath(req.query.path), res)));
+  // Packs the checked entries into one ZIP. The paths arrive in the body, so
+  // the archive is built and streamed in a single response.
+  router.post('/archive', requirePermission('read'), wrap(async (req, res) => {
+    const paths = req.body?.paths;
+    if (!Array.isArray(paths) || paths.length === 0) throw new InputError('請選擇要打包的檔案或資料夾');
+    if (paths.length > ARCHIVE_MAX_SELECTION) throw new InputError(`單次最多打包 ${ARCHIVE_MAX_SELECTION} 個項目`);
+    await storage.archive(paths.map(value => relativePath(value)), res, { name: req.body?.name });
+  }));
   router.get('/shares', requirePermission('share'), wrap(async (req, res) => res.json({ shares: await repo.list(req.fileAccess.userId, req.fileAccess.owner) })));
   router.post('/shares', requirePermission('share'), wrap(async (req, res) => {
     const hours = req.body?.hours;

@@ -3,6 +3,11 @@ const { pipeline } = require('node:stream/promises');
 const { Transform } = require('node:stream');
 const { Client } = require('ssh2');
 const { AppError, InputError } = require('../errors');
+const { ZipArchive, ZIP_LIMIT } = require('./zip_archive');
+
+const ARCHIVE_MAX_SELECTION = 50;
+const ARCHIVE_MAX_ENTRIES = 2000;
+const ARCHIVE_MAX_DEPTH = 32;
 
 function relativePath(value = '') {
   if (typeof value !== 'string' || value.length > 2048 || /[\\\x00-\x1f\x7f]/.test(value) || path.isAbsolute(value)) {
@@ -64,6 +69,101 @@ async function destination(sftp, relative) {
   if (!parent.stat.isDirectory()) throw new InputError('上層路徑不是資料夾');
   return path.join(parent.target, path.basename(source.relative));
 }
+function archivePrefixes(selections) {
+  const names = selections.map(value => path.basename(value));
+  // Two selections with the same name would overwrite each other inside the
+  // archive, so those entries keep their full /vol*/1000 relative path.
+  return new Set(names).size === names.length ? names : selections;
+}
+
+function archiveFileName(selections, now = new Date()) {
+  if (selections.length === 1) return `${path.basename(selections[0])}.zip`;
+  const pad = value => String(value).padStart(2, '0');
+  return `FnOS-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-` +
+    `${pad(now.getHours())}${pad(now.getMinutes())}.zip`;
+}
+
+// A client that has already opened a save target sends its suggested name; it
+// is re-validated here so the header can never carry a path or a control
+// character.
+function archiveRequestedName(value, selections) {
+  if (typeof value === 'string' && value.length <= 120) {
+    const cleaned = path.basename(value.replace(/[\\\x00-\x1f\x7f]/g, '')).trim();
+    if (cleaned && !cleaned.startsWith('.') && /\.zip$/i.test(cleaned)) return cleaned;
+  }
+  return archiveFileName(selections);
+}
+
+// RFC 6266: an ASCII fallback for legacy clients plus the UTF-8 form, so
+// non-ASCII FnOS names survive the download.
+function attachmentHeader(name) {
+  const fallback = name.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
+  const encoded = encodeURIComponent(name).replace(/['()*]/g, char => '%' + char.charCodeAt(0).toString(16).toUpperCase());
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
+
+function isArchiveChild(entry) {
+  return entry.filename !== '.' && entry.filename !== '..' &&
+    !/[\/\\\x00-\x1f\x7f]/.test(entry.filename) && !entry.attrs.isSymbolicLink() &&
+    (entry.attrs.isDirectory() || entry.attrs.isFile());
+}
+
+// Walks the selection over SFTP and returns the archive plan: one entry per
+// file and per folder, including empty folders. Only names, sizes and targets
+// are held in memory; contents are streamed when the archive is written.
+async function collectArchiveEntries(sftp, selections, {
+  maxEntries = ARCHIVE_MAX_ENTRIES, maxBytes = ZIP_LIMIT,
+} = {}) {
+  const prefixes = archivePrefixes(selections);
+  const entries = [];
+  let bytes = 0;
+  const add = entry => {
+    if (entries.length >= maxEntries) throw new AppError(`單次打包最多 ${maxEntries} 個項目，請分批下載`, 413, 'FILES_ARCHIVE_TOO_LARGE');
+    entries.push(entry);
+  };
+  const addFile = (name, target, size, modified) => {
+    bytes += Number.isFinite(size) ? size : 0;
+    if (bytes > maxBytes) throw new AppError('打包後的檔案超過 4 GiB 上限，請分批下載', 413, 'FILES_ARCHIVE_TOO_LARGE');
+    add({ directory: false, name, target, modified });
+  };
+  const walk = async (target, zipBase, depth) => {
+    if (depth > ARCHIVE_MAX_DEPTH) throw new AppError('資料夾層數過深，無法打包', 413, 'FILES_ARCHIVE_TOO_LARGE');
+    const children = (await call(sftp, 'readdir', target)).filter(isArchiveChild)
+      .sort((left, right) => left.filename.localeCompare(right.filename));
+    for (const child of children) {
+      const name = `${zipBase}/${child.filename}`;
+      const modified = new Date(child.attrs.mtime * 1000);
+      if (!child.attrs.isDirectory()) {
+        addFile(name, path.join(target, child.filename), child.attrs.size, modified);
+        continue;
+      }
+      add({ directory: true, name: `${name}/`, modified });
+      await walk(path.join(target, child.filename), name, depth + 1);
+    }
+  };
+  for (const [index, selection] of selections.entries()) {
+    const item = await resolve(sftp, selection);
+    const prefix = prefixes[index];
+    const modified = new Date(item.stat.mtime * 1000);
+    if (item.stat.isFile()) {
+      addFile(prefix, item.target, item.stat.size, modified);
+      continue;
+    }
+    add({ directory: true, name: `${prefix}/`, modified });
+    await walk(item.target, prefix, 1);
+  }
+  return entries;
+}
+
+async function writeArchive({ sftp, entries, output, now = new Date() }) {
+  const archive = new ZipArchive(output, { now });
+  for (const entry of entries) {
+    if (entry.directory) await archive.addDirectory(entry.name, { modified: entry.modified });
+    else await archive.addFile(entry.name, sftp.createReadStream(entry.target), { modified: entry.modified });
+  }
+  await archive.finish();
+}
+
 function createStorage(env = process.env) {
   let active = 0;
   async function run(operation) {
@@ -165,6 +265,20 @@ function createStorage(env = process.env) {
         catch (err) { if (opened) await call(sftp, 'unlink', dest).catch(() => {}); throw err; }
       });
     },
+    async archive(selections, res, { name } = {}) {
+      const unique = [...new Set(selections.map(value => relativePath(value)))];
+      if (!unique.length) throw new InputError('請選擇要打包的檔案或資料夾');
+      if (unique.length > ARCHIVE_MAX_SELECTION) throw new InputError(`單次最多打包 ${ARCHIVE_MAX_SELECTION} 個項目`);
+      const fileName = archiveRequestedName(name, unique);
+      return run(async sftp => {
+        const entries = await collectArchiveEntries(sftp, unique);
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', attachmentHeader(fileName));
+        res.set('X-Content-Type-Options', 'nosniff');
+        await writeArchive({ sftp, entries, output: res });
+      });
+    },
   };
 }
-module.exports = { createStorage, relativePath, inside, resolveTarget, sourcePath, config };
+module.exports = { createStorage, relativePath, inside, resolveTarget, sourcePath, config, ARCHIVE_MAX_SELECTION,
+  archiveFileName, archiveRequestedName, attachmentHeader, collectArchiveEntries, writeArchive };

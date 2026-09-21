@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { before } from 'node:test';
 
-import { App, PAGE_COMPONENTS, PAGES_WITH_NAV } from '../../frontend/src/App.jsx';
+import { App, PAGE_COMPONENTS, PAGE_LOADERS, PAGES_WITH_NAV } from '../../frontend/src/App.jsx';
 import { authState } from '../../frontend/src/lib/authStore.mjs';
 import {
   click,
@@ -23,6 +23,12 @@ const PAGES = {
   'vless-tunnel': true,
 };
 
+// Preload every lazy page chunk so the first render of a page resolves within
+// the normal act() flush instead of depending on filesystem import timing.
+before(async () => {
+  await Promise.all(Object.values(PAGE_LOADERS).map(load => load()));
+});
+
 function mount(page, routes = {}, { me } = {}) {
   authState.reset();
   const dom = setupDom('<div id="root"></div>', { location: stubLocation({ pathname: `/${page}.html` }) });
@@ -37,8 +43,12 @@ function mount(page, routes = {}, { me } = {}) {
 }
 
 test('every configured page resolves to a navigable component', () => {
-  for (const page of Object.keys(PAGE_COMPONENTS)) {
-    assert.equal(typeof PAGE_COMPONENTS[page], 'function', `${page} needs a component`);
+  for (const [page, load] of Object.entries(PAGE_LOADERS)) {
+    assert.equal(typeof load, 'function', `${page} needs a loader`);
+    assert.ok(PAGE_COMPONENTS[page], `${page} needs a lazy component`);
+  }
+  for (const page of ['login', 'terms']) {
+    assert.equal(typeof PAGE_COMPONENTS[page], 'function', `${page} needs a static component`);
   }
   assert.equal(PAGES_WITH_NAV.has('login'), false);
   assert.equal(PAGES_WITH_NAV.has('dashboard'), true);

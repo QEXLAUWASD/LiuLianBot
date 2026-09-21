@@ -209,7 +209,7 @@ export function AccountPage() {
                   type="password"
                   id="newPassword"
                   required
-                  minLength="6"
+                  minLength="8"
                   maxLength="128"
                   autoComplete="new-password"
                   value={passwords.next}
@@ -222,7 +222,7 @@ export function AccountPage() {
                   type="password"
                   id="confirmPassword"
                   required
-                  minLength="6"
+                  minLength="8"
                   maxLength="128"
                   autoComplete="new-password"
                   value={passwords.confirm}

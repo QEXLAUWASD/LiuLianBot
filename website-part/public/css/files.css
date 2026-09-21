@@ -118,14 +118,14 @@
 #browserPanel .file-table-scroll { border-color: #343434; border-radius: 4px; background: #202020; color-scheme: dark; }
 .file-detail-table { min-width: 1060px; table-layout: fixed; color: #f1f1f1; font-size: 14px; }
 .file-detail-table th { padding: 9px 12px; background: #262626; color: #bdbdbd; border-color: #363636; font-size: 12px; font-weight: 500; letter-spacing: normal; }
-.file-detail-table th:nth-child(1) { width: 27%; }
-.file-detail-table th:nth-child(2), .file-detail-table th:nth-child(6) { width: 17%; }
-.file-detail-table th:nth-child(3) { width: 13%; }
-.file-detail-table th:nth-child(4) { width: 9%; }
-.file-detail-table th:nth-child(5) { width: 9%; }
-.file-detail-table th:nth-child(7) { width: 8%; }
+.file-detail-table th:nth-child(1) { width: 3%; }
+.file-detail-table th:nth-child(2) { width: 26%; }
+.file-detail-table th:nth-child(3), .file-detail-table th:nth-child(7) { width: 17%; }
+.file-detail-table th:nth-child(4) { width: 13%; }
+.file-detail-table th:nth-child(5), .file-detail-table th:nth-child(6) { width: 9%; }
+.file-detail-table th:nth-child(8) { width: 8%; }
 .file-detail-table td { height: 38px; padding: 3px 12px; border-color: #333; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.file-detail-table td:first-child, .file-detail-table td:last-child { min-width: 0; }
+.file-detail-table td:nth-child(2), .file-detail-table td:last-child { min-width: 0; }
 .file-detail-table tbody tr:nth-child(even) { background: #242424; }
 .file-detail-table tbody tr:hover td, .file-detail-table tbody tr:focus-within td { background: #303030; }
 .file-detail-table .file-name { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; margin: 0; padding: 0; min-height: 30px; color: inherit; text-decoration: none; }
@@ -144,3 +144,10 @@
 .file-action-menu { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding: 4px 0; }
 .file-detail-table .file-action-menu .btn { padding: 4px 6px; margin: 0; font-size: 12px; color: #eee; border-color: #555; background: #303030; white-space: nowrap; }
 .file-detail-table :is(button, a, summary):focus-visible { outline: 2px solid #52c4ff; outline-offset: 2px; }
+
+/* Row selection and the "pack into one ZIP" toolbar. */
+.file-table td.file-select-cell { width: 2.5rem; min-width: 0; text-align: center; }
+.file-table input[type='checkbox'] { width: 1.05rem; height: 1.05rem; margin: 0; accent-color: var(--accent); cursor: pointer; }
+#selectionTools { align-items: center; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-inset); }
+#browserPanel #selectionTools { border-color: #343434; border-radius: 4px; background: #262626; color: #ddd; }
+#browserPanel #selectionTools .btn { padding: 4px 10px; font-size: 13px; }

@@ -2,10 +2,10 @@
   "name": "LiuLianBot",
   "short_name": "LiuLianBot",
   "description": "LiuLianBot web dashboard and reserved website access.",
-  "start_url": "/index.html",
+  "start_url": "/login.html",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f5f7fb",
+  "background_color": "#070b12",
   "theme_color": "#1c6ba0",
   "icons": [
     {

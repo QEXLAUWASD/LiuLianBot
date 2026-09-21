@@ -488,6 +488,11 @@ npm run check
 - 遠端功能同時要求用戶已接受網站條款，並屬於 `REMOTE_ALLOWED_GROUPS` 其中一個群組。
 - 瀏覽器端遠端設定會保存喺 `localStorage`；共用或不受信任裝置唔應使用瀏覽器儲存。
 - 將 `REMOTE_CREDENTIAL_ENCRYPTION_KEY` 保留喺原始碼管理以外並安全備份；佢保護已保存嘅 SSH 私密金鑰及 RDP 連線資訊。
+- 新密碼須為 8 至 128 個字元，並會檢查常見密碼清單；登入端點仍接受現有較短密碼，唔會鎖死舊帳號。
+- 第一方回應會帶上嚴格嘅 `Content-Security-Policy` 及 `X-Content-Type-Options`、`X-Frame-Options`、`Referrer-Policy`、`Permissions-Policy` 等標頭；經 `/connect/<slug>/` 代理嘅第三方網站會略過呢啲標頭，避免整壞對方頁面。
+- `/api` 嘅變更請求（`POST`／`PUT`／`PATCH`／`DELETE`）會額外檢查 `Origin`／`Sec-Fetch-Site`；同一帳號連續登入失敗亦會按帳號節流。
+- `GET /healthz` 會用資料庫連線回報 `ok`／`unavailable`，唔需要 Session，亦唔會洩漏設定，適合作 PM2／監控探測。
+- `frontend/static/robots.txt` 會封鎖需登入頁面，建置亦會為佢哋加上 `noindex, nofollow`。
 
 ## 依賴套件
 
@@ -554,8 +559,10 @@ URL fragment。
 擁有者或獲分享權限者可以建立 1 至 168 小時嘅分享碼；分享碼只以 SHA-256 雜湊
 保存並只顯示一次。收到分享碼嘅人毋須登入，喺 `/share.html` 即可讀取分享嘅檔案或
 資料夾；資料夾分享係即時路徑，之後新增嘅內容同樣可讀，直到分享碼過期或被撤銷。
-上傳上限 1 GiB，同名檔案唔會被覆蓋。所有操作只限喺 `/vol*/1000` 之內，路徑跳脫、
-符號連結同特殊裝置檔案一律拒絕。
+上傳上限 1 GiB，同名檔案唔會被覆蓋。勾選多個項目（或者喺資料夾嘅「•••」選單揀
+「打包下載」）會將選取內容串流成單一 ZIP，直接由 FnOS 經 Router 傳送；單次上限
+50 個選取項目、2000 個壓縮項目同 4 GiB 未壓縮內容。所有操作只限喺 `/vol*/1000`
+之內，路徑跳脫、符號連結同特殊裝置檔案一律拒絕。
 
 網站啟動時 migration `018` 會建立 `website_file_permissions` 同
 `website_file_shares`；migration `019` 會再次檢查用戶 ID 欄位寬度，令早前將未發佈
