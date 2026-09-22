@@ -269,7 +269,7 @@ function createStorage(env = process.env) {
     },
     async archive(selections, res, { name, base } = {}) {
       const unique = [...new Set(selections.map(value => relativePath(value)))];
-      if (!unique.length) throw new InputError('請選擇要打包的檔案或資料夾');
+      if (!unique.length || unique.some(value => !value)) throw new InputError('請選擇要打包的檔案或資料夾');
       if (unique.length > ARCHIVE_MAX_SELECTION) throw new InputError(`單次最多打包 ${ARCHIVE_MAX_SELECTION} 個項目`);
       const fileName = archiveRequestedName(name, unique);
       return run(async sftp => {

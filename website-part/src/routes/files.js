@@ -49,10 +49,11 @@ function createRouter({ storage = createStorage(), repo = createRepository(), pe
     const { row } = await shared(req);
     if (!row.is_directory) throw new InputError('此分享是單一檔案，請直接下載');
     const submitted = req.body?.paths ?? [];
-    const selections = Array.isArray(submitted) ? submitted : [submitted];
-    if (!selections.length) throw new InputError('請選擇要打包的檔案或資料夾');
+    const selections = (Array.isArray(submitted) ? submitted : [submitted]).map(value => relativePath(value));
+    // An empty name would resolve to the share root itself and pack everything.
+    if (!selections.length || selections.some(value => !value)) throw new InputError('請選擇要打包的檔案或資料夾');
     if (selections.length > ARCHIVE_MAX_SELECTION) throw new InputError(`單次最多打包 ${ARCHIVE_MAX_SELECTION} 個項目`);
-    await storage.archive(selections.map(value => relativePath(value)), res, { base: row.source_path });
+    await storage.archive(selections, res, { base: row.source_path });
   }));
   router.use((req, res, next) => {
     access(req).then(grant => { req.fileAccess = grant; next(); }, next);
@@ -93,7 +94,9 @@ function createRouter({ storage = createStorage(), repo = createRepository(), pe
     const paths = req.body?.paths;
     if (!Array.isArray(paths) || paths.length === 0) throw new InputError('請選擇要打包的檔案或資料夾');
     if (paths.length > ARCHIVE_MAX_SELECTION) throw new InputError(`單次最多打包 ${ARCHIVE_MAX_SELECTION} 個項目`);
-    await storage.archive(paths.map(value => relativePath(value)), res, { name: req.body?.name });
+    const selections = paths.map(value => relativePath(value));
+    if (selections.some(value => !value)) throw new InputError('請選擇要打包的檔案或資料夾');
+    await storage.archive(selections, res, { name: req.body?.name });
   }));
   router.get('/shares', requirePermission('share'), wrap(async (req, res) => res.json({ shares: await repo.list(req.fileAccess.userId, req.fileAccess.owner) })));
   router.post('/shares', requirePermission('share'), wrap(async (req, res) => {

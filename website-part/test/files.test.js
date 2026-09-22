@@ -125,6 +125,9 @@ test('files API enforces approval, separate write/share grants, public share con
   assert.equal((await request(null, 'POST', '/shared/archive',
     { code: share.code, paths: ['../sibling'] })).status, 400);
   assert.equal((await request(null, 'POST', '/shared/archive', { code: share.code, paths: [] })).status, 400);
+  // An empty name would resolve to the share root and pack the whole folder.
+  assert.equal((await request(null, 'POST', '/shared/archive', { code: share.code, paths: [''] })).status, 400);
+  assert.equal((await request('reader', 'POST', '/archive', { paths: [''] })).status, 400);
   assert.equal((await request(null, 'POST', '/shared/archive',
     { code: share.code, paths: Array.from({ length: 51 }, (_, index) => `f${index}`) })).status, 400);
   assert.equal((await request(null, 'POST', '/shared/archive', { code: fileShare.code, paths: ['a'] })).status, 400,
