@@ -481,6 +481,20 @@
 - 部署檔案與已提交版本逐位元一致：`public/assets/FilesPage-CCWVyV-Z.js`（`67778cb8…`）、`public/files.html`（`1782211f…`）、`src/services/zip_archive.js`（`67c74ddf…`），HTTP 實際回應的 JavaScript 亦相同。
 - 實機打包驗證：以部署後程式碼把 `vol1/office` 子樹與 `vol1/adguard/docker-compose.yml` 打包成 67 個項目、64 KB 的 ZIP（10.8 秒），所有項目 CRC 通過，Router 內建 `unzip -t` 無錯誤，相對路徑與空資料夾皆正確；驗證後已刪除暫存腳本與測試壓縮檔，未在 NAS 寫入資料。
 
+## 2026-09-22 — 分享頁可打包成 ZIP
+
+- 分享頁新增核取方塊、表頭全選與「打包成 ZIP 下載」；選取內容以重複的 `paths` 表單欄位送到 `POST /api/files/shared/archive`，由瀏覽器原生下載，不在前端暫存整份壓縮檔。
+- 打包一律以分享的 `source_path` 為界重新解析，無法存取分享以外的內容；單一檔案分享、空選取及超過 50 個項目回應 `400`，分享碼無效／過期回應 `404`。
+- 修正實機發現的問題：`ZipArchive` 寫完壓縮檔後沒有結束 HTTP 回應，瀏覽器會一直等待；`finish()` 現在會關閉輸出，並新增以真實 HTTP 驗證「回應以 ZIP 結尾記錄結束」的測試。
+- 修正另一個實機發現的問題：空字串名稱會解析到分享根目錄並開始打包整個資料夾；兩個打包端點與儲存層都改為拒絕空名稱。
+- 更新 `docs/file-browser.md`、`docs/API.md`、`README.md`、`README_HK.md`；`npm run check` 全數通過（291 項測試）。
+
+### 部署驗證（Router）
+
+- 已將 `1f9a2a8`、`a53250f`、`bd38cf8` fast-forward 部署到 `/opt/website/LiuLianBot`，保留 `start.sh` 本機修改並重啟 PM2 `liulianbot-website`；部署前備份為 `/opt/website/backups/share-zip-20260922T025158Z/`。
+- 實機以臨時分享碼對 `vol1/adguard` 打包：回應 `200 application/zip`、986 毫秒、1 個項目，CRC 與 Router 內建 `unzip -t` 均通過；`../etc`、空選取回 `400`，單一檔案分享回 `400`，無效分享碼回 `404`，臨時分享與暫存檔皆已清除。
+- 驗證過程中的清理動作曾誤撤銷使用者正在使用的 `docs` 分享（`vol7/Project/Docs/docs`）；已立即還原同一筆資料列，分享碼與到期時間不變，資料庫確認 `revoked_at IS NULL`。
+
 ### 待辦
 
 - 尚未以已登入帳號在瀏覽器實際操作打包下載（需要網站帳號）；目前的實機驗證是在 Router 上直接呼叫部署後的服務層與 FnOS。

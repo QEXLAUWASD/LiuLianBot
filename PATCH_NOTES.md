@@ -85,6 +85,45 @@
   check script plus the sample archive were deleted afterwards. Nothing was
   written to the NAS.
 
+## Since `dddea88`
+
+- Folder shares can be packed into one ZIP from the share page. Recipients check
+  rows (or the whole listing) and press 打包成 ZIP 下載; the selection travels as
+  repeated `paths` form fields to `POST /api/files/shared/archive`, so the
+  browser still downloads natively through the hidden form instead of buffering
+  an archive in JavaScript. `SharePage` gained the checkbox column, select-all,
+  a selection toolbar and selection reset when browsing into a folder.
+- `src/services/file_storage.js` can archive relative to a share root: the base
+  folder is resolved again from the share's `source_path` and every selection is
+  re-resolved inside it, so a share can never read outside its own folder.
+  Single file shares, empty selections and more than 50 selections are refused.
+- Fixed a live-found bug: `ZipArchive` wrote the whole archive into the HTTP
+  response but never closed it, so a browser download would hang instead of
+  finishing. `finish()` now ends the output it owns, and `test/files.test.js`
+  asserts over real HTTP that the response ends with the ZIP end record.
+- Fixed a second live-found bug: an empty entry name resolved to the share root
+  itself, so a request with an empty path started packing the entire shared
+  folder. Both archive routes and the storage layer now reject empty names.
+- Tests: 291 (`npm run check` passes).
+
+### Deployment verification (Router)
+
+- Deployed `1f9a2a8` and `bd38cf8` (with `a53250f`) into `/opt/website/LiuLianBot`
+  by fast-forward, keeping the local `start.sh` mode change, and restarted PM2
+  `liulianbot-website`. Backups: `/opt/website/backups/share-zip-20260922T025158Z/`.
+- `/share.html` and `/files.html` keep their expected responses (200 / 302
+  redirect), and `/api/files/shared/archive` answers `404` for an unknown code.
+- Live share-code packing with the deployed code: a temporary share over
+  `vol1/adguard` returned `200 application/zip` in 986 ms with one entry, the
+  CRC check passed and the Router's own `unzip -t` reported no errors.
+  `../etc` and empty selections answered `400`, a single file share answered
+  `400`, and an unknown code answered `404`. Both temporary shares were revoked
+  and the temporary scripts and archive were deleted.
+- During that cleanup the share the user was using (`docs`, `vol7/Project/Docs/docs`)
+  was revoked by mistake because it fell inside the "recent" window. It was
+  restored immediately (same row, so the same code and expiry still work) and the
+  database confirms `revoked_at IS NULL` with the original `expires_at`.
+
 ## Since `e2794df`
 
 - Rebuilt the authenticated layout as a console-style frame: `App.jsx` wraps each
