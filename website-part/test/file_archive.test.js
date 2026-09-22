@@ -64,7 +64,11 @@ function readArchive(buffer) {
 function collector() {
   const chunks = [];
   return {
+    ended: false,
     write(chunk) { chunks.push(Buffer.from(chunk)); return true; },
+    // `finish()` closes the output, so keep the callback contract of a real
+    // HTTP response; a missing close would leave the browser waiting.
+    end(callback) { this.ended = true; callback?.(); },
     buffer() { return Buffer.concat(chunks); },
   };
 }
@@ -135,6 +139,15 @@ test('the ZIP writer streams entries with correct CRCs, methods and names', asyn
   assert.equal(entries[2].uncompressed, 0, '空檔案仍會建立項目');
   assert.equal(entries[3].content.toString('utf8'), 'video bytes', '已壓縮的副檔名以原樣存放');
   assert.ok(entries[3].compressed >= entries[3].uncompressed);
+});
+
+test('finishing the archive closes the output and refuses further entries', async () => {
+  const output = collector();
+  const archive = new ZipArchive(output);
+  await archive.addFile('a.txt', Readable.from([Buffer.from('x')]));
+  await archive.finish();
+  assert.equal(output.ended, true, 'the response is closed so the download ends');
+  await assert.rejects(archive.addFile('b.txt', Readable.from([Buffer.from('y')])), /壓縮檔已結束/);
 });
 
 test('the ZIP writer stops packing once the archive would pass 4 GiB', async () => {

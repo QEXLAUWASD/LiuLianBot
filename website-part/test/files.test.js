@@ -1,9 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
+const { Readable } = require('node:stream');
 const { createRouter, hashCode } = require('../src/routes/files');
 const { createAccess } = require('../src/services/file_access');
-const { relativePath, sourcePath, resolveTarget, config } = require('../src/services/file_storage');
+const {
+  relativePath, sourcePath, resolveTarget, config, collectArchiveEntries, writeArchive,
+} = require('../src/services/file_storage');
 const { AppError } = require('../src/errors');
 const { errorHandler } = require('../src/middleware/error_handler');
 const { MIGRATIONS } = require('../src/db/migrate');
@@ -135,6 +138,61 @@ test('files API enforces approval, separate write/share grants, public share con
   assert.equal((await request(null, 'POST', '/shared/list', { code: share.code })).status, 404);
   assert.equal((await request('owner', 'PUT', '/permissions', { username: 'reader', read: false, write: false, share: false })).status, 204);
   assert.equal((await request('reader', 'GET', '/list')).status, 403);
+});
+
+test('the archive route streams a complete ZIP and closes the response', async t => {
+  // The real plan builder and ZIP writer over a fake SFTP tree, so the HTTP
+  // response has to end on its own: a missing `res.end()` would hang here.
+  const tree = {
+    '/vol1/1000': { children: ['a.txt'] },
+    '/vol1/1000/a.txt': { content: 'hello zip' },
+  };
+  const entryAttrs = target => {
+    const item = tree[target];
+    if (!item) return null;
+    const file = item.content !== undefined;
+    return { size: file ? Buffer.byteLength(item.content) : 0, mtime: 1700000000,
+      isDirectory: () => !file, isFile: () => file, isSymbolicLink: () => false };
+  };
+  const sftp = {
+    realpath: (target, callback) => callback(null, target),
+    stat: (target, callback) => callback(null, entryAttrs(target)),
+    lstat: (target, callback) => callback(null, entryAttrs(target)),
+    readdir: (target, callback) => callback(null, (tree[target].children || [])
+      .map(name => ({ filename: name, attrs: entryAttrs(`${target}/${name}`) }))),
+    createReadStream: target => Readable.from([Buffer.from(tree[target].content)]),
+  };
+  const storage = {
+    archive: async (paths, res) => {
+      const entries = await collectArchiveEntries(sftp, paths);
+      res.set('Content-Type', 'application/zip');
+      res.set('Content-Disposition', 'attachment; filename="a.txt.zip"');
+      await writeArchive({ sftp, entries, output: res });
+    },
+  };
+  const app = express(); app.use(express.json());
+  app.use((req, res, next) => { req.session = { user: { id: 'reader' } }; next(); });
+  app.use(createRouter({
+    storage,
+    permissions: { get: async () => ({ can_read: 1, can_write: 0, can_share: 0 }) },
+    access: createAccess({ permissions: { get: async () => ({ can_read: 1 }) },
+      env: { FILES_OWNER_USER_ID: 'owner' }, findUser: async id => ({ id }) }),
+  }));
+  app.use(errorHandler);
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/archive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Files-Request': '1' },
+    body: JSON.stringify({ paths: ['vol1/a.txt'] }),
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('content-type'), 'application/zip');
+  const body = Buffer.from(await response.arrayBuffer());
+  assert.equal(body.readUInt32LE(body.length - 22), 0x06054b50, 'the ZIP end record terminates the response');
+  assert.match(body.toString('latin1'), /a\.txt/, 'the entry name is carried in the archive');
 });
 
 test('file migration persists permissions and hashed share capabilities', async () => {

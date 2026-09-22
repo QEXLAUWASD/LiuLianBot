@@ -155,6 +155,15 @@ function responseSink(archive) {
   });
 }
 
+// The archive owns its output until `finish()`, so it also closes it: without
+// this the HTTP response would stay open and the browser would wait forever.
+function endOutput(output) {
+  if (typeof output.end !== 'function') return undefined;
+  return new Promise((resolve, reject) => {
+    output.end(error => (error ? reject(error) : resolve()));
+  });
+}
+
 class ZipArchive {
   constructor(output, { limit = ZIP_LIMIT, maxEntries = 0xffff, now = new Date(), deflateLevel = 6 } = {}) {
     this.output = output;
@@ -229,6 +238,7 @@ class ZipArchive {
     await this.writeChunk(directory);
     await this.writeChunk(endRecord({ entries: this.entries.length, size: directory.length, offset }));
     this.finished = true;
+    await endOutput(this.output);
   }
 }
 
