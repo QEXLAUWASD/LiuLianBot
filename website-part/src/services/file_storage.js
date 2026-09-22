@@ -112,7 +112,7 @@ function isArchiveChild(entry) {
 // file and per folder, including empty folders. Only names, sizes and targets
 // are held in memory; contents are streamed when the archive is written.
 async function collectArchiveEntries(sftp, selections, {
-  maxEntries = ARCHIVE_MAX_ENTRIES, maxBytes = ZIP_LIMIT,
+  base, maxEntries = ARCHIVE_MAX_ENTRIES, maxBytes = ZIP_LIMIT,
 } = {}) {
   const prefixes = archivePrefixes(selections);
   const entries = [];
@@ -142,7 +142,9 @@ async function collectArchiveEntries(sftp, selections, {
     }
   };
   for (const [index, selection] of selections.entries()) {
-    const item = await resolve(sftp, selection);
+    // A shared folder is walked relative to its own root instead of a volume
+    // root; `resolveTarget` still rejects traversal and symlinks either way.
+    const item = base ? await resolveTarget(sftp, base, selection) : await resolve(sftp, selection);
     const prefix = prefixes[index];
     const modified = new Date(item.stat.mtime * 1000);
     if (item.stat.isFile()) {
@@ -265,13 +267,17 @@ function createStorage(env = process.env) {
         catch (err) { if (opened) await call(sftp, 'unlink', dest).catch(() => {}); throw err; }
       });
     },
-    async archive(selections, res, { name } = {}) {
+    async archive(selections, res, { name, base } = {}) {
       const unique = [...new Set(selections.map(value => relativePath(value)))];
       if (!unique.length) throw new InputError('請選擇要打包的檔案或資料夾');
       if (unique.length > ARCHIVE_MAX_SELECTION) throw new InputError(`單次最多打包 ${ARCHIVE_MAX_SELECTION} 個項目`);
       const fileName = archiveRequestedName(name, unique);
       return run(async sftp => {
-        const entries = await collectArchiveEntries(sftp, unique);
+        // `base` is the /vol*/1000 relative folder a public share points at; it
+        // is resolved again here so a share never reaches outside its folder.
+        const root = base === undefined ? null : await resolve(sftp, base);
+        if (root && !root.stat.isDirectory()) throw new InputError('此分享是單一檔案，請直接下載');
+        const entries = await collectArchiveEntries(sftp, unique, { base: root?.target });
         res.set('Content-Type', 'application/zip');
         res.set('Content-Disposition', attachmentHeader(fileName));
         res.set('X-Content-Type-Options', 'nosniff');

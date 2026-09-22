@@ -190,6 +190,21 @@ test('archive names and the attachment header stay usable for non-ASCII entries'
   );
 });
 
+test('archiving relative to a share root stays inside that folder', async () => {
+  const sftp = fakeSftp(TREE);
+  const entries = await collectArchiveEntries(sftp, ['b.txt', 'b.txt.jpg'], { base: '/vol1/1000/相片' });
+  assert.deepEqual(entries.map(entry => entry.name), ['b.txt', 'b.txt.jpg']);
+  assert.deepEqual(entries.map(entry => entry.target), ['/vol1/1000/相片/b.txt', '/vol1/1000/相片/b.txt.jpg']);
+
+  // Shares resolve against their own root, so traversal and names outside the
+  // share are rejected the same way a volume root rejects them.
+  await assert.rejects(collectArchiveEntries(sftp, ['../a.txt'], { base: '/vol1/1000/相片' }), /無效的檔案路徑/);
+  // A missing entry surfaces as the raw SFTP code here; `createStorage` maps it
+  // to a 404 for the API.
+  await assert.rejects(collectArchiveEntries(sftp, ['nope.txt'], { base: '/vol1/1000/相片' }),
+    error => error.code === 2);
+});
+
 test('a client-suggested archive name is validated before it reaches the header', () => {
   assert.equal(archiveRequestedName('照片備份.zip', ['vol1/相片']), '照片備份.zip');
   assert.equal(archiveRequestedName('report.ZIP', ['vol1/相片']), 'report.ZIP');

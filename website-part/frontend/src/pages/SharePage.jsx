@@ -8,19 +8,21 @@ function initialCode(hash) {
   return (hash || '').replace(/^#/, '').trim().toLowerCase();
 }
 
-function downloadThroughForm(code, path) {
-  // Native form downloads stream straight to disk instead of buffering the file
-  // in JavaScript.
+// Native form downloads stream straight to disk instead of buffering the file
+// (or a whole archive) in JavaScript. Repeated field names become an array.
+function downloadThroughForm(action, fields) {
   const form = document.createElement('form');
   form.method = 'POST';
-  form.action = '/api/files/shared/download';
+  form.action = action;
   form.target = 'fileDownload';
-  for (const [name, value] of Object.entries({ code, path })) {
-    const field = document.createElement('input');
-    field.type = 'hidden';
-    field.name = name;
-    field.value = value;
-    form.append(field);
+  for (const [name, values] of Object.entries(fields)) {
+    for (const value of [].concat(values)) {
+      const field = document.createElement('input');
+      field.type = 'hidden';
+      field.name = name;
+      field.value = value;
+      form.append(field);
+    }
   }
   document.body.append(form);
   form.submit();
@@ -32,6 +34,7 @@ export function SharePage({ location = globalThis.location } = {}) {
   const [share, setShare] = useState(null);
   const [current, setCurrent] = useState('');
   const [status, setStatus] = useState({ message: '', tone: '' });
+  const [selected, setSelected] = useState([]);
   const code = useRef(initialCode(location?.hash));
   const navigation = useRef(0);
 
@@ -50,6 +53,7 @@ export function SharePage({ location = globalThis.location } = {}) {
       expiresAt: data.expiresAt,
       entries: data.entries,
     });
+    setSelected([]);
     report('分享已開啟。');
   }, [report]);
 
@@ -75,11 +79,25 @@ export function SharePage({ location = globalThis.location } = {}) {
   };
 
   const download = (path = '') => {
-    downloadThroughForm(code.current, path);
+    downloadThroughForm('/api/files/shared/download', { code: code.current, path });
     report('已送出下載請求。若分享已撤銷或檔案不可用，請重新開啟分享確認。');
   };
 
   const breadcrumbs = breadcrumbTrail(current);
+  const rowPaths = (share?.entries || []).map(entry => joinPath(current, entry.name));
+  const allSelected = rowPaths.length > 0 && rowPaths.every(path => selected.includes(path));
+  const toggleSelected = path => setSelected(list => list.includes(path)
+    ? list.filter(item => item !== path)
+    : [...list, path]);
+  const toggleAll = () => setSelected(allSelected ? [] : [...new Set([...selected, ...rowPaths])]);
+
+  // Shares have no session, so the selection travels as repeated form fields
+  // and the browser streams the ZIP straight to disk.
+  const archiveSelection = () => {
+    if (!selected.length) return;
+    downloadThroughForm('/api/files/shared/archive', { code: code.current, paths: selected });
+    report(`已送出打包請求（${selected.length} 個項目），瀏覽器會開始下載 ZIP。`);
+  };
 
   return (
     <main className="main-content file-page" id="main-content">
@@ -129,14 +147,48 @@ export function SharePage({ location = globalThis.location } = {}) {
               </span>
             ))}
           </nav>
+          {share.directory && selected.length > 0 && (
+            <div id="selectionTools" className="file-toolbar">
+              <span id="selectionCount">{`已選 ${selected.length} 個項目`}</span>
+              <button id="archiveShared" className="btn btn-primary" type="button" onClick={archiveSelection}>
+                打包成 ZIP 下載
+              </button>
+              <button id="clearSelection" className="btn btn-outline" type="button" onClick={() => setSelected([])}>
+                清除選取
+              </button>
+            </div>
+          )}
           <div className="file-table-scroll">
             <table className="file-table">
               <thead>
-                <tr><th>名稱</th><th>大小</th><th>操作</th></tr>
+                <tr>
+                  {share.directory && (
+                    <th className="file-select-cell">
+                      <input
+                        id="selectAllShared"
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleAll}
+                        aria-label="選取全部項目"
+                      />
+                    </th>
+                  )}
+                  <th>名稱</th><th>大小</th><th>操作</th>
+                </tr>
               </thead>
               <tbody id="fileRows">
                 {share.entries.map(entry => (
                   <tr key={entry.name}>
+                    {share.directory && (
+                      <td className="file-select-cell">
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(joinPath(current, entry.name))}
+                          onChange={() => toggleSelected(joinPath(current, entry.name))}
+                          aria-label={`選取 ${entry.name}`}
+                        />
+                      </td>
+                    )}
                     <td>
                       {entry.directory ? (
                         <button

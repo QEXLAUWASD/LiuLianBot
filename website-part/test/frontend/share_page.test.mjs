@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { SharePage } from '../../frontend/src/pages/SharePage.jsx';
-import { click, flush, mockFetch, render, setupDom, typeInto } from '../support/react.mjs';
+import { click, flush, mockFetch, render, setupDom, toggle, typeInto } from '../support/react.mjs';
 
 const CODE = 'b'.repeat(32);
 const FOLDER = {
@@ -63,6 +63,77 @@ test('an entered code loads the share and a file row offers a download', async (
     const rows = [...document.querySelectorAll('#fileRows tr')];
     assert.equal(rows.length, 2);
     assert.equal(rows[1].querySelector('button').textContent, '下載');
+  } finally {
+    dom.cleanup();
+  }
+});
+
+// Form submissions are captured instead of navigating jsdom away from the page.
+function stubFormSubmit() {
+  const submissions = [];
+  const prototype = Object.getPrototypeOf(globalThis.document.createElement('form'));
+  const original = prototype.submit;
+  prototype.submit = function capture() {
+    submissions.push({
+      action: this.getAttribute('action'),
+      target: this.target,
+      fields: [...this.querySelectorAll('input')].map(input => [input.name, input.value]),
+    });
+  };
+  return {
+    submissions,
+    restore() { prototype.submit = original; },
+  };
+}
+
+test('checked entries of a shared folder are packed into one ZIP', async () => {
+  const { dom, document } = mount({ hash: `#${CODE}` });
+  // The stub patches the jsdom prototype, so it has to follow `mount`.
+  const submit = stubFormSubmit();
+  try {
+    await flush();
+
+    assert.equal(document.getElementById('selectionTools'), null, 'the toolbar needs a selection');
+    const rows = [...document.querySelectorAll('#fileRows tr')];
+    toggle(rows[1].querySelector('input[type="checkbox"]'));
+    await flush();
+    assert.equal(document.getElementById('selectionCount').textContent, '已選 1 個項目');
+
+    click(document.getElementById('archiveShared'));
+    assert.deepEqual(submit.submissions, [{
+      action: '/api/files/shared/archive',
+      target: 'fileDownload',
+      fields: [['code', CODE], ['paths', 'a.txt']],
+    }]);
+    assert.match(document.getElementById('fileStatus').textContent, /已送出打包請求/);
+
+    toggle(document.getElementById('selectAllShared'));
+    await flush();
+    assert.equal(document.getElementById('selectionCount').textContent, '已選 2 個項目');
+    click(document.getElementById('clearSelection'));
+    await flush();
+    assert.equal(document.getElementById('selectionTools'), null);
+  } finally {
+    submit.restore();
+    dom.cleanup();
+  }
+});
+
+test('a single file share keeps the plain download with no pack controls', async () => {
+  const { dom, document } = mount({
+    hash: `#${CODE}`,
+    routes: {
+      'POST /api/files/shared/list': {
+        payload: { name: 'a.txt', directory: false, path: '', expiresAt: null, entries: [] },
+      },
+    },
+  });
+  try {
+    await flush();
+
+    assert.equal(document.getElementById('selectAllShared'), null);
+    assert.equal(document.querySelectorAll('#fileRows input[type="checkbox"]').length, 0);
+    assert.equal(document.getElementById('downloadSharedFile').hidden, false);
   } finally {
     dom.cleanup();
   }

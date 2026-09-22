@@ -113,6 +113,7 @@ Discord 帳戶。
 | --- | --- | --- | --- |
 | `POST` | `/api/files/shared/list` | `{ code, path? }`；`code` 為 32 位小寫十六進位 | `{ name, directory, path, expiresAt, entries }` |
 | `POST` | `/api/files/shared/download` | `{ code, path? }` | 檔案串流（`Content-Disposition: attachment`） |
+| `POST` | `/api/files/shared/archive` | `{ code, paths }`；`paths` 可重複，最多 50 個 | ZIP 串流（`Content-Disposition: attachment`） |
 
 分享碼放在 POST body，避免出現在 access log URL。碼無效、已撤銷或已過期回應
 `404 { error: "分享碼無效或已過期" }`；單檔分享帶非空 `path` 回應 `403`。分享碼
@@ -148,6 +149,11 @@ Discord 帳戶。
 已壓縮的影音與壓縮檔副檔名以原樣存放，各種符號連結在列舉時會被略過。前端若已先
 開啟儲存位置，會一併帶上建議檔名（`name`）；伺服器只取檔名部分、要求 `.zip`
 結尾且不接受控制字元，否則改用預設名稱。
+
+`/api/files/shared/archive` 提供相同功能給公開分享：`paths` 是分享根目錄內的相對
+路徑（表單可重複同名字段送出），伺服器會以分享的 `source_path` 為界重新解析，因此
+無法存取分享以外的內容。單一檔案分享回應 `400`，空選取或超過 50 個項目亦為 `400`，
+分享碼無效、已撤銷或過期回應 `404`。
 
 ## 網站連線及代理
 

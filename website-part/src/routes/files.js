@@ -42,6 +42,18 @@ function createRouter({ storage = createStorage(), repo = createRepository(), pe
     const { target } = await shared(req);
     await storage.download(target, res);
   }));
+  // Packs selected entries of a shared folder into one ZIP. The selection comes
+  // from repeated form fields, so the share page can download natively without
+  // buffering the archive in the browser.
+  router.post('/shared/archive', wrap(async (req, res) => {
+    const { row } = await shared(req);
+    if (!row.is_directory) throw new InputError('此分享是單一檔案，請直接下載');
+    const submitted = req.body?.paths ?? [];
+    const selections = Array.isArray(submitted) ? submitted : [submitted];
+    if (!selections.length) throw new InputError('請選擇要打包的檔案或資料夾');
+    if (selections.length > ARCHIVE_MAX_SELECTION) throw new InputError(`單次最多打包 ${ARCHIVE_MAX_SELECTION} 個項目`);
+    await storage.archive(selections.map(value => relativePath(value)), res, { base: row.source_path });
+  }));
   router.use((req, res, next) => {
     access(req).then(grant => { req.fileAccess = grant; next(); }, next);
   });
