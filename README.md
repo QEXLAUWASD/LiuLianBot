@@ -762,7 +762,9 @@ Uploads are limited to 1 GiB and never overwrite an existing file. Checking rows
 (or picking "打包下載" on a folder) packs the selection into one ZIP that streams
 straight from FnOS through the Router; a run is capped at 50 selections, 2000
 entries and 4 GiB of uncompressed content. Recipients of a folder share get the
-same packing control on `/share.html`, confined to the shared path. Everything
+same packing control on `/share.html`, confined to the shared path. Recipients
+can also download the entire shared folder with one button; the ZIP includes
+its subfolders and follows the same 2000-entry and 4 GiB limits. Everything
 stays confined to `/vol*/1000`: traversal, symlinks and device files are rejected.
 
 Migration `018` creates `website_file_permissions` and `website_file_shares` on

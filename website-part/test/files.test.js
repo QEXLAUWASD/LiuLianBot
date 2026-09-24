@@ -117,6 +117,10 @@ test('files API enforces approval, separate write/share grants, public share con
   assert.equal((await request('owner', 'POST', '/shares', { path: 'vol1/private/shared', hours: 169 })).status, 400);
   const fileShare = await (await request('owner', 'POST', '/shares', { path: 'vol1/a.txt', hours: 1 })).json();
   assert.equal((await request(null, 'POST', '/shared/download', { code: fileShare.code, path: 'other' })).status, 403);
+  assert.equal((await request(null, 'POST', '/shared/archive-all', { code: share.code })).status, 200);
+  assert.deepEqual(calls.at(-1), ['archive', ['vol1/private/shared'], { name: null, base: null }]);
+  assert.equal((await request(null, 'POST', '/shared/archive-all', { code: fileShare.code })).status, 400);
+  assert.equal((await request(null, 'POST', '/shared/archive-all', { code: 'f'.repeat(32) })).status, 404);
   // Shared folders can be packed too, but only inside the shared path.
   assert.equal((await request(null, 'POST', '/shared/archive', { code: share.code, paths: ['child/a.txt'] })).status, 200);
   assert.deepEqual(calls.at(-1),
@@ -136,6 +140,7 @@ test('files API enforces approval, separate write/share grants, public share con
   assert.equal((await request('reader', 'DELETE', '/shares/' + fileShare.id)).status, 404);
   stored.expires_at = new Date(0);
   assert.equal((await request(null, 'POST', '/shared/list', { code: share.code })).status, 404);
+  assert.equal((await request(null, 'POST', '/shared/archive-all', { code: share.code })).status, 404);
   stored.expires_at = new Date(Date.now() + 100000);
   assert.equal((await request('owner', 'DELETE', '/shares/' + share.id)).status, 204);
   assert.equal((await request(null, 'POST', '/shared/list', { code: share.code })).status, 404);

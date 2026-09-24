@@ -42,6 +42,11 @@ function createRouter({ storage = createStorage(), repo = createRepository(), pe
     const { target } = await shared(req);
     await storage.download(target, res);
   }));
+  router.post('/shared/archive-all', wrap(async (req, res) => {
+    const { row } = await shared(req);
+    if (!row.is_directory) throw new InputError('此分享是單一檔案，請直接下載');
+    await storage.archive([row.source_path], res);
+  }));
   // Packs selected entries of a shared folder into one ZIP. The selection comes
   // from repeated form fields, so the share page can download natively without
   // buffering the archive in the browser.

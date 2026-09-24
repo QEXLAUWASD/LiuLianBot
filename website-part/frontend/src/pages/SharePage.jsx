@@ -99,6 +99,11 @@ export function SharePage({ location = globalThis.location } = {}) {
     report(`已送出打包請求（${selected.length} 個項目），瀏覽器會開始下載 ZIP。`);
   };
 
+  const archiveWholeShare = () => {
+    downloadThroughForm('/api/files/shared/archive-all', { code: code.current });
+    report('已送出整個分享資料夾的打包請求，瀏覽器會開始下載 ZIP。');
+  };
+
   return (
     <main className="main-content file-page" id="main-content">
       <header className="file-hero">
@@ -134,6 +139,11 @@ export function SharePage({ location = globalThis.location } = {}) {
         <section id="browserPanel" className="file-panel">
           <h2 id="shareName">{share.name}</h2>
           <p id="shareExpiry">{`到期時間：${formatTime(share.expiresAt)}`}</p>
+          {share.directory && (
+            <button id="archiveWholeShare" className="btn btn-primary" type="button" onClick={archiveWholeShare}>
+              下載整個分享資料夾
+            </button>
+          )}
           <nav id="breadcrumbs" aria-label="分享資料夾路徑">
             <button className="btn btn-outline" type="button" onClick={() => run(() => open(''))}>
               {share.name}

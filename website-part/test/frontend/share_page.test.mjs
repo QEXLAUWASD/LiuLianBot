@@ -119,6 +119,23 @@ test('checked entries of a shared folder are packed into one ZIP', async () => {
   }
 });
 
+test('a shared folder downloads in one click without selecting entries', async () => {
+  const { dom, document } = mount({ hash: `#${CODE}` });
+  const submit = stubFormSubmit();
+  try {
+    await flush();
+    click(document.getElementById('archiveWholeShare'));
+    assert.deepEqual(submit.submissions, [{
+      action: '/api/files/shared/archive-all',
+      target: 'fileDownload',
+      fields: [['code', CODE]],
+    }]);
+  } finally {
+    submit.restore();
+    dom.cleanup();
+  }
+});
+
 test('a single file share keeps the plain download with no pack controls', async () => {
   const { dom, document } = mount({
     hash: `#${CODE}`,
@@ -134,6 +151,7 @@ test('a single file share keeps the plain download with no pack controls', async
     assert.equal(document.getElementById('selectAllShared'), null);
     assert.equal(document.querySelectorAll('#fileRows input[type="checkbox"]').length, 0);
     assert.equal(document.getElementById('downloadSharedFile').hidden, false);
+    assert.equal(document.getElementById('archiveWholeShare'), null);
   } finally {
     dom.cleanup();
   }
