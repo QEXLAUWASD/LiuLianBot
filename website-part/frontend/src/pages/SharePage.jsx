@@ -9,12 +9,14 @@ function initialCode(hash) {
 }
 
 // Native form downloads stream straight to disk instead of buffering the file
-// (or a whole archive) in JavaScript. Repeated field names become an array.
+// (or a whole archive) in JavaScript. The current tab shows server errors;
+// a successful attachment download leaves the share page open.
+// Repeated field names become an array.
 function downloadThroughForm(action, fields) {
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = action;
-  form.target = 'fileDownload';
+  form.target = '_self';
   for (const [name, values] of Object.entries(fields)) {
     for (const value of [].concat(values)) {
       const field = document.createElement('input');
@@ -100,8 +102,10 @@ export function SharePage({ location = globalThis.location } = {}) {
   };
 
   const archiveWholeShare = () => {
+    // A large folder can fail the ZIP limits after a slow SFTP scan. The
+    // current tab shows that server response instead of hiding it in an iframe.
     downloadThroughForm('/api/files/shared/archive-all', { code: code.current });
-    report('已送出整個分享資料夾的打包請求，瀏覽器會開始下載 ZIP。');
+    report('正在準備整個分享資料夾的 ZIP，資料較多時可能需要等待。');
   };
 
   return (
@@ -240,7 +244,6 @@ export function SharePage({ location = globalThis.location } = {}) {
         </section>
       )}
 
-      <iframe name="fileDownload" title="檔案下載" hidden />
     </main>
   );
 }

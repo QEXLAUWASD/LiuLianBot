@@ -102,7 +102,7 @@ test('checked entries of a shared folder are packed into one ZIP', async () => {
     click(document.getElementById('archiveShared'));
     assert.deepEqual(submit.submissions, [{
       action: '/api/files/shared/archive',
-      target: 'fileDownload',
+      target: '_self',
       fields: [['code', CODE], ['paths', 'a.txt']],
     }]);
     assert.match(document.getElementById('fileStatus').textContent, /已送出打包請求/);
@@ -127,7 +127,7 @@ test('a shared folder downloads in one click without selecting entries', async (
     click(document.getElementById('archiveWholeShare'));
     assert.deepEqual(submit.submissions, [{
       action: '/api/files/shared/archive-all',
-      target: 'fileDownload',
+      target: '_self',
       fields: [['code', CODE]],
     }]);
   } finally {
