@@ -2,12 +2,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { originCheck, originMatchesHost } = require('../src/middleware/origin_check');
 
-function request({ method = 'POST', headers = {} } = {}) {
+function request({ method = 'POST', path = '/', headers = {} } = {}) {
   const normalized = Object.fromEntries(
     Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]),
   );
   return {
     method,
+    path,
     headers: normalized,
     get(name) {
       return normalized[name.toLowerCase()];
@@ -74,4 +75,18 @@ test('requests without browser fetch metadata stay allowed', () => {
   let called = false;
   originCheck(request(), response(), () => { called = true; });
   assert.equal(called, true);
+});
+
+test('public share reads accept proxied form origins without opening other writes', () => {
+  const headers = { origin: 'https://liulian.dev', host: 'internal:3000', 'sec-fetch-site': 'cross-site' };
+  for (const path of ['/files/shared/list', '/files/shared/download', '/files/shared/archive', '/files/shared/archive-all']) {
+    let called = false;
+    originCheck(request({ path, headers }), response(), () => { called = true; });
+    assert.equal(called, true, path);
+  }
+  for (const path of ['/files/shared/archive-all/extra', '/files/archive', '/auth/login']) {
+    const res = response();
+    originCheck(request({ path, headers }), res, () => assert.fail(`${path} should be blocked`));
+    assert.equal(res.statusCode, 403);
+  }
 });

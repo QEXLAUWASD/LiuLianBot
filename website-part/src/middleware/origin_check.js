@@ -24,6 +24,13 @@ function originMatchesHost(origin, host) {
 function originCheck(req, res, next) {
   if (SAFE_METHODS.has(req.method)) return next();
 
+  // Public share endpoints are read-only capability operations. Native form
+  // downloads can arrive through a proxy with a different Host header; the
+  // share code, not the caller's origin or session, authorizes these requests.
+  if (req.method === 'POST' && /^\/files\/shared\/(?:list|download|archive|archive-all)$/.test(req.path)) {
+    return next();
+  }
+
   const origin = header(req, 'origin');
   if (origin && !originMatchesHost(origin, header(req, 'host'))) {
     return res.status(403).json({ error: 'Cross-site request blocked' });

@@ -19,6 +19,8 @@
   另外按帳號累計失敗次數，同一帳號連續失敗會回傳 `429` 及 `Retry-After`。
 - 所有 `/api` 的非安全方法（`POST`／`PUT`／`PATCH`／`DELETE`）會檢查 `Origin`
   與 `Sec-Fetch-Site`；跨站請求回應 `403 { error: "Cross-site request blocked" }`，
+  但公開分享的唯讀 `POST /api/files/shared/{list,download,archive,archive-all}`
+  以分享碼授權，允許經反向代理提交的原生下載表單。
   不帶瀏覽器來源標頭的原生／伺服器請求則不受影響。
 - 第一方回應都會帶上 `Content-Security-Policy`、`X-Content-Type-Options`、
   `X-Frame-Options`、`Referrer-Policy`、`Permissions-Policy` 等安全標頭；
