@@ -1,5 +1,10 @@
 # 完整更新紀錄
 
+## Android Beta CI 修正（基準：`5049656`）
+
+- 明確安裝 Platform 35、Build Tools 35.0.0 及 platform-tools，避免 setup-android 預設下載已下架的 `tools` 套件而失敗。
+- 此變更只影響 CI SDK 準備，Beta APK 與 App 功能不變。
+
 ## Android 0.1.0-beta.1（基準：`62f200a`）
 
 - 新增原生 Android App：HTTPS 網站設定、登入／登出、R6 抽選、活動報名／取消及授權連線清單。
