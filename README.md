@@ -772,3 +772,12 @@ startup, and migration `019` re-checks the UUID-width user id columns so a
 database that recorded the unreleased file migration as `017` still gets the id
 widening. See [setup, permissions and limitations](docs/file-browser.md) for the
 full deployment checklist and the known limits of the feature.
+
+## Android app
+
+`android-part/` provides a native Android companion using the website's existing
+JSON APIs: account login/logout, R6 rolls, event signup/cancellation, and authorized
+connection listings. Configure your HTTPS website URL in the app. Connection
+services open in the system browser, which requires its own website login.
+See [Android setup and build instructions](android-part/README.md) for supported
+features, Gradle requirements, session behavior, and device verification.

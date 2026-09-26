@@ -229,3 +229,12 @@ website-part/core
 website-part/core.*
 # The generic `lib/` rule above must not hide the frontend browser libraries.
 !website-part/frontend/src/lib/
+
+# Android local SDK, IDE state and signing material
+android-part/.gradle/
+android-part/.idea/
+android-part/local.properties
+android-part/**/*.iml
+android-part/**/*.jks
+android-part/**/*.keystore
+android-part/keystore.properties

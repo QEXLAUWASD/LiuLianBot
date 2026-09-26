@@ -569,3 +569,9 @@ URL fragment。
 `website_file_shares`；migration `019` 會再次檢查用戶 ID 欄位寬度，令早前將未發佈
 檔案 migration 記為 `017` 嘅資料庫仍可完成 UUID 欄位加寬。完整部署步驟、權限設定同功能限制請參考
 [`docs/file-browser.md`](docs/file-browser.md)。
+
+## Android 原生 App
+
+新增 `android-part/`，直接串接網站 API，支援帳戶登入／登出、R6 抽選、活動報名／
+取消及授權連線清單。於 App 設定 HTTPS 網站網址即可使用；連線服務以系統瀏覽器
+開啟，瀏覽器需獨立登入。詳見 [Android 建置與使用說明](android-part/README.md)。

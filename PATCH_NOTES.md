@@ -1,5 +1,14 @@
 # Patch notes
 
+## Android 0.1.0-beta.1（基準：`62f200a`）
+
+- 新增原生 Android App：HTTPS 網站設定、登入／登出、R6 抽選、活動報名／取消及授權連線清單。
+- 沿用網站 JSON API 與 session；cookie 僅保存在記憶體，連線服務由獨立登入的系統瀏覽器開啟。
+- 新增 Gradle wrapper、HTTPS 網址單元測試與 GitHub Actions APK 建置流程。
+- 更新中英文 README、Android 建置與驗收文件，以及本機 SDK、快取和簽章檔案忽略規則。
+- Beta 使用 Debug 簽章 APK，適用 Android 8.0 以上；尚未完成實機與真實後端端到端驗收。
+- 驗證：2 項單元測試通過，Android Lint 無問題，Debug APK 建置成功。
+
 ## Since `32635dc`
 
 - Added dependency-free `src/middleware/security_headers.js`: every first-party
