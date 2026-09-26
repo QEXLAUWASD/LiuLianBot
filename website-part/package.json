@@ -11,7 +11,8 @@
     "test": "node --test --import ./test/support/jsx-loader.mjs",
     "check:js": "node tools/check-js.js",
     "check": "npm run check:js && npm run build && npm test",
-    "test:rdp-browser": "node tools/rdp-smoke.js"
+    "test:rdp-browser": "node tools/rdp-smoke.js",
+    "docs:api": "node tools/generate-openapi.js"
   },
   "dependencies": {
     "@electerm/rdpjs": "^1.0.0",

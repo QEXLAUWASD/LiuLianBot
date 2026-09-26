@@ -1,10 +1,11 @@
 // One RDP attempt per transport. Reconnect uses a fresh Socket.IO connection.
 function bindRdpSession(socket, { createClient, authorize, resolveConnection, screenSize,
-  errorPayload, timeoutMs = 30000 }) {
+  errorPayload, prepareBitmapEncoder, timeoutMs = 30000 }) {
   let client = null;
   let state = 'idle';
   let timer = null;
   let screen = null;
+  let encodeBitmap = null;
   const finish = (event, payload) => {
     if (state === 'closed') return;
     state = 'closed';
@@ -26,6 +27,12 @@ function bindRdpSession(socket, { createClient, authorize, resolveConnection, sc
       screen = screenSize(infos?.screen);
       await authorize();
       if (state !== 'connecting') return;
+      if (infos?.bitmapFormat != null && infos.bitmapFormat !== 'rgba') throw new Error('Unsupported bitmap format');
+      if (infos?.bitmapFormat === 'rgba') {
+        if (!prepareBitmapEncoder) throw new Error('Native bitmap output is unavailable');
+        encodeBitmap = await prepareBitmapEncoder();
+      }
+      if (state !== 'connecting') return;
       const connection = await resolveConnection(infos);
       if (state !== 'connecting') return;
       client = createClient({
@@ -39,7 +46,9 @@ function bindRdpSession(socket, { createClient, authorize, resolveConnection, sc
         socket.emit('rdp-connect');
       });
       client.on('bitmap', bitmap => {
-        if (state === 'connected') socket.emit('rdp-bitmap', bitmap);
+        if (state !== 'connected') return;
+        try { socket.emit('rdp-bitmap', encodeBitmap ? encodeBitmap(bitmap) : bitmap); }
+        catch (error) { fail(error); }
       });
       client.on('close', () => finish('rdp-close'));
       client.on('error', fail);

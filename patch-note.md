@@ -1,5 +1,16 @@
 # 完整更新紀錄
 
+## Android 0.2.0-beta.1 原生網站功能移植（基準：`da93039`）
+
+- Android 採網站深色配色、側欄與卡片設計，預設連接 https://www.liulian.dev；移除系統瀏覽器連線流程，不使用 WebView。
+- 新增原生帳戶／條款／Discord 綁定、活動管理、檔案與公開分享、存取授權、Discord 伺服器管理及管理員操作畫面。
+- 新增原生 SSH、RDP、Chromium 遠端畫面與輸入、命名 RDP 設定及 VLESS 設定匯出；切換畫面或進入背景會關閉遠端連線。
+- 登入預設保存在記憶體，可選 Android Keystore 加密記住 session；Cookie 綁定來源，401／登出清除。裝置設定不保存遠端密碼。
+- 網站新增共用條款文件、功能 API 目錄、OpenAPI 規格、授權連線 JSON；新增 RDP RGBA 協定及 Chromium 修飾鍵。修正 ACL 接受 UUID 使用者 ID。
+- 更新 API 文件、中英文 README、Android 建置說明、Docker context 排除及 CI 測試報告附件。
+- 驗證：Android 20 項測試通過，Debug APK 建置成功；Lint 無錯誤，1 項圖示外形建議。網站 305 項測試及前端建置通過。
+- 限制：需同步部署新版網站後端；尚未完成真實帳號、實機及真實遠端主機驗收。任意第三方代理網站尚無原生適配器，需個別服務 API 才能整合；不會以內嵌網頁替代。
+
 ## Android Gradle wrapper 權限修正（基準：`701d853`）
 
 - 在 Git 記錄 `android-part/gradlew` 的執行權限，修正 Linux CI checkout 後出現 Permission denied；本機檔案權限已設定，但先前未寫入 Git 索引。

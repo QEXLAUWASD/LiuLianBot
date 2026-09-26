@@ -572,6 +572,10 @@ URL fragment。
 
 ## Android 原生 App
 
-新增 `android-part/`，直接串接網站 API，支援帳戶登入／登出、R6 抽選、活動報名／
-取消及授權連線清單。於 App 設定 HTTPS 網站網址即可使用；連線服務以系統瀏覽器
-開啟，瀏覽器需獨立登入。詳見 [Android 建置與使用說明](android-part/README.md)。
+`android-part/` 使用網站同款深色側欄與卡片，預設連接 `https://www.liulian.dev`。
+原生支援帳戶、R6、活動、檔案／分享、Discord 設定、管理台、SSH／RDP／Chromium
+及 VLESS 設定。本站操作不用 WebView 或外部瀏覽器；第三方連線服務仍需個別 API 整合。
+
+先部署配套網站 API 更新，再使用新版條款及原生 RDP。詳見
+[Android 建置與驗證](android-part/README.md)、[API 參考](docs/API.md) 及
+[OpenAPI 文件](docs/openapi.json)。

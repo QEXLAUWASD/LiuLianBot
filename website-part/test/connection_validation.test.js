@@ -65,3 +65,7 @@ test('rejects invalid slugs and access IDs', () => {
     /invalid ID/
   );
 });
+test('connection audiences accept UUID account IDs emitted by registration', () => {
+  const id = '123e4567-e89b-12d3-a456-426614174000';
+  assert.deepEqual(normalizeConnectionInput({ name: 'test', slug: 'test', target_url: 'https://example.org', user_ids: [id] }).user_ids, [id]);
+});

@@ -41,6 +41,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    fs: { allow: [here, resolve(here, '../shared/website')] },
     proxy: {
       '/api': {
         target: process.env.WEBSITE_DEV_PROXY || 'http://127.0.0.1:3000',

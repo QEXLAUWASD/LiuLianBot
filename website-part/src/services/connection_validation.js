@@ -63,7 +63,7 @@ function normalizeUserIds(values) {
   }
 
   const normalized = values.map(value => {
-    if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,30}$/.test(value)) {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,36}$/.test(value)) {
       throw new ConnectionInputError('User IDs contains an invalid ID');
     }
     return value;

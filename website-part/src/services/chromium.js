@@ -171,6 +171,10 @@ async function dispatchInput(cdp, message, size) {
       ? message.eventType : null;
     if (!eventType) throw new ChromiumInputError('Invalid keyboard event');
     const params = { type: eventType };
+    if (message.modifiers !== undefined) {
+      if (!Number.isInteger(message.modifiers) || message.modifiers < 0 || message.modifiers > 15) throw new ChromiumInputError('Invalid keyboard modifiers');
+      params.modifiers = message.modifiers;
+    }
     for (const field of ['key', 'code', 'text', 'unmodifiedText']) {
       if (typeof message[field] === 'string') params[field] = message[field].slice(0, 64);
     }

@@ -91,3 +91,25 @@ test('authorization failure never resolves or connects a destination', async () 
   assert.equal(f.created(), 0);
   assert.equal(f.socket.connected, false);
 });
+test('native output is opt-in, authorized and failures close the session', async () => {
+  let prepared = false;
+  const f = fixture({ prepareBitmapEncoder: async () => {
+    prepared = true;
+    return bitmap => { if (!bitmap.valid) throw new Error('Invalid native bitmap'); return { format: 'rgba', data: Buffer.from([1, 2, 3, 255]) }; };
+  } });
+  f.socket.receive('infos', { bitmapFormat: 'rgba' });
+  await tick();
+  assert.equal(prepared, true);
+  f.client.emit('connect');
+  f.client.emit('bitmap', { valid: true });
+  assert.equal(f.socket.sent[1][1].format, 'rgba');
+  f.client.emit('bitmap', {});
+  assert.equal(f.socket.connected, false);
+  assert.equal(f.socket.sent.at(-1)[0], 'rdp-error');
+});
+test('unauthorized sockets never initialize the native decoder', async () => {
+  const f = fixture({ authorize: async () => { throw new Error('Denied'); }, prepareBitmapEncoder: async () => assert.fail('must not prepare') });
+  f.socket.receive('infos', { bitmapFormat: 'rgba' });
+  await tick();
+  assert.equal(f.created(), 0);
+});

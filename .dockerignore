@@ -13,3 +13,6 @@ logs
 README_HK.md
 start.sh
 *.log
+
+# Native Android project is not part of the website image
+android-part

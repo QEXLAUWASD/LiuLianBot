@@ -170,7 +170,7 @@ Discord 帳戶。
 ### 管理員連線設定
 
 以下端點都需要管理員身份。`role_ids` 是正整數陣列，`user_ids` 是符合
-`[A-Za-z0-9_-]{1,30}` 的網站使用者 ID 陣列。
+`[A-Za-z0-9_-]{1,36}` 的網站使用者 ID 陣列。
 
 | 方法 | 路徑 | 請求 | 成功回應 |
 | --- | --- | --- | --- |
@@ -305,9 +305,7 @@ SSH profile 預設 port 是 22，RDP 是 3389；host、username 及其他欄位�
 
 ### Chromium CDP screencast：`/api/chromium/ws`
 
-此通道目前只檢查登入，不要求遠端群組；`/chromium.html` 頁面路由另外檢查頁面
-可見度，但 WebSocket upgrade 尚未重複套用該檢查，因此頁面可見度不能當作此通道
-的完整授權邊界。主要訊息如下：
+此通道檢查登入及 Chromium 頁面可見度，不要求遠端群組。主要訊息如下：
 
 - 開啟：`{ type: "open", url, size?: { width, height } }`
 - 導航：`{ type: "navigate", url }`
@@ -374,3 +372,29 @@ npm run check
 不接受 body 指定擁有者；不存在或其他帳號的 ID 均回傳 404。
 未設定加密金鑰時清單回傳 `available: false`，其他操作回傳 503。
 資料庫 migration 016 新增獨立資料表，不變更舊版 remote-profile API。
+
+## Android 原生 API 契約補充（0.2.0）
+
+預設站點為 `https://www.liulian.dev`。原生客戶端沿用上述業務 API 與 cookie 認證；功能目錄不代表使用者已獲授權或服務已啟用。
+
+| 方法 | 路徑 | 權限／回應 |
+| --- | --- | --- |
+| GET | `/api/mobile/capabilities` | 公開；`{ apiVersion, http, realtime }`，依功能列出 79 個 HTTP 操作及 3 個即時通道 |
+| GET | `/api/mobile/openapi` | 公開；OpenAPI 3.0.3，包含請求參數、必填欄位、cookie 認證及二進位傳輸 |
+| GET | `/api/auth/terms-document` | 公開；`{ version, title, sections: [{ title, paragraphs }] }`，與網頁使用同一份條款 |
+| GET | `/api/mobile/connections/:slug` | 已登入及通過連線 ACL；`{ connection: { id, name, slug, description, path, nativeIntegration: null } }`，不透露上游網址 |
+| POST | `/api/files/shared/archive-all` | 公開分享；body `{ code, name? }`，需 `X-Files-Request: 1`；串流整個分享目錄 ZIP |
+| GET | `/api/guild-manager/guilds` | 已登入及綁定 Discord；`{ guilds }` |
+| GET | `/api/guild-manager/guilds/:guildId` | 該 Discord 使用者可管理的伺服器；`{ guild, logTypes, languages }` |
+| PUT | `/api/guild-manager/guilds/:guildId` | body `{ language, log_channels, private_voice_trigger_channel_id }`；回應 `{ success: true, guild }` |
+
+`log_channels` 按日誌類型指定文字頻道 ID；私人語音觸發頻道使用語音頻道 ID 或 null，頻道必須屬於該伺服器。未綁定帳號回應 403；查不到可管理的指定伺服器回應 404。
+
+完整分享 ZIP 沿用分享有效性、2000 項及 4 GiB 限制；單檔分享不支援此操作。原生 App 不呼叫舊版重新導向端點；`nativeIntegration: null` 表示尚無該第三方服務的原生適配器，不能將代理頁面視為已完成原生整合。
+
+### 原生遠端協定
+
+- RDP：`infos` 可加上 `bitmapFormat: "rgba"`。伺服器將影像解碼成由上而下的 RGBA 位元組，以 Socket.IO 二進位附件傳送；bitmap 含 `x, y, width, height, clipWidth, clipHeight, format: "rgba", data`。客戶端依裁切尺寸繪製矩形。省略選項仍使用原 RDP 協定；未知格式或解碼失敗會關閉該連線。
+- Chromium：鍵盤 input 可帶 `modifiers`（整數 0–15），Alt=1、Ctrl=2、Meta=4、Shift=8，可組合；省略時沿用原協定。WebSocket upgrade 檢查登入及 Chromium 頁面可見度。
+
+離線規格見 [openapi.json](openapi.json)。修改契約後執行 `cd website-part && npm run docs:api`，再執行 `npm run check`；測試會確認規格快照與產生器一致。

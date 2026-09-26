@@ -56,3 +56,8 @@ test('page visibility migration creates assignments and keeps current defaults',
   assert.match(sql, /'roller', 1, 1/);
   assert.match(sql, /'events', 0, 1/);
 });
+test('page audiences accept UUID account IDs emitted by registration', () => {
+  const { normalizePageVisibility } = require('../src/services/page_visibility');
+  const id = '123e4567-e89b-12d3-a456-426614174000';
+  assert.deepEqual(normalizePageVisibility('events', { public_access: false, authenticated_access: false, user_ids: [id] }).user_ids, [id]);
+});

@@ -3,6 +3,7 @@ const rdp = require('@electerm/rdpjs');
 const { userHasRemoteAccess } = require('./middleware/remote_auth');
 const { normalizeWebRdpInput, RemoteInputError, assertResolvedRemoteHost, allowedRemoteHosts } = require('./services/remote_validation');
 const { remoteFeatures } = require('./services/remote_features');
+const { prepareNativeBitmapEncoder } = require('./services/native_bitmap');
 const { bindRdpSession } = require('./services/rdp_session');
 
 function screenSize(value) {
@@ -52,7 +53,7 @@ function attachRdpServer(server, { sessionMiddleware }) {
   io.on('connection', socket => bindRdpSession(socket, {
     createClient: options => rdp.createClient(options),
     authorize: () => authorizeSocket(socket, true),
-    resolveConnection, screenSize, errorPayload,
+    resolveConnection, screenSize, errorPayload, prepareBitmapEncoder: prepareNativeBitmapEncoder,
   }));
   return io;
 }

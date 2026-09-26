@@ -775,9 +775,13 @@ full deployment checklist and the known limits of the feature.
 
 ## Android app
 
-`android-part/` provides a native Android companion using the website's existing
-JSON APIs: account login/logout, R6 rolls, event signup/cancellation, and authorized
-connection listings. Configure your HTTPS website URL in the app. Connection
-services open in the system browser, which requires its own website login.
-See [Android setup and build instructions](android-part/README.md) for supported
-features, Gradle requirements, session behavior, and device verification.
+`android-part/` is a native Android companion using the website's dark sidebar
+and card design, defaulting to `https://www.liulian.dev`. It includes account
+management, R6, events, files/sharing, Discord settings, administration, native
+SSH/RDP/Chromium screens, and VLESS configuration. No WebView or external browser
+is used. Arbitrary connected third-party services still need their own API adapters.
+
+Deploy the accompanying website API changes before using native RDP and terms.
+See [Android setup and verification](android-part/README.md), [API reference](docs/API.md),
+and [OpenAPI contract](docs/openapi.json). Public discovery is available at
+`/api/mobile/capabilities` and `/api/mobile/openapi`.

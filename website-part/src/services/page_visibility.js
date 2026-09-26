@@ -57,7 +57,7 @@ function normalizePageVisibility(pageKey, input) {
     public_access: input.public_access,
     authenticated_access: input.authenticated_access,
     role_ids: normalizeIds(input.role_ids || [], 'Group IDs'),
-    user_ids: normalizeIds(input.user_ids || [], 'User IDs', /^[A-Za-z0-9_-]{1,30}$/),
+    user_ids: normalizeIds(input.user_ids || [], 'User IDs', /^[A-Za-z0-9_-]{1,36}$/),
   };
 }
 

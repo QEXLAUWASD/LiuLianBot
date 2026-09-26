@@ -14,7 +14,8 @@ const { remoteFeatures } = require('../services/remote_features');
 
 const REMEMBER_LOGIN_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'connect.sid';
-const TERMS_VERSION = '2026-07-31';
+const termsDocument = require('../../../shared/website/terms.json');
+const TERMS_VERSION = termsDocument.version;
 
 function generateId() {
   return crypto.randomUUID();
@@ -108,6 +109,10 @@ router.post('/terms', async (req, res, next) => {
   } catch (err) {
     return next(err);
   }
+});
+
+router.get('/terms-document', (_req, res) => {
+  res.set('Cache-Control', 'no-cache').json(termsDocument);
 });
 
 router.get('/terms-status', (req, res) => {
