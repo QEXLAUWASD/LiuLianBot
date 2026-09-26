@@ -1,5 +1,9 @@
 # 完整更新紀錄
 
+## Android Gradle wrapper 權限修正（基準：`701d853`）
+
+- 在 Git 記錄 `android-part/gradlew` 的執行權限，修正 Linux CI checkout 後出現 Permission denied；本機檔案權限已設定，但先前未寫入 Git 索引。
+
 ## Android Beta CI 修正（基準：`5049656`）
 
 - 明確安裝 Platform 35、Build Tools 35.0.0 及 platform-tools，避免 setup-android 預設下載已下架的 `tools` 套件而失敗。
