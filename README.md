@@ -792,3 +792,10 @@ Deploy the accompanying website API changes before using native RDP and terms.
 See [Android setup and verification](android-part/README.md), [API reference](docs/API.md),
 and [OpenAPI contract](docs/openapi.json). Public discovery is available at
 `/api/mobile/capabilities` and `/api/mobile/openapi`.
+
+WebRDP desktop rendering prefers WebGL with a high-performance GPU hint and falls
+back to Canvas 2D when WebGL is unavailable. Enable hardware acceleration in the
+viewing browser to use its GPU; GPU selection remains controlled by the browser
+and driver. RDP bitmap decoding still runs on the CPU, and this does not enable
+GPU acceleration on the remote Windows host. Inspect `#rdpCanvas`
+`data-renderer` (`webgl` or `2d`) to check the selected rendering path.

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { requestJSON } from '../lib/apiClient.mjs';
+import { clearRdpCanvas } from '../lib/rdp/rdpRenderer.mjs';
 import { RdpClient } from '../lib/rdp/rdpClient.mjs';
 import {
   deleteRdpProfile,
@@ -65,8 +66,7 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
   const busyRef = useRef(false);
 
   const clearCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+    clearRdpCanvas(canvasRef.current);
   }, []);
 
   const fitCanvas = useCallback(() => {

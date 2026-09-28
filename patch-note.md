@@ -1,5 +1,12 @@
 # 完整更新紀錄
 
+## WebRDP GPU 繪圖（基準：`2a01f31`，2026-09-28）
+
+- WebRDP 桌面優先使用 WebGL 與高效能 GPU 提示繪製局部點陣圖，保留畫面內容；不支援 WebGL 時使用 Canvas 2D。
+- 共用清除與繪圖路徑，避免預先取得 2D context 阻止 WebGL；處理 GPU context 遺失與還原後資源重建。
+- 更新瀏覽器 smoke test 的像素讀取、中英文 README 與網站建置產物。
+- 驗證：`npm run check` 通過（語法、建置、310 項測試）；目前環境未找到 Chromium，未執行瀏覽器 smoke test 或實體 GPU 驗證。
+
 ## WebRDP 解碼器 CSP 相容性修正（基準：`3200c13`，2026-09-28）
 
 - 修正舊版 RLE 解碼器初始化使用 `eval`，遭正式環境的 `script-src 'self'` 阻擋，導致顯示「畫面解碼器尚未就緒，請重新整理頁面」的問題。改為直接初始化並保留既有 Module 設定。

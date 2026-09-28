@@ -584,3 +584,5 @@ URL fragment。
 先部署配套網站 API 更新，再使用新版條款及原生 RDP。詳見
 [Android 建置與驗證](android-part/README.md)、[API 參考](docs/API.md) 及
 [OpenAPI 文件](docs/openapi.json)。
+
+WebRDP 桌面會優先使用 WebGL，並向瀏覽器要求高效能 GPU；不支援 WebGL 時會自動改用 Canvas 2D。請在觀看端瀏覽器啟用硬件加速，實際 GPU 選擇由瀏覽器與驅動程式決定。RDP 點陣圖解碼仍使用 CPU，此功能不會改變遠端 Windows 的 GPU 設定。可檢查 `#rdpCanvas` 的 `data-renderer`（`webgl` 或 `2d`）確認繪圖路徑。

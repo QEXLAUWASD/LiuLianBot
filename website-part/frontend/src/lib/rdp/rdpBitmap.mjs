@@ -1,3 +1,5 @@
+import { renderBitmap } from './rdpRenderer.mjs';
+
 // RLE decoding uses the bundled mstsc.js decoder; see vendor/webrdp/NOTICE.txt.
 function bytesOf(data) {
   if (data instanceof ArrayBuffer) return new Uint8Array(data);
@@ -71,9 +73,5 @@ export function decodeBitmap(bitmap, module = globalThis.Module) {
 }
 
 export function drawBitmap(canvas, bitmap, module) {
-  const output = decodeBitmap(bitmap, module);
-  const ctx = canvas.getContext('2d');
-  const image = ctx.createImageData(output.width, output.height);
-  image.data.set(output.data);
-  ctx.putImageData(image, output.x, output.y, 0, 0, output.clipWidth, output.clipHeight);
+  renderBitmap(canvas, decodeBitmap(bitmap, module));
 }

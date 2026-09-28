@@ -132,8 +132,27 @@ async function main() {
     await page.click('#rdpConnect');
 
     await page.waitForFunction(() => document.querySelector('#rdpStatusBadge').dataset.state === 'connected');
-    await page.waitForFunction(() => document.querySelector('#rdpCanvas').getContext('2d').getImageData(0, 0, 1, 1).data[0] === 255);
-    assert.deepEqual(await page.$eval('#rdpCanvas', canvas => [...canvas.getContext('2d').getImageData(0, 0, 1, 1).data]), [255, 0, 0, 255]);
+    const readPixel = canvas => {
+      if (canvas.dataset.renderer === 'webgl') {
+        const gl = canvas.getContext('webgl');
+        const pixel = new Uint8Array(4);
+        gl.readPixels(0, canvas.height - 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+        return [...pixel];
+      }
+      return [...canvas.getContext('2d').getImageData(0, 0, 1, 1).data];
+    };
+    await page.waitForFunction(() => Boolean(document.querySelector('#rdpCanvas').dataset.renderer));
+    await page.waitForFunction(() => {
+      const canvas = document.querySelector('#rdpCanvas');
+      if (canvas.dataset.renderer === 'webgl') {
+        const gl = canvas.getContext('webgl');
+        const pixel = new Uint8Array(4);
+        gl.readPixels(0, canvas.height - 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+        return pixel[0] === 255;
+      }
+      return canvas.getContext('2d').getImageData(0, 0, 1, 1).data[0] === 255;
+    });
+    assert.deepEqual(await page.$eval('#rdpCanvas', readPixel), [255, 0, 0, 255]);
     assert.equal(await page.$eval('#rdpPassword', element => element.value), '');
     await page.click('#rdpCanvas');
     await page.keyboard.press('ArrowLeft');
