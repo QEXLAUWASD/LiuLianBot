@@ -267,6 +267,11 @@ curl -I https://your-domain.example/css/style.css
 
 The RDP client itself is bundled into `/assets/*.js` by the Vite build.
 
+If WebRDP reports that the decoder is not ready and the browser console reports
+a blocked `eval`, update and rebuild the website: the vendored RLE decoder now
+initializes directly under `script-src 'self'`. Deploy the rebuilt
+`public/vendor/webrdp/rle.js` and reload the remote page. Keep the CSP enabled.
+
 For a Linux production deployment managed by PM2:
 
 ```bash
@@ -691,8 +696,9 @@ npm run test:rdp-browser
 It uses a local mock Socket.IO server and headless Chromium, with no database
 or remote host. Set `RDP_BROWSER_PATH` if Chrome/Edge/Chromium is not installed
 in a detected location; optionally set `RDP_SCREENSHOT_PATH` for a screenshot.
-The test covers real RLE rendering, keyboard focus, scaled pointer input,
-password clearing, cancellation, errors, and reconnecting. A real Windows
+The test applies the production CSP and covers decoder initialization, real RLE
+rendering, keyboard focus, scaled pointer input, password clearing,
+cancellation, errors, and reconnecting. A real Windows
 RDP authentication/desktop session must still be checked in the deployment
 environment; the protocol engine remains `@electerm/rdpjs`.
 

@@ -7,16 +7,11 @@
 // 2. A function parameter, function(Module) { ..generated code.. }
 // 3. pre-run appended it, var Module = {}; ..generated code..
 // 4. External script tag defines var Module.
-// We need to do an eval in order to handle the closure compiler
-// case, where this code here is minified but Module was defined
-// elsewhere (e.g. case 4 above). We also need to check if Module
-// already exists (e.g. case 3 above).
-// Note that if you want to run closure, and also to use Module
-// after the generated code, you will need to define   var Module = {};
-// before the code. Then that object will be used in the code, and you
-// can continue to use Module afterwards as well.
+// Local CSP compatibility patch: this vendored classic script is copied as-is
+// (not Closure-minified). Preserve a preconfigured Module directly so startup
+// works with script-src 'self', which blocks evaluation of JavaScript strings.
 var Module;
-if (!Module) Module = eval('(function() { try { return Module || {} } catch(e) { return {} } })()');
+if (!Module) Module = {};
 
 // Sometimes an existing Module object exists with properties
 // meant to overwrite the default module functionality. Here

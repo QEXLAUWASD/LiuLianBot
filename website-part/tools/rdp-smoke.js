@@ -5,6 +5,7 @@ const path = require('node:path');
 const express = require('express');
 const { Server } = require('socket.io');
 const puppeteer = require('puppeteer-core');
+const { securityHeaders, CONTENT_SECURITY_POLICY } = require('../src/middleware/security_headers');
 
 async function main() {
   const executablePath = process.env.RDP_BROWSER_PATH || [
@@ -14,6 +15,8 @@ async function main() {
   ].find(value => fs.existsSync(value));
   if (!executablePath) throw new Error('Set RDP_BROWSER_PATH to a Chromium browser executable');
   const app = express();
+  // Match production: the vendored decoder must initialize without unsafe-eval.
+  app.use(securityHeaders);
   app.get('/api/auth/me', (req, res) => res.json({ loggedIn: true, user: { username: 'RDP test', role: 'admin' } }));
 
   // Exercise the real encrypted profile router with an in-memory test repository.
@@ -69,7 +72,13 @@ async function main() {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.setViewport({ width: 1440, height: 1000 });
-    await page.goto('http://127.0.0.1:' + server.address().port + '/remote.html', { waitUntil: 'networkidle0' });
+    const response = await page.goto('http://127.0.0.1:' + server.address().port + '/remote.html', { waitUntil: 'networkidle0' });
+    assert.equal(response.headers()['content-security-policy'], CONTENT_SECURITY_POLICY);
+    assert.ok(!CONTENT_SECURITY_POLICY.includes("'unsafe-eval'"));
+    assert.equal(await page.evaluate(() => Boolean(
+      globalThis.Module?.calledRun && globalThis.Module?._malloc
+      && globalThis.Module?._free && globalThis.Module?.ccall && globalThis.Module?.HEAPU8,
+    )), true, `RDP decoder must be ready under production CSP: ${errors.join('; ')}`);
     assert.equal(await page.$eval('#rdpConnect', element => element.disabled), false);
     // React tracks input values, so the helper has to write through the native
     // setter and dispatch the same input event a real keystroke produces.
@@ -163,7 +172,7 @@ async function main() {
     assert.equal(await page.$eval('#rdpDisconnect', element => element.disabled), true);
     assert.equal(attempts, 3);
     assert.deepEqual(errors, []);
-    console.log('RDP browser smoke passed: named encrypted profile CRUD and restored password login, real RLE render, focused keyboard, scaled mouse, password clearing, cancel/error/reconnect/disconnect.');
+    console.log('RDP browser smoke passed: production CSP, named encrypted profile CRUD and restored password login, real RLE render, focused keyboard, scaled mouse, password clearing, cancel/error/reconnect/disconnect.');
   } finally {
     await browser?.close();
     await new Promise(resolve => io.close(resolve));

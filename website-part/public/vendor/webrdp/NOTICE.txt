@@ -1,3 +1,7 @@
 WebRDP client assets are derived from the WebRDP project and mstsc.js.
 Copyright (c) 2015 Sylvain Peyrefitte and WebRDP contributors.
 Licensed under the GNU General Public License version 3 or later.
+
+Local modification (2026-09-28): initialize Module directly instead of using
+eval, preserving preconfigured Module options and allowing browser startup
+under the website's script-src 'self' Content Security Policy.

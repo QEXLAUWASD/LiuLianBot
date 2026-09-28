@@ -516,13 +516,17 @@ Discord Bot 嘅依賴已列喺 `discord-part/requirements.txt`。網站嘅依賴
 送去遠端；切換去表單或其他視窗會釋放按住嘅鍵。縮放畫面會同步
 換算滑鼠座標，原始大小模式只改顯示比例。
 
+如果顯示「畫面解碼器尚未就緒」而瀏覽器 console 指出 `eval` 被封鎖，
+請更新同重建網站，再部署 `public/vendor/webrdp/rle.js` 並重新載入遠端頁面。
+新版 RLE 解碼器會直接初始化，支援現有 `script-src 'self'`，毋須放寬 CSP。
+
 取消、連線錯誤、逾時同網站關機會清理 RDP socket。伺服器連線期限
 為 30 秒，瀏覽器整體期限為 35 秒。斷線後需手動重連並重新輸入密碼；
 密碼連線後會清空；命名資料庫設定可加密保存密碼，按「載入設定與密碼」可重新載入。
 
 喺 `website-part/` 執行 `npm run test:rdp-browser`，可用本機模擬伺服器
-測試畫面、輸入同重連。若未能自動搵到瀏覽器，設定 `RDP_BROWSER_PATH`
-指向 Chrome／Edge／Chromium。此測試唔會連真實 RDP 主機；Windows
+套用正式環境 CSP 測試解碼器初始化、畫面、輸入同重連。若未能自動搵到
+瀏覽器，設定 `RDP_BROWSER_PATH` 指向 Chrome／Edge／Chromium。此測試唔會連真實 RDP 主機；Windows
 登入同實際桌面仍需喺部署環境驗證。
 
 ### RDP 內網允許清單
