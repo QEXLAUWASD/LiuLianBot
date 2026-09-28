@@ -35,6 +35,7 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - An FnOS file browser with per-account read/write/share grants and expiring, revocable share links that work without signing in
 - Discord server managers can configure the temporary private-voice trigger channel from the website dashboard
 - One shared dark design system for every page: a console-style frame (left navigation rail plus top bar), KPI cards, list/table panels with filters and pagination, and consistent buttons, forms, modals and empty states
+- Responsive navigation remembers the desktop rail preference, turns into a keyboard-friendly mobile drawer, and keeps guest-only screens clear about sign-in requirements
 
 ## Project structure
 

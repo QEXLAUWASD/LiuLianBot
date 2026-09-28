@@ -22,6 +22,34 @@ public class RgbaFrameTest {
   }
 
   @Test
+  public void convertsOnlyTheDirtyRectangle() {
+    byte[] frame = {
+      (byte) 255, 0, 0, (byte) 255,
+      0, (byte) 255, 0, (byte) 255,
+      0, 0, (byte) 255, (byte) 255,
+      (byte) 255, (byte) 255, (byte) 255, (byte) 255
+    };
+    assertArrayEquals(
+        new int[] {0xffff0000}, RgbaFrame.pixels(frame, 2, 2, 1, 1, 1, 1, 1280, 720));
+  }
+
+  @Test
+  public void acceptsDestinationCoordinatesOutsideTheTileSource() {
+    assertArrayEquals(
+        new int[] {0xffff0000},
+        RgbaFrame.pixels(
+            new byte[] {(byte) 255, 0, 0, (byte) 255},
+            1,
+            1,
+            1,
+            1,
+            100,
+            50,
+            1280,
+            720));
+  }
+
+  @Test
   public void rejectsTruncatedOrOutOfBoundsTiles() {
     assertThrows(
         IllegalArgumentException.class,
@@ -32,6 +60,16 @@ public class RgbaFrameTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> RgbaFrame.pixels(new byte[4], 1, 1, 2, 1, 0, 0, 1280, 720));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> RgbaFrame.pixels(new byte[4], 1, 1, 1, 1, Integer.MAX_VALUE, 0, 1280, 720));
+  }
+
+  @Test
+  public void rejectsOversizedFramesBeforeAllocation() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> RgbaFrame.pixels(new byte[0], 4096, 2160, 1, 1, 0, 0, 1280, 720));
   }
 
   @Test

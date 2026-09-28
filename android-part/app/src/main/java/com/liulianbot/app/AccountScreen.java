@@ -75,7 +75,21 @@ final class AccountScreen {
                 a.session.remember(persistent);
                 return result;
               },
-              r -> a.home());
+              r -> {
+                // The server can require an existing account to accept the current
+                // terms after login. Keep the returned identity so the terms screen
+                // can render its acceptance action without issuing a second auth call.
+                if (r.optBoolean("termsRequired")) {
+                  a.session.user = r.optJSONObject("user");
+                  // Older compatible backends may omit the identity while still setting the
+                  // flag. Keep the acceptance action available; home() refreshes the complete
+                  // identity after acceptance.
+                  if (a.session.user == null) a.session.user = obj("id", "terms-required");
+                  terms();
+                } else {
+                  a.home();
+                }
+              });
         });
     a.button(register ? "已有帳戶，返回登入" : "建立新帳戶", () -> login(!register));
   }

@@ -35,14 +35,14 @@ export const NAV_LINKS = Object.freeze([
 // The workspace and management screens live in collapsible sidebar sections so
 // the frame stays short while every entry remains one click away.
 export const WORKSPACE_LINKS = Object.freeze([
-  { href: '/remote.html', label: 'Remote desktop & SSH', pageKey: 'remote', signedInOnly: true },
-  { href: '/chromium.html', label: 'Chromium browser', pageKey: 'chromium', signedInOnly: true },
-  { href: '/vless-tunnel.html', label: 'VLESS tunnel', pageKey: 'vless-tunnel', signedInOnly: true },
+  { href: '/remote.html', label: 'Remote desktop & SSH', pageKey: 'remote', signedInOnly: true, icon: '🖥️' },
+  { href: '/chromium.html', label: 'Chromium browser', pageKey: 'chromium', signedInOnly: true, icon: '🌐' },
+  { href: '/vless-tunnel.html', label: 'VLESS tunnel', pageKey: 'vless-tunnel', signedInOnly: true, icon: '🔐' },
 ]);
 
 export const MANAGE_LINKS = Object.freeze([
-  { href: '/guild-manager.html', label: 'Discord servers', signedInOnly: true },
-  { href: '/admin.html', label: 'Admin panel', adminOnly: true },
+  { href: '/guild-manager.html', label: 'Discord servers', signedInOnly: true, icon: '💬' },
+  { href: '/admin.html', label: 'Admin panel', adminOnly: true, icon: '⚙️' },
 ]);
 
 function isActiveLink(pathname, href) {
@@ -52,6 +52,7 @@ function isActiveLink(pathname, href) {
 export function NavBar({
   pathname = globalThis.location?.pathname || '',
   collapsed = false,
+  mobileOpen = false,
   onNavigate,
   onToggleCollapse,
 } = {}) {
@@ -65,9 +66,57 @@ export function NavBar({
   // Only one sidebar section is open at a time.
   const [openMenu, setOpenMenu] = useState('');
   const [connections, setConnections] = useState({ status: 'idle', items: [] });
+  const navElementRef = useRef(null);
   const navRef = useRef(null);
   const toggleRef = useRef(null);
+  const [mobileDrawerHidden, setMobileDrawerHidden] = useState(false);
   const dropdownOpen = openMenu === 'websites';
+
+  // A translated-off-canvas drawer must not remain in the keyboard order. The
+  // desktop sidebar stays interactive, so the state is driven by the media
+  // query instead of blindly mirroring `mobileOpen`.
+  useEffect(() => {
+    const nav = navElementRef.current;
+    const media = globalThis.matchMedia?.('(max-width: 1080px)');
+    if (!nav || !media) return undefined;
+
+    const update = () => {
+      const hidden = media.matches && !mobileOpen;
+      nav.inert = hidden;
+      setMobileDrawerHidden(hidden);
+    };
+    const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const trapFocus = event => {
+      if (!mobileOpen || !media.matches || event.key !== 'Tab') return;
+      const focusable = [...nav.querySelectorAll(focusableSelector)].filter(node => !node.hidden);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    update();
+    let focusFrame;
+    if (mobileOpen && media.matches) {
+      nav.addEventListener('keydown', trapFocus);
+      const focusFirst = () => nav.querySelector('.nav-brand, .nav-link')?.focus();
+      if (typeof globalThis.requestAnimationFrame === 'function') focusFrame = globalThis.requestAnimationFrame(focusFirst);
+      else focusFirst();
+    }
+    if (typeof media.addEventListener === 'function') media.addEventListener('change', update);
+    else media.addListener?.(update);
+    return () => {
+      if (focusFrame !== undefined) globalThis.cancelAnimationFrame?.(focusFrame);
+      nav.removeEventListener('keydown', trapFocus);
+      if (typeof media.removeEventListener === 'function') media.removeEventListener('change', update);
+      else media.removeListener?.(update);
+    };
+  }, [mobileOpen]);
 
   const onLogout = useCallback(async () => {
     setLogoutState({ busy: true, message: '', error: false });
@@ -140,9 +189,11 @@ export function NavBar({
 
   return (
     <nav
+      ref={navElementRef}
       id="siteNav"
       className="navbar sidebar"
       aria-label="Primary"
+      aria-hidden={mobileDrawerHidden ? 'true' : undefined}
       data-collapsed={collapsed ? 'true' : 'false'}
     >
       <a className="skip-link" href="#main-content">Skip to content</a>
@@ -167,6 +218,7 @@ export function NavBar({
               className="nav-link nav-menu-toggle"
               type="button"
               data-icon="🖥️"
+              title="Workspaces"
               aria-expanded={openMenu === 'workspaces'}
               aria-controls="workspaceMenu"
               onClick={() => toggleMenuSection('workspaces')}
@@ -187,6 +239,7 @@ export function NavBar({
               className="nav-link nav-dropdown-toggle"
               type="button"
               data-icon="🔗"
+              title="Connected websites"
               aria-expanded={dropdownOpen}
               aria-controls="websiteDropdownMenu"
               onClick={toggleWebsites}
@@ -232,6 +285,7 @@ export function NavBar({
               className="nav-link nav-menu-toggle"
               type="button"
               data-icon="⚙️"
+              title="Administration"
               aria-expanded={openMenu === 'manage'}
               aria-controls="manageMenu"
               onClick={() => toggleMenuSection('manage')}
@@ -290,6 +344,8 @@ export function NavBar({
         <button
           className="sidebar-collapse"
           type="button"
+          aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
           aria-pressed={collapsed}
           onClick={onToggleCollapse}
         >

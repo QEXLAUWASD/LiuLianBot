@@ -286,7 +286,7 @@ final class FilesScreen {
                         "application/octet-stream",
                         "POST",
                         "files/shared/download",
-                        obj("code", code, "path", "")));
+                        obj("code", code, "path", path)));
             return;
           }
           if (!path.isEmpty()) a.button("上一層", () -> shared(code, parent(path)));

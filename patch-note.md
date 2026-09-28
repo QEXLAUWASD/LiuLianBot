@@ -1,5 +1,24 @@
 # 完整更新紀錄
 
+## Android 0.2.0-beta.2 建置與遠端穩定性修正（基準：`56e8b09`，2026-09-27）
+
+- 修正 session cookie 的生命週期判斷，登入 cookie 在 App 程序期間不會被誤當成過期；RDP RGBA 更新改用裁切矩形緩衝並加入尺寸、溢位及待處理資料上限檢查。
+- 修正 SSH／Chromium 握手逾時、SSH 終端輸出裁切、RDP 連線逾時計時器清理、RDP 畫面 stride 驗證、公開分享巢狀檔案下載路徑及檔案選擇器取消後的暫存狀態。
+- Chromium 畫面更新改用帶連線版本的 UI 合併佇列，避免重連時遺失最新畫面或由舊回呼回收新連線的畫面。
+- 登入若需要重新接受條款會直接顯示條款畫面；401 清除 session 時同步清除畫面身份與頁面狀態，避免背景網路執行緒留下過期 UI。
+- 以 adaptive launcher icon 取代填滿方形的 PNG，補上 Android 13 單色圖層與 `roundIcon` 設定，清除 Android Lint 圖示警告。
+- 新增 RDP dirty tile 目的座標及過大畫面拒絕回歸測試；`testDebugUnitTest`（23 項）、`lintDebug`、`assembleDebug` 與 `assembleRelease` 全部通過。
+
+## 網站控制台介面優化（基準：`56e8b09`，2026-09-27）
+
+- 優化響應式控制台：桌面側欄會記住收合狀態；手機抽屜會鎖定背景捲動、支援 Escape 關閉、關閉後把焦點還原到觸發按鈕，關閉時亦不會讓隱藏連結留在鍵盤巡覽順序。
+- 導覽分組項目補上圖示與可及性標籤，收合成圖示列時不再出現空白子項目。
+- 新增頁面載入 spinner，統一表單字型、標題換行、卡片／表格 hover 狀態、手機主要操作按鈕寬度，以及活動表格的鍵盤水平捲動提示。
+- 管理頁公告控制項補上隱藏標籤，管理及公開分享表格補上欄位語意，改善讀屏器巡覽。
+- 訪客儀表板不再顯示私有工具連結；活動統計與列表會清楚提示需要登入。
+- 重建已納入版本控制的 `website-part/public` 產物，並同步更新英文及繁體中文 README 功能說明。
+- 驗證：`npm run check:js`、`npm test`（306 項）、`npm run build`、`git diff --check` 全部通過。
+
 ## Android 0.2.0-beta.1 原生網站功能移植（基準：`da93039`）
 
 - Android 採網站深色配色、側欄與卡片設計，預設連接 https://www.liulian.dev；移除系統瀏覽器連線流程，不使用 WebView。

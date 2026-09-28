@@ -495,7 +495,7 @@ export function AdminPage() {
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th>Username</th><th>Groups</th><th>Created</th><th>Actions</th></tr>
+                <tr><th scope="col">Username</th><th scope="col">Groups</th><th scope="col">Created</th><th scope="col">Actions</th></tr>
               </thead>
               <tbody id="usersTableBody">
                 {renderTableBody('users', 4, 'No users found', tables.users.items.map(user => {
@@ -539,7 +539,7 @@ export function AdminPage() {
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th>Name</th><th>Description</th><th>Users</th><th>Actions</th></tr>
+                <tr><th scope="col">Name</th><th scope="col">Description</th><th scope="col">Users</th><th scope="col">Actions</th></tr>
               </thead>
               <tbody id="groupsTableBody">
                 {renderTableBody('groups', 4, 'No groups found', tables.groups.items.map(group => (
@@ -587,7 +587,7 @@ export function AdminPage() {
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th>Name</th><th>Target</th><th>Allowed Access</th><th>Status</th><th>Actions</th></tr>
+                <tr><th scope="col">Name</th><th scope="col">Target</th><th scope="col">Allowed Access</th><th scope="col">Status</th><th scope="col">Actions</th></tr>
               </thead>
               <tbody id="connectionsTableBody">
                 {renderTableBody('connections', 5, 'No website connections configured', tables.connections.items.map(connection => {
@@ -643,7 +643,7 @@ export function AdminPage() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Page</th><th>Guest</th><th>All signed-in users</th><th>Groups</th><th>Users</th><th>Actions</th>
+                  <th scope="col">Page</th><th scope="col">Guest</th><th scope="col">All signed-in users</th><th scope="col">Groups</th><th scope="col">Users</th><th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody id="pageVisibilityTableBody">
@@ -680,8 +680,8 @@ export function AdminPage() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Guild</th><th>Language</th><th>Admins</th><th>Log Channel</th>
-                  <th>Roller Channel</th><th>Voice Channels</th><th>Actions</th>
+                  <th scope="col">Guild</th><th scope="col">Language</th><th scope="col">Admins</th><th scope="col">Log Channel</th>
+                  <th scope="col">Roller Channel</th><th scope="col">Voice Channels</th><th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody id="guildsTableBody">
@@ -715,7 +715,7 @@ export function AdminPage() {
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th>Event</th><th>Guild</th><th>Start</th><th>Participants</th><th>Visibility</th><th>Actions</th></tr>
+                <tr><th scope="col">Event</th><th scope="col">Guild</th><th scope="col">Start</th><th scope="col">Participants</th><th scope="col">Visibility</th><th scope="col">Actions</th></tr>
               </thead>
               <tbody id="eventsTableBody">
                 {renderTableBody('events', 6, 'No events found', tables.events.items.map(event => (
@@ -751,7 +751,7 @@ export function AdminPage() {
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th>Guild</th><th>Commands (30d)</th><th>Voice joins (30d)</th><th>Last activity</th></tr>
+                <tr><th scope="col">Guild</th><th scope="col">Commands (30d)</th><th scope="col">Voice joins (30d)</th><th scope="col">Last activity</th></tr>
               </thead>
               <tbody id="statsTableBody">
                 {renderTableBody('stats', 4, 'No activity recorded yet', tables.stats.items.map(item => (
@@ -769,6 +769,7 @@ export function AdminPage() {
 
         <TabPanel tabs={tabs} id="announcements">
           <form id="announcementForm" className="admin-toolbar" onSubmit={scheduleAnnouncement}>
+            <label className="sr-only" htmlFor="announcementGuild">Discord server</label>
             <select
               id="announcementGuild"
               required
@@ -787,6 +788,7 @@ export function AdminPage() {
                 </option>
               ))}
             </select>
+            <label className="sr-only" htmlFor="announcementChannel">Announcement channel</label>
             <select
               id="announcementChannel"
               required
@@ -801,6 +803,7 @@ export function AdminPage() {
                 </option>
               ))}
             </select>
+            <label className="sr-only" htmlFor="announcementContent">Announcement content</label>
             <input
               id="announcementContent"
               placeholder="Announcement"
@@ -823,7 +826,7 @@ export function AdminPage() {
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th>Guild</th><th>Channel</th><th>Content</th><th>Scheduled</th><th>Status</th><th>Actions</th></tr>
+                <tr><th scope="col">Guild</th><th scope="col">Channel</th><th scope="col">Content</th><th scope="col">Scheduled</th><th scope="col">Status</th><th scope="col">Actions</th></tr>
               </thead>
               <tbody id="announcementsTableBody">
                 {renderTableBody('announcements', 6, 'No announcements found', tables.announcements.items.map(item => (

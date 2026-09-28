@@ -1,6 +1,6 @@
 # LiuLianBot Android
 
-`0.2.0-beta.1` 是 Java / Android Views 原生 App，支援 Android 8.0（API 26）以上，
+`0.2.0-beta.2` 是 Java / Android Views 原生 App，支援 Android 8.0（API 26）以上，
 預設連接 `https://www.liulian.dev`。介面沿用網站的深藍底色、藍色重點、側欄、卡片與
 LLB 圖示；本站操作不使用 WebView、不跳到外部瀏覽器。
 
@@ -87,6 +87,7 @@ Windows RDP／Chromium、群組及檔案權限。自動化 transport 測試使�
   伺服器命名 RDP 設定可明確勾選保存密碼，沿用網站的伺服器端加密。
 - SSH／RDP／Chromium 不自動重連。離開畫面、進入背景或關閉 App 時斷線，避免
   遠端持續收到輸入；返回後手動重連。
+- SSH、RDP、Chromium 的連線握手超過 35 秒仍未完成時會自動中止，避免畫面永久停在連線中。
 - 檔案下載／上傳使用 Android 系統文件選擇器與串流，不把整個 ZIP 放進記憶體。
   失敗下載會嘗試移除不完整檔案。若選檔期間程序被回收，需重新發起操作。
 - 第三方服務、正式後端部署、推播通知、離線模式不會由本次 App 自動建立。

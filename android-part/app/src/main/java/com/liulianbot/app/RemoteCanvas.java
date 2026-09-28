@@ -42,9 +42,19 @@ final class RemoteCanvas extends View {
     button = right ? 2 : 1;
   }
 
-  void rgba(int[] pixels, int width, int x, int y, int clipWidth, int clipHeight) {
-    if (bitmap == null) return;
-    bitmap.setPixels(pixels, 0, width, x, y, clipWidth, clipHeight);
+  void rgba(int[] pixels, int stride, int x, int y, int clipWidth, int clipHeight) {
+    if (bitmap == null
+        || pixels == null
+        || stride < 1
+        || clipWidth < 1
+        || clipHeight < 1
+        || clipWidth > stride
+        || x < 0
+        || y < 0
+        || x > screenWidth - clipWidth
+        || y > screenHeight - clipHeight
+        || (long) (clipHeight - 1) * stride + clipWidth > pixels.length) return;
+    bitmap.setPixels(pixels, 0, stride, x, y, clipWidth, clipHeight);
     invalidate();
   }
 

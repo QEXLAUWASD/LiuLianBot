@@ -33,6 +33,7 @@ final class ApiClient {
                 new CookieJar() {
                   @Override
                   public void saveFromResponse(HttpUrl url, List<Cookie> received) {
+                    long now = System.currentTimeMillis();
                     synchronized (cookies) {
                       for (Cookie incoming : received) {
                         cookies.removeIf(
@@ -40,16 +41,19 @@ final class ApiClient {
                                 old.name().equals(incoming.name())
                                     && old.domain().equals(incoming.domain())
                                     && old.path().equals(incoming.path()));
-                        if (incoming.expiresAt() > System.currentTimeMillis())
-                          cookies.add(incoming);
+                        // Session cookies use Long.MIN_VALUE as their expiry and must remain
+                        // available for this client lifetime. Drop only expired persistent ones.
+                        if (!expired(incoming, now)) cookies.add(incoming);
                       }
                     }
                   }
 
                   @Override
                   public List<Cookie> loadForRequest(HttpUrl url) {
+                    long now = System.currentTimeMillis();
                     synchronized (cookies) {
-                      cookies.removeIf(cookie -> cookie.expiresAt() <= System.currentTimeMillis());
+                      // A session cookie's sentinel expiry is not an expired timestamp.
+                      cookies.removeIf(cookie -> expired(cookie, now));
                       List<Cookie> result = new ArrayList<>();
                       for (Cookie cookie : cookies) if (cookie.matches(url)) result.add(cookie);
                       return result;
@@ -57,6 +61,10 @@ final class ApiClient {
                   }
                 })
             .build();
+  }
+
+  private static boolean expired(Cookie cookie, long now) {
+    return cookie.persistent() && cookie.expiresAt() <= now;
   }
 
   void clearSession() {

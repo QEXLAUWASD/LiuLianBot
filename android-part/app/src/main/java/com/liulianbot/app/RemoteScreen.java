@@ -4,6 +4,8 @@ import static com.liulianbot.app.MainActivity.*;
 
 import android.app.Dialog;
 import android.graphics.*;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Base64;
 import android.view.*;
 import android.widget.*;
@@ -23,12 +25,25 @@ final class RemoteScreen {
   int token;
   int chromiumModifiers;
   Dialog fullscreen;
-  final java.util.concurrent.atomic.AtomicReference<Bitmap> latestFrame =
+  private static final class QueuedFrame {
+    final Bitmap bitmap;
+    final long connection;
+
+    QueuedFrame(Bitmap bitmap, long connection) {
+      this.bitmap = bitmap;
+      this.connection = connection;
+    }
+  }
+
+  final java.util.concurrent.atomic.AtomicReference<QueuedFrame> latestFrame =
       new java.util.concurrent.atomic.AtomicReference<>();
   final java.util.concurrent.atomic.AtomicBoolean frameScheduled =
       new java.util.concurrent.atomic.AtomicBoolean();
   final java.util.concurrent.atomic.AtomicLong pendingTileBytes =
       new java.util.concurrent.atomic.AtomicLong();
+  private final Handler mainHandler = new Handler(Looper.getMainLooper());
+  private Runnable rdpTimeout;
+  private Runnable websocketTimeout;
 
   RemoteScreen(MainActivity a) {
     this.a = a;
@@ -67,8 +82,17 @@ final class RemoteScreen {
     connectionVersion++;
     connected = false;
     chromiumModifiers = 0;
-    Bitmap queued = latestFrame.getAndSet(null);
-    if (queued != null) queued.recycle();
+    if (rdpTimeout != null) {
+      mainHandler.removeCallbacks(rdpTimeout);
+      rdpTimeout = null;
+    }
+    if (websocketTimeout != null) {
+      mainHandler.removeCallbacks(websocketTimeout);
+      websocketTimeout = null;
+    }
+    frameScheduled.set(false);
+    QueuedFrame queued = latestFrame.getAndSet(null);
+    if (queued != null) queued.bitmap.recycle();
     if (fullscreen != null) {
       fullscreen.dismiss();
       fullscreen = null;
@@ -219,6 +243,8 @@ final class RemoteScreen {
               r -> a.status.setText("已儲存"));
         });
     a.card("終端輸出");
+    terminalBuffer.setLength(0);
+    terminalBuffer.append("尚未連線");
     terminal = a.text("尚未連線", 14);
     terminal.setTypeface(Typeface.MONOSPACE);
     EditText command = a.field("指令或輸入文字", "", false);
@@ -238,11 +264,32 @@ final class RemoteScreen {
   }
 
   TextView terminal;
+  private final StringBuilder terminalBuffer = new StringBuilder(65536);
+
+  private void armWebsocketTimeout(long connection, WebSocket socket, String message) {
+    if (websocket != socket || connection != connectionVersion || connected) return;
+    if (websocketTimeout != null) mainHandler.removeCallbacks(websocketTimeout);
+    websocketTimeout =
+        () -> {
+          if (websocket == socket && connection == connectionVersion && !connected) {
+            websocketTimeout = null;
+            fail(connection, message);
+          }
+        };
+    mainHandler.postDelayed(websocketTimeout, 35000);
+  }
+
+  private void clearWebsocketTimeout() {
+    if (websocketTimeout != null) {
+      mainHandler.removeCallbacks(websocketTimeout);
+      websocketTimeout = null;
+    }
+  }
 
   void connectSsh(JSONObject initial) {
     int expected = token;
     long connection = ++connectionVersion;
-    websocket =
+    WebSocket socket =
         a.api()
             .http
             .newWebSocket(
@@ -268,6 +315,7 @@ final class RemoteScreen {
                       String type = m.optString("type");
                       if (type.equals("connected")) {
                         connected = true;
+                        clearWebsocketTimeout();
                         socket.send(obj("type", "resize", "cols", 100, "rows", 30).toString());
                         state(connection, "SSH 已連線");
                       } else if (type.equals("data")) {
@@ -277,10 +325,10 @@ final class RemoteScreen {
                             () -> {
                               if (!active() || expected != token || connection != connectionVersion)
                                 return;
-                              String value = terminal.getText() + chunk;
-                              if (value.length() > 65536)
-                                value = value.substring(value.length() - 65536);
-                              terminal.setText(value);
+                              terminalBuffer.append(chunk);
+                              if (terminalBuffer.length() > 65536)
+                                terminalBuffer.delete(0, terminalBuffer.length() - 65536);
+                              terminal.setText(terminalBuffer.toString());
                             });
                       } else if (type.equals("error"))
                         fail(connection, m.optString("message", "SSH 失敗"));
@@ -308,6 +356,10 @@ final class RemoteScreen {
                       fail(connection, "SSH 已關閉");
                   }
                 });
+    websocket = socket;
+    if (active() && connection == connectionVersion)
+      armWebsocketTimeout(connection, socket, "SSH 連線逾時，請重試。");
+    else socket.close(1000, "Closed");
   }
 
   void profiles() {
@@ -468,6 +520,10 @@ final class RemoteScreen {
                         || expected != token
                         || connection != connectionVersion
                         || rdpSocket != socket) return;
+                    if (rdpTimeout != null) {
+                      mainHandler.removeCallbacks(rdpTimeout);
+                      rdpTimeout = null;
+                    }
                     connected = true;
                     mountCanvas(false);
                     a.status.setText(R.string.rdp_connected);
@@ -510,7 +566,7 @@ final class RemoteScreen {
                   () -> {
                     try {
                       if (active() && rdpSocket == socket && canvas != null)
-                        canvas.rgba(pixels, w, x, y, cw, ch);
+                        canvas.rgba(pixels, cw, x, y, cw, ch);
                     } finally {
                       pendingTileBytes.addAndGet(-queuedBytes);
                     }
@@ -531,15 +587,15 @@ final class RemoteScreen {
       socket.on(Socket.EVENT_CONNECT_ERROR, args -> fail(connection, "RDP 無法連線，請確認登入、條款與遠端群組權限。"));
       socket.on("rdp-close", args -> fail(connection, "RDP 已關閉"));
       socket.on(Socket.EVENT_DISCONNECT, args -> fail(connection, "RDP transport 已中斷，請重新連線。"));
+      rdpTimeout =
+          () -> {
+            rdpTimeout = null;
+            if (active() && rdpSocket == socket && !connected)
+              fail(connection, "RDP 連線逾時，請重試。");
+          };
+      mainHandler.postDelayed(rdpTimeout, 35000);
       socket.connect();
       a.status.setText(R.string.rdp_connecting);
-      new android.os.Handler(android.os.Looper.getMainLooper())
-          .postDelayed(
-              () -> {
-                if (active() && rdpSocket == socket && !connected)
-                  fail(connection, "RDP 連線逾時，請重試。");
-              },
-              35000);
     } catch (Exception e) {
       close();
       a.error(e);
@@ -759,7 +815,7 @@ final class RemoteScreen {
   void connectChromium(String url) {
     int expected = token;
     long connection = ++connectionVersion;
-    websocket =
+    WebSocket socket =
         a.api()
             .http
             .newWebSocket(
@@ -790,6 +846,7 @@ final class RemoteScreen {
                                   && expected == token
                                   && connection == connectionVersion) {
                                 connected = true;
+                                clearWebsocketTimeout();
                                 mountCanvas(true);
                                 a.status.setText(R.string.chromium_connected);
                               }
@@ -838,6 +895,10 @@ final class RemoteScreen {
                       fail(connection, "Chromium 已中斷");
                   }
                 });
+    websocket = socket;
+    if (active() && connection == connectionVersion)
+      armWebsocketTimeout(connection, socket, "Chromium 啟動逾時，請重試。");
+    else socket.close(1000, "Closed");
   }
 
   void presentFrame(Bitmap frame, long connection) {
@@ -845,18 +906,35 @@ final class RemoteScreen {
       frame.recycle();
       return;
     }
-    Bitmap previous = latestFrame.getAndSet(frame);
-    if (previous != null) previous.recycle();
-    if (frameScheduled.compareAndSet(false, true))
-      a.runOnUiThread(
-          () -> {
-            Bitmap next = latestFrame.getAndSet(null);
-            frameScheduled.set(false);
-            if (next != null) {
-              if (active() && canvas != null && connection == connectionVersion) canvas.frame(next);
-              else next.recycle();
-            }
-          });
+    QueuedFrame previous = latestFrame.getAndSet(new QueuedFrame(frame, connection));
+    if (previous != null) previous.bitmap.recycle();
+    scheduleFrameDrain();
+  }
+
+  private void scheduleFrameDrain() {
+    if (!frameScheduled.compareAndSet(false, true)) return;
+    // Always enqueue asynchronously. Capture the connection so a callback that was already
+    // queued before close/reconnect cannot consume a frame from the replacement connection.
+    final long drainConnection = connectionVersion;
+    mainHandler.post(() -> drainFrames(drainConnection));
+  }
+
+  private void drainFrames(long drainConnection) {
+    if (drainConnection != connectionVersion) {
+      frameScheduled.set(false);
+      if (latestFrame.get() != null) scheduleFrameDrain();
+      return;
+    }
+    QueuedFrame next = latestFrame.getAndSet(null);
+    if (next != null) {
+      if (active() && canvas != null && next.connection == connectionVersion)
+        canvas.frame(next.bitmap);
+      else next.bitmap.recycle();
+    }
+    frameScheduled.set(false);
+    // A frame can arrive between getAndSet(false) above and this check. Re-schedule after
+    // clearing the flag so that the race cannot leave the latest frame stuck forever.
+    if (latestFrame.get() != null) scheduleFrameDrain();
   }
 
   void vless() {

@@ -678,6 +678,8 @@ public final class MainActivity extends Activity {
     try {
       startActivityForResult(intent, 20);
     } catch (ActivityNotFoundException e) {
+      pendingDownload = null;
+      localDownload = null;
       error(e);
     }
   }
@@ -691,6 +693,7 @@ public final class MainActivity extends Activity {
     try {
       startActivityForResult(i, 21);
     } catch (ActivityNotFoundException e) {
+      uploadPath = null;
       error(e);
     }
   }
@@ -701,6 +704,7 @@ public final class MainActivity extends Activity {
     if (result != RESULT_OK || data == null || data.getData() == null) {
       pendingDownload = null;
       localDownload = null;
+      uploadPath = null;
       return;
     }
     Uri uri = data.getData();

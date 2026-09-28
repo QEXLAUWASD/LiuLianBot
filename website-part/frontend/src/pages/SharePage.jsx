@@ -177,7 +177,7 @@ export function SharePage({ location = globalThis.location } = {}) {
               <thead>
                 <tr>
                   {share.directory && (
-                    <th className="file-select-cell">
+                    <th scope="col" className="file-select-cell">
                       <input
                         id="selectAllShared"
                         type="checkbox"
@@ -187,7 +187,7 @@ export function SharePage({ location = globalThis.location } = {}) {
                       />
                     </th>
                   )}
-                  <th>名稱</th><th>大小</th><th>操作</th>
+                  <th scope="col">名稱</th><th scope="col">大小</th><th scope="col">操作</th>
                 </tr>
               </thead>
               <tbody id="fileRows">

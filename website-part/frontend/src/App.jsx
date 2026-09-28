@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { NavBar } from './components/NavBar.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
@@ -65,11 +65,14 @@ export const PAGE_TITLES = Object.freeze({
 
 function PageFallback() {
   return (
-    <p className="page-loading" role="status">
-      Loading…
-    </p>
+    <div className="page-loading" role="status" aria-live="polite">
+      <span className="page-loading-spinner" aria-hidden="true" />
+      <span>Loading page…</span>
+    </div>
   );
 }
+
+const NAV_COLLAPSED_KEY = 'liulianbot.nav-collapsed';
 
 export function App({ page = globalThis.document?.body?.dataset.page } = {}) {
   const Page = PAGE_COMPONENTS[page] || NotFoundPage;
@@ -78,9 +81,57 @@ export function App({ page = globalThis.document?.body?.dataset.page } = {}) {
   // `navOpen` drives the drawer on narrow screens, `navCollapsed` the icon rail
   // that the sidebar toggle switches to on wide screens.
   const [navOpen, setNavOpen] = useState(false);
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(() => {
+    try {
+      return globalThis.localStorage?.getItem(NAV_COLLAPSED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const navToggleRef = useRef(null);
   const closeNav = useCallback(() => setNavOpen(false), []);
-  const toggleCollapsed = useCallback(() => setNavCollapsed(value => !value), []);
+  const toggleCollapsed = useCallback(() => {
+    setNavCollapsed(value => {
+      const next = !value;
+      try {
+        globalThis.localStorage?.setItem(NAV_COLLAPSED_KEY, String(next));
+      } catch {
+        // Private browsing and blocked storage should not affect navigation.
+      }
+      return next;
+    });
+  }, []);
+
+  const previousNavOpen = useRef(false);
+  useEffect(() => {
+    if (previousNavOpen.current && !navOpen) {
+      const restore = () => navToggleRef.current?.focus();
+      if (typeof globalThis.requestAnimationFrame === 'function') {
+        globalThis.requestAnimationFrame(restore);
+      } else {
+        restore();
+      }
+    }
+    previousNavOpen.current = navOpen;
+  }, [navOpen]);
+
+  useEffect(() => {
+    if (!navOpen) return undefined;
+
+    const onKeyDown = event => {
+      if (event.key !== 'Escape') return;
+      closeNav();
+      navToggleRef.current?.focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [closeNav, navOpen]);
 
   const content = (
     <Suspense fallback={<PageFallback />}>
@@ -101,6 +152,7 @@ export function App({ page = globalThis.document?.body?.dataset.page } = {}) {
       >
         <NavBar
           collapsed={navCollapsed}
+          mobileOpen={navOpen}
           onNavigate={closeNav}
           onToggleCollapse={toggleCollapsed}
         />
@@ -117,10 +169,12 @@ export function App({ page = globalThis.document?.body?.dataset.page } = {}) {
         <div className="app-main">
           <header className="topbar">
             <button
+              ref={navToggleRef}
               className="topbar-toggle"
               type="button"
               aria-expanded={navOpen}
               aria-controls="siteNav"
+              aria-label={navOpen ? 'Close navigation' : 'Open navigation'}
               onClick={() => setNavOpen(open => !open)}
             >
               <span className="topbar-toggle-icon" aria-hidden="true">☰</span>

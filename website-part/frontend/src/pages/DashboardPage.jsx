@@ -3,7 +3,7 @@ import { requestJSON } from '../lib/apiClient.mjs';
 import { formatUtc8 } from '../lib/timeZone.mjs';
 import { useAuth } from '../hooks/useAuth.mjs';
 import { usePageVisibility } from '../hooks/usePageVisibility.mjs';
-import { USER_PAGE_FALLBACK } from '../components/NavBar.jsx';
+import { GUEST_PAGE_FALLBACK, USER_PAGE_FALLBACK } from '../components/NavBar.jsx';
 
 export const DASHBOARD_CARDS = Object.freeze([
   {
@@ -21,6 +21,7 @@ export const DASHBOARD_CARDS = Object.freeze([
   {
     href: '/account.html',
     pageKey: 'account',
+    signedInOnly: true,
     icon: '👤',
     title: 'Account settings',
     description: 'Change your username, password or linked Discord account.',
@@ -28,6 +29,7 @@ export const DASHBOARD_CARDS = Object.freeze([
   {
     href: '/remote.html',
     pageKey: 'remote',
+    signedInOnly: true,
     id: 'remoteFeatureCard',
     icon: '💻',
     title: 'Remote clients',
@@ -36,6 +38,7 @@ export const DASHBOARD_CARDS = Object.freeze([
   {
     href: '/chromium.html',
     pageKey: 'chromium',
+    signedInOnly: true,
     icon: '🌐',
     title: 'Chromium',
     description: 'Open the authorized Chromium workspace inside the website.',
@@ -43,6 +46,7 @@ export const DASHBOARD_CARDS = Object.freeze([
   {
     href: '/vless-tunnel.html',
     pageKey: 'vless-tunnel',
+    signedInOnly: true,
     icon: '🔐',
     title: 'Interim VLESS Tunnel',
     description: 'Merge a temporary internal-network VLESS node into your configuration.',
@@ -103,8 +107,8 @@ function StatCard({ label, value, hint, id }) {
 export function DashboardPage() {
   const { status, user } = useAuth();
   const pages = usePageVisibility();
-  const visibility = pages || USER_PAGE_FALLBACK;
   const signedIn = status === 'signed-in';
+  const visibility = pages || (signedIn ? USER_PAGE_FALLBACK : GUEST_PAGE_FALLBACK);
 
   const [events, setEvents] = useState(null);
   const [eventsError, setEventsError] = useState('');
@@ -145,7 +149,8 @@ export function DashboardPage() {
 
   const tools = DASHBOARD_CARDS.filter(card => {
     const pageKey = card.pageKey || 'roller';
-    return visibility[pageKey] === true
+    return (!card.signedInOnly || signedIn)
+      && visibility[pageKey] === true
       && !(card.pageKey === 'remote' && user?.remoteAvailable === false);
   });
 
@@ -183,7 +188,7 @@ export function DashboardPage() {
   );
 
   const eventsLoaded = events !== null;
-  const count = value => (eventsLoaded ? value : '–');
+  const count = value => (signedIn && eventsLoaded ? value : '–');
 
   return (
     <main className="main-content dashboard" id="main-content">
@@ -214,13 +219,13 @@ export function DashboardPage() {
           id="statUpcoming"
           label="Upcoming events"
           value={count(eventList.length)}
-          hint={eventsLoaded ? `${openCount} still open for signup` : 'Loading events…'}
+          hint={!signedIn ? 'Sign in to view events' : (eventsLoaded ? `${openCount} still open for signup` : 'Loading events…')}
         />
         <StatCard
           id="statJoined"
           label="Your signups"
           value={count(joinedCount)}
-          hint={joinedCount ? 'You are on the list' : 'Nothing joined yet'}
+          hint={!signedIn ? 'Sign in to manage signups' : (joinedCount ? 'You are on the list' : 'Nothing joined yet')}
         />
         <StatCard
           id="statWebsites"
@@ -250,7 +255,9 @@ export function DashboardPage() {
 
           {priority.length === 0 ? (
             <p className="panel-empty">
-              {eventsLoaded ? 'No upcoming events yet.' : 'Loading events…'}
+              {!signedIn
+                ? 'Sign in to see upcoming events.'
+                : (eventsLoaded ? 'No upcoming events yet.' : 'Loading events…')}
             </p>
           ) : (
             <ul className="list-rows" id="priorityList">
@@ -345,7 +352,11 @@ export function DashboardPage() {
           </label>
         </div>
 
-        <div className="data-table-wrapper">
+        <div
+          className="data-table-wrapper"
+          tabIndex="0"
+          aria-label="Scrollable upcoming events table"
+        >
           <table className="data-table">
             <thead>
               <tr>
@@ -360,7 +371,9 @@ export function DashboardPage() {
               {rows.length === 0 ? (
                 <tr>
                   <td className="table-empty" colSpan="5">
-                    {eventsLoaded ? 'No events match these filters.' : 'Loading events…'}
+                    {!signedIn
+                      ? 'Sign in to see upcoming events.'
+                      : (eventsLoaded ? 'No events match these filters.' : 'Loading events…')}
                   </td>
                 </tr>
               ) : rows.map(event => {
@@ -385,7 +398,9 @@ export function DashboardPage() {
 
         <div className="table-foot">
           <span className="table-count" id="eventTableCount">
-            {`${filteredEvents.length} event${filteredEvents.length === 1 ? '' : 's'}`}
+            {signedIn
+              ? `${filteredEvents.length} event${filteredEvents.length === 1 ? '' : 's'}`
+              : 'Sign in to view events'}
           </span>
           <div className="pager">
             <button

@@ -1,5 +1,24 @@
 # Patch notes
 
+## Android 0.2.0-beta.2 build and remote reliability fixes (since `56e8b09`, 2026-09-27)
+
+- Fixed session-cookie lifetime handling so session cookies remain available for the App process; bounded RGBA RDP dirty-tile decoding with overflow, size, and queued-byte checks.
+- Fixed SSH and Chromium handshake timeouts, SSH terminal buffer trimming, RDP timeout cleanup, RDP canvas stride validation, nested public-share download paths, and stale file-picker state after cancellation.
+- Coalesced Chromium frames with connection-aware UI draining so reconnects cannot strand the latest frame or let an old callback recycle a new connection's frame.
+- Login responses that require renewed terms acceptance now open the terms screen directly; 401 session clearing also resets the visible identity and page state on the main thread.
+- Replaced the full-square PNG launcher asset with an adaptive launcher icon, including the Android 13 monochrome layer and `roundIcon`, removing the Android Lint icon warning.
+- Added regression tests for RDP dirty-tile destination coordinates and oversized frame rejection. `testDebugUnitTest` (23 tests), `lintDebug`, `assembleDebug`, and `assembleRelease` all pass.
+
+## Website console polish (since `56e8b09`, 2026-09-27)
+
+- Improved the responsive dashboard shell: the desktop sidebar remembers its collapsed state, while the mobile drawer locks background scrolling, closes with Escape, restores focus to its trigger, and is removed from the keyboard order when closed.
+- Added icons and accessible labels to grouped navigation entries so the collapsed rail never shows blank submenu items.
+- Added a visible lazy-page spinner, more consistent form typography, balanced headings, card/table hover states, mobile full-width actions, and keyboard-friendly horizontal scrolling for the events table.
+- Added explicit labels to the admin announcement controls and column semantics to admin and public-share tables for screen readers.
+- Guest dashboard states now avoid private tool links and explain that sign-in is required before showing event data.
+- Rebuilt the tracked `website-part/public` output and refreshed the English and Traditional Chinese README feature lists.
+- Verification: `npm run check:js`, `npm test` (306 tests), `npm run build`, and `git diff --check` pass.
+
 ## 分享資料夾整包下載修正（基準：`29e6a69`）
 
 - 公開分享的唯讀端點允許原生表單在反向代理環境提交，修正「下載整個分享資料夾」回傳 `Cross-site request blocked`。
