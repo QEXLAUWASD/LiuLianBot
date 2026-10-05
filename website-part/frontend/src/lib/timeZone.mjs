@@ -1,3 +1,5 @@
+import { getLocale } from './i18n.mjs';
+
 export const UTC8_TIME_ZONE = 'Asia/Hong_Kong';
 
 export function utc8InputToIso(value) {
@@ -9,7 +11,7 @@ export function utc8InputToIso(value) {
 }
 
 export function formatUtc8(value) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(getLocale() === 'zh-HK' ? 'zh-HK' : 'en-GB', {
     timeZone: UTC8_TIME_ZONE,
     dateStyle: 'medium',
     timeStyle: 'short',

@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 export function StatusMessage({
   message = '',
   tone = '',
@@ -6,6 +7,7 @@ export function StatusMessage({
   live = 'polite',
   ...rest
 }) {
+  useLocale();
   return (
     <div
       className={`${className}${tone ? ` status-${tone}` : ''}`}
@@ -13,7 +15,7 @@ export function StatusMessage({
       aria-live={live}
       {...rest}
     >
-      {message}
+      {t(message)}
     </div>
   );
 }

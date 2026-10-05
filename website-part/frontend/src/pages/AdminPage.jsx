@@ -1,3 +1,4 @@
+import { t, message, useLocale } from '../lib/i18n.mjs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, requestJSON } from '../lib/apiClient.mjs';
 import { formatUtc8, utc8InputToIso } from '../lib/timeZone.mjs';
@@ -35,13 +36,14 @@ export function tableRow(colspan, message, { error = false } = {}) {
   return (
     <tr>
       <td className="empty-state" colSpan={colspan}>
-        <p className={error ? 'status-error' : ''} role={error ? 'alert' : undefined}>{message}</p>
+        <p className={error ? 'status-error' : ''} role={error ? 'alert' : undefined}>{t(message)}</p>
       </td>
     </tr>
   );
 }
 
 export function AccessOption({ name, value, label, checked, onChange }) {
+  useLocale();
   return (
     <label className="access-option">
       <input type="checkbox" name={name} value={value} checked={checked} onChange={onChange} />
@@ -60,6 +62,7 @@ function actionButtonProps(action, id, className = 'btn-outline') {
 }
 
 export function AdminPage() {
+  const locale = useLocale();
   const tabs = useTabs({ items: TABS, initialId: 'users' });
   const { toasts, showToast, dismiss } = useToast();
   const [tables, setTables] = useState(idleTables);
@@ -98,7 +101,7 @@ export function AdminPage() {
       console.error(`${key} load error:`, error);
       setTables(current => ({
         ...current,
-        [key]: { status: 'error', items: [], error: `Failed to load ${label}` },
+        [key]: { status: 'error', items: [], error: message("Failed to load {0}", { 0: message(label) }) },
       }));
       return null;
     }
@@ -219,11 +222,11 @@ export function AdminPage() {
     if (!user) return;
     askConfirm(
       'Delete User',
-      `Are you sure you want to delete "${user.username}"? This action cannot be undone.`,
+      message("Are you sure you want to delete \"{0}\"? This action cannot be undone.", { 0: user.username }),
       async () => {
         try {
           await requestJSON(`/api/admin/users/${user.id}`, { method: 'DELETE' });
-          showToast(`User "${user.username}" deleted`, 'success');
+          showToast(message("User \"{0}\" deleted", { 0: user.username }), 'success');
           await loadUsers();
         } catch (error) {
           showToast(error.message || 'Delete failed', 'error');
@@ -258,13 +261,13 @@ export function AdminPage() {
     const group = groups.find(item => Number(item.id) === Number(id));
     if (!group) return;
     if (Number(group.user_count) > 0) {
-      showToast(`Cannot delete "${group.name}": ${group.user_count} user(s) are still assigned`, 'error');
+      showToast(message("Cannot delete \"{0}\": {1} user(s) are still assigned", { 0: group.name, 1: group.user_count }), 'error');
       return;
     }
-    askConfirm('Delete Group', `Are you sure you want to delete the group "${group.name}"?`, async () => {
+    askConfirm('Delete Group', message("Are you sure you want to delete the group \"{0}\"?", { 0: group.name }), async () => {
       try {
         await requestJSON(`/api/admin/groups/${group.id}`, { method: 'DELETE' });
-        showToast(`Group "${group.name}" deleted`, 'success');
+        showToast(message("Group \"{0}\" deleted", { 0: group.name }), 'success');
         await loadGroups();
       } catch (error) {
         showToast(error.message || 'Delete failed', 'error');
@@ -316,7 +319,7 @@ export function AdminPage() {
   const deleteConnection = id => {
     const connection = tables.connections.items.find(item => Number(item.id) === Number(id));
     if (!connection) return;
-    askConfirm('Delete Website', `Delete "${connection.name}" and all of its access rules?`, async () => {
+    askConfirm('Delete Website', message("Delete \"{0}\" and all of its access rules?", { 0: connection.name }), async () => {
       try {
         await requestJSON(`/api/admin/connections/${connection.id}`, { method: 'DELETE' });
         showToast('Website deleted', 'success');
@@ -359,7 +362,7 @@ export function AdminPage() {
         body: JSON.stringify({ visible: !event.visible }),
       });
       await loadEvents();
-      showToast(`Event ${event.visible ? 'hidden' : 'visible'}`, 'success');
+      showToast(event.visible ? 'Event hidden' : 'Event visible', 'success');
     } catch (error) {
       showToast(error.message || 'Visibility update failed', 'error');
     }
@@ -487,15 +490,15 @@ export function AdminPage() {
   return (
     <main className="main-content" id="main-content">
       <div className="admin-container tabs" onClick={handleTableClick}>
-        <h2>⚙️ Admin Panel</h2>
+        <h2>{t("⚙️ Admin Panel")}</h2>
 
-        <TabList tabs={tabs} label="Administration sections" />
+        <TabList tabs={tabs} label={t("Administration sections")} />
 
         <TabPanel tabs={tabs} id="users">
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th scope="col">Username</th><th scope="col">Groups</th><th scope="col">Created</th><th scope="col">Actions</th></tr>
+                <tr><th scope="col">{t("Username")}</th><th scope="col">{t("Groups")}</th><th scope="col">{t("Created")}</th><th scope="col">{t("Actions")}</th></tr>
               </thead>
               <tbody id="usersTableBody">
                 {renderTableBody('users', 4, 'No users found', tables.users.items.map(user => {
@@ -510,12 +513,12 @@ export function AdminPage() {
                           ? roles.map(role => (
                             <span key={role.name} className={`badge ${badgeClass(role.name)}`}>{role.name}</span>
                           ))
-                          : <span className="text-muted">No groups</span>}
+                          : <span className="text-muted">{t("No groups")}</span>}
                       </td>
-                      <td>{user.created_at ? new Date(user.created_at).toLocaleDateString('zh-TW') : '-'}</td>
+                      <td>{user.created_at ? new Date(user.created_at).toLocaleDateString(locale === 'zh-HK' ? 'zh-HK' : 'en-GB') : '-'}</td>
                       <td className="actions">
-                        <button {...actionButtonProps('edit-user', user.id)}>Edit Groups</button>
-                        <button {...actionButtonProps('delete-user', user.id, 'btn-danger')}>Delete</button>
+                        <button {...actionButtonProps('edit-user', user.id)}>{t("Edit Groups")}</button>
+                        <button {...actionButtonProps('delete-user', user.id, 'btn-danger')}>{t("Delete")}</button>
                       </td>
                     </tr>
                   );
@@ -532,14 +535,12 @@ export function AdminPage() {
               className="btn btn-primary"
               type="button"
               onClick={() => setGroupEdit({ id: null, name: '', description: '', error: '' })}
-            >
-              + Create Group
-            </button>
+            >{t("+ Create Group")}</button>
           </div>
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th scope="col">Name</th><th scope="col">Description</th><th scope="col">Users</th><th scope="col">Actions</th></tr>
+                <tr><th scope="col">{t("Name")}</th><th scope="col">{t("Description")}</th><th scope="col">{t("Users")}</th><th scope="col">{t("Actions")}</th></tr>
               </thead>
               <tbody id="groupsTableBody">
                 {renderTableBody('groups', 4, 'No groups found', tables.groups.items.map(group => (
@@ -548,8 +549,8 @@ export function AdminPage() {
                     <td>{group.description || '-'}</td>
                     <td>{group.user_count}</td>
                     <td className="actions">
-                      <button {...actionButtonProps('edit-group', group.id)}>Edit</button>
-                      <button {...actionButtonProps('delete-group', group.id, 'btn-danger')}>Delete</button>
+                      <button {...actionButtonProps('edit-group', group.id)}>{t("Edit")}</button>
+                      <button {...actionButtonProps('delete-group', group.id, 'btn-danger')}>{t("Delete")}</button>
                     </td>
                   </tr>
                 )))}
@@ -580,20 +581,18 @@ export function AdminPage() {
                   error: '',
                 });
               }}
-            >
-              + Add Website
-            </button>
+            >{t("+ Add Website")}</button>
           </div>
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th scope="col">Name</th><th scope="col">Target</th><th scope="col">Allowed Access</th><th scope="col">Status</th><th scope="col">Actions</th></tr>
+                <tr><th scope="col">{t("Name")}</th><th scope="col">{t("Target")}</th><th scope="col">{t("Allowed Access")}</th><th scope="col">{t("Status")}</th><th scope="col">{t("Actions")}</th></tr>
               </thead>
               <tbody id="connectionsTableBody">
                 {renderTableBody('connections', 5, 'No website connections configured', tables.connections.items.map(connection => {
                   const access = [
-                    ...(connection.roles || []).map(role => `Group: ${role.name}`),
-                    ...(connection.users || []).map(user => `User: ${user.username}`),
+                    ...(connection.roles || []).map(role => t("Group: {0}", { 0: role.name })),
+                    ...(connection.users || []).map(user => t("User: {0}", { 0: user.username })),
                   ];
                   return (
                     <tr key={connection.id}>
@@ -605,13 +604,13 @@ export function AdminPage() {
                       <td>
                         {access.length
                           ? access.map(item => <span key={item} className="access-label">{item}</span>)
-                          : <span className="text-muted">Admins only</span>}
+                          : <span className="text-muted">{t("Admins only")}</span>}
                       </td>
                       <td>
                         <span className={`badge ${connection.enabled ? 'badge-enabled' : 'badge-disabled'}`}>
-                          {connection.enabled ? 'Enabled' : 'Disabled'}
+                          {connection.enabled ? t("Enabled") : t("Disabled")}
                         </span>
-                        {connection.hidden && <span className="badge badge-hidden">Hidden</span>}
+                        {connection.hidden && <span className="badge badge-hidden">{t("Hidden")}</span>}
                       </td>
                       <td className="actions">
                         {connection.enabled && (
@@ -620,12 +619,10 @@ export function AdminPage() {
                             href={`/connect/${encodeURIComponent(connection.slug)}/`}
                             target="_blank"
                             rel="noopener"
-                          >
-                            Open
-                          </a>
+                          >{t("Open")}</a>
                         )}
-                        <button {...actionButtonProps('edit-connection', connection.id)}>Edit</button>
-                        <button {...actionButtonProps('delete-connection', connection.id, 'btn-danger')}>Delete</button>
+                        <button {...actionButtonProps('edit-connection', connection.id)}>{t("Edit")}</button>
+                        <button {...actionButtonProps('delete-connection', connection.id, 'btn-danger')}>{t("Delete")}</button>
                       </td>
                     </tr>
                   );
@@ -637,36 +634,36 @@ export function AdminPage() {
 
         <TabPanel tabs={tabs} id="page-visibility">
           <div className="admin-toolbar page-visibility-toolbar">
-            <p className="table-subtext">Choose who can see each website subpage in navigation and dashboard links.</p>
+            <p className="table-subtext">{t("Choose who can see each website subpage in navigation and dashboard links.")}</p>
           </div>
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th scope="col">Page</th><th scope="col">Guest</th><th scope="col">All signed-in users</th><th scope="col">Groups</th><th scope="col">Users</th><th scope="col">Actions</th>
+                  <th scope="col">{t("Page")}</th><th scope="col">{t("Guest")}</th><th scope="col">{t("All signed-in users")}</th><th scope="col">{t("Groups")}</th><th scope="col">{t("Users")}</th><th scope="col">{t("Actions")}</th>
                 </tr>
               </thead>
               <tbody id="pageVisibilityTableBody">
                 {renderTableBody('pageVisibility', 6, 'No configurable pages found', tables.pageVisibility.items.map(page => (
                   <tr key={page.key}>
                     <td>
-                      <strong>{page.name}</strong>
+                      <strong>{t(page.name)}</strong>
                       <div className="table-subtext mono">{page.path}</div>
                     </td>
                     <td>
                       <span className={`badge ${page.public_access ? 'badge-enabled' : 'badge-disabled'}`}>
-                        {page.public_access ? 'Shown' : 'Hidden'}
+                        {page.public_access ? t("Shown") : t("Hidden")}
                       </span>
                     </td>
                     <td>
                       <span className={`badge ${page.authenticated_access ? 'badge-enabled' : 'badge-disabled'}`}>
-                        {page.authenticated_access ? 'Shown' : 'Hidden'}
+                        {page.authenticated_access ? t("Shown") : t("Hidden")}
                       </span>
                     </td>
                     <td>{page.roles?.map(role => role.name).join(', ') || '-'}</td>
                     <td>{page.users?.map(user => user.username).join(', ') || '-'}</td>
                     <td className="actions">
-                      <button {...actionButtonProps('edit-page-visibility', page.key)}>Edit</button>
+                      <button {...actionButtonProps('edit-page-visibility', page.key)}>{t("Edit")}</button>
                     </td>
                   </tr>
                 )))}
@@ -680,8 +677,8 @@ export function AdminPage() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th scope="col">Guild</th><th scope="col">Language</th><th scope="col">Admins</th><th scope="col">Log Channel</th>
-                  <th scope="col">Roller Channel</th><th scope="col">Voice Channels</th><th scope="col">Actions</th>
+                  <th scope="col">{t("Guild")}</th><th scope="col">{t("Language")}</th><th scope="col">{t("Admins")}</th><th scope="col">{t("Log Channel")}</th>
+                  <th scope="col">{t("Roller Channel")}</th><th scope="col">{t("Voice Channels")}</th><th scope="col">{t("Actions")}</th>
                 </tr>
               </thead>
               <tbody id="guildsTableBody">
@@ -692,7 +689,7 @@ export function AdminPage() {
                   return (
                     <tr key={guild.guild_id}>
                       <td>
-                        <strong>{guild.guild_name || `Guild ${guild.guild_id}`}</strong>
+                        <strong>{guild.guild_name || t("Guild {0}", { 0: guild.guild_id })}</strong>
                         <div className="table-subtext mono">{guild.guild_id}</div>
                       </td>
                       <td>{guild.language === 'zh_TW' ? '中文' : guild.language}</td>
@@ -701,7 +698,7 @@ export function AdminPage() {
                       <td><span className={rollerChannel ? 'mono' : 'text-muted'}>{rollerChannel || '-'}</span></td>
                       <td>{guild.voice_channel_count}</td>
                       <td className="actions">
-                        <button {...actionButtonProps('guild-detail', guild.guild_id)}>Details</button>
+                        <button {...actionButtonProps('guild-detail', guild.guild_id)}>{t("Details")}</button>
                       </td>
                     </tr>
                   );
@@ -715,7 +712,7 @@ export function AdminPage() {
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th scope="col">Event</th><th scope="col">Guild</th><th scope="col">Start</th><th scope="col">Participants</th><th scope="col">Visibility</th><th scope="col">Actions</th></tr>
+                <tr><th scope="col">{t("Event")}</th><th scope="col">{t("Guild")}</th><th scope="col">{t("Start")}</th><th scope="col">{t("Participants")}</th><th scope="col">{t("Visibility")}</th><th scope="col">{t("Actions")}</th></tr>
               </thead>
               <tbody id="eventsTableBody">
                 {renderTableBody('events', 6, 'No events found', tables.events.items.map(event => (
@@ -725,19 +722,19 @@ export function AdminPage() {
                       <div className="table-subtext">{event.creator_username}</div>
                     </td>
                     <td>
-                      <strong>{event.guild_name || `Guild ${event.guild_id}`}</strong>
+                      <strong>{event.guild_name || t("Guild {0}", { 0: event.guild_id })}</strong>
                       <div className="table-subtext mono">{event.guild_id}</div>
                     </td>
                     <td>{event.start_at ? formatUtc8(event.start_at) : '-'}</td>
                     <td>{String(event.participant_count || 0)}</td>
                     <td>
                       <span className={`badge ${event.visible ? 'badge-enabled' : 'badge-disabled'}`}>
-                        {event.visible ? 'Visible' : 'Hidden'}
+                        {event.visible ? t("Visible") : t("Hidden")}
                       </span>
                     </td>
                     <td className="actions">
                       <button {...actionButtonProps('toggle-event-visibility', event.id)}>
-                        {event.visible ? 'Hide' : 'Show'}
+                        {event.visible ? t("Hide") : t("Show")}
                       </button>
                     </td>
                   </tr>
@@ -751,7 +748,7 @@ export function AdminPage() {
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th scope="col">Guild</th><th scope="col">Commands (30d)</th><th scope="col">Voice joins (30d)</th><th scope="col">Last activity</th></tr>
+                <tr><th scope="col">{t("Guild")}</th><th scope="col">{t("Commands (30d)")}</th><th scope="col">{t("Voice joins (30d)")}</th><th scope="col">{t("Last activity")}</th></tr>
               </thead>
               <tbody id="statsTableBody">
                 {renderTableBody('stats', 4, 'No activity recorded yet', tables.stats.items.map(item => (
@@ -759,7 +756,7 @@ export function AdminPage() {
                     <td className="mono">{item.guild_id}</td>
                     <td>{String(item.command_count || 0)}</td>
                     <td>{String(item.voice_joins || 0)}</td>
-                    <td>{item.last_day ? new Date(item.last_day).toLocaleDateString() : '-'}</td>
+                    <td>{item.last_day ? new Date(item.last_day).toLocaleDateString(locale === 'zh-HK' ? 'zh-HK' : 'en-GB') : '-'}</td>
                   </tr>
                 )))}
               </tbody>
@@ -769,7 +766,7 @@ export function AdminPage() {
 
         <TabPanel tabs={tabs} id="announcements">
           <form id="announcementForm" className="admin-toolbar" onSubmit={scheduleAnnouncement}>
-            <label className="sr-only" htmlFor="announcementGuild">Discord server</label>
+            <label className="sr-only" htmlFor="announcementGuild">{t("Discord server")}</label>
             <select
               id="announcementGuild"
               required
@@ -781,14 +778,14 @@ export function AdminPage() {
                 channelId: '',
               })}
             >
-              <option value="">{targets.length ? 'Select Discord server' : 'No Discord servers available'}</option>
+              <option value="">{targets.length ? t("Select Discord server") : t("No Discord servers available")}</option>
               {targets.map(guild => (
                 <option key={guild.guild_id} value={guild.guild_id}>
-                  {guild.guild_name || `Guild ${guild.guild_id}`}
+                  {guild.guild_name || t("Guild {0}", { 0: guild.guild_id })}
                 </option>
               ))}
             </select>
-            <label className="sr-only" htmlFor="announcementChannel">Announcement channel</label>
+            <label className="sr-only" htmlFor="announcementChannel">{t("Announcement channel")}</label>
             <select
               id="announcementChannel"
               required
@@ -796,23 +793,23 @@ export function AdminPage() {
               value={announcementForm.channelId}
               onChange={event => setAnnouncementForm({ ...announcementForm, channelId: event.target.value })}
             >
-              <option value="">{channelOptions.length ? 'Select channel' : 'No text channels available'}</option>
+              <option value="">{channelOptions.length ? t("Select channel") : t("No text channels available")}</option>
               {channelOptions.map(channel => (
                 <option key={channel.channel_id} value={channel.channel_id}>
                   {`#${channel.channel_name}`}
                 </option>
               ))}
             </select>
-            <label className="sr-only" htmlFor="announcementContent">Announcement content</label>
+            <label className="sr-only" htmlFor="announcementContent">{t("Announcement content")}</label>
             <input
               id="announcementContent"
-              placeholder="Announcement"
+              placeholder={t("Announcement")}
               maxLength="2000"
               required
               value={announcementForm.content}
               onChange={event => setAnnouncementForm({ ...announcementForm, content: event.target.value })}
             />
-            <label htmlFor="announcementTime">Scheduled time (UTC+8)</label>
+            <label htmlFor="announcementTime">{t("Scheduled time (UTC+8)")}</label>
             <input
               id="announcementTime"
               type="datetime-local"
@@ -820,13 +817,13 @@ export function AdminPage() {
               value={announcementForm.scheduledAt}
               onChange={event => setAnnouncementForm({ ...announcementForm, scheduledAt: event.target.value })}
             />
-            <button className="btn btn-primary" type="submit" disabled={saveAction.busy}>Schedule</button>
+            <button className="btn btn-primary" type="submit" disabled={saveAction.busy}>{t("Schedule")}</button>
           </form>
           <StatusMessage id="announcementStatus" message={announcementStatus.message} tone={announcementStatus.tone} />
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th scope="col">Guild</th><th scope="col">Channel</th><th scope="col">Content</th><th scope="col">Scheduled</th><th scope="col">Status</th><th scope="col">Actions</th></tr>
+                <tr><th scope="col">{t("Guild")}</th><th scope="col">{t("Channel")}</th><th scope="col">{t("Content")}</th><th scope="col">{t("Scheduled")}</th><th scope="col">{t("Status")}</th><th scope="col">{t("Actions")}</th></tr>
               </thead>
               <tbody id="announcementsTableBody">
                 {renderTableBody('announcements', 6, 'No announcements found', tables.announcements.items.map(item => (
@@ -838,7 +835,7 @@ export function AdminPage() {
                     <td>{item.status}</td>
                     <td className="actions">
                       {item.status === 'scheduled' && (
-                        <button {...actionButtonProps('cancel-announcement', item.id, 'btn-danger')}>Cancel</button>
+                        <button {...actionButtonProps('cancel-announcement', item.id, 'btn-danger')}>{t("Cancel")}</button>
                       )}
                     </td>
                   </tr>
@@ -851,16 +848,16 @@ export function AdminPage() {
 
       <Modal open={Boolean(userEdit)} labelledBy="userEditModalTitle" onClose={() => setUserEdit(null)}>
         <div className="modal-header">
-          <h3 id="userEditModalTitle">Edit User Groups</h3>
-          <button className="modal-close" type="button" data-dialog-close title="Close" onClick={() => setUserEdit(null)}>&times;</button>
+          <h3 id="userEditModalTitle">{t("Edit User Groups")}</h3>
+          <button className="modal-close" type="button" data-dialog-close title={t("Close")} onClick={() => setUserEdit(null)}>&times;</button>
         </div>
         <div className="modal-body">
           <div className="form-group">
-            <label htmlFor="editUserUsername">Username</label>
+            <label htmlFor="editUserUsername">{t("Username")}</label>
             <input type="text" id="editUserUsername" value={userEdit?.username || ''} disabled readOnly />
           </div>
           <div className="form-group">
-            <label>Groups</label>
+            <label>{t("Groups")}</label>
             <div id="editUserRoles" className="access-option-list">
               {groups.length > 0
                 ? groups.map(group => (
@@ -878,42 +875,40 @@ export function AdminPage() {
                     }))}
                   />
                 ))
-                : <span className="text-muted">No groups available</span>}
+                : <span className="text-muted">{t("No groups available")}</span>}
             </div>
           </div>
           <StatusMessage className="error-msg" id="userEditError" message={userEdit?.error || ''} />
         </div>
         <div className="modal-footer">
-          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setUserEdit(null)}>Cancel</button>
-          <button className="btn btn-primary" id="saveUserGroupsBtn" type="button" disabled={saveAction.busy} onClick={updateUserGroups}>
-            Save
-          </button>
+          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setUserEdit(null)}>{t("Cancel")}</button>
+          <button className="btn btn-primary" id="saveUserGroupsBtn" type="button" disabled={saveAction.busy} onClick={updateUserGroups}>{t("Save")}</button>
         </div>
       </Modal>
 
       <Modal open={Boolean(groupEdit)} labelledBy="groupModalTitle" onClose={() => setGroupEdit(null)}>
         <div className="modal-header">
-          <h3 id="groupModalTitle">{groupEdit?.id ? 'Edit Group' : 'Create Group'}</h3>
-          <button className="modal-close" type="button" data-dialog-close title="Close" onClick={() => setGroupEdit(null)}>&times;</button>
+          <h3 id="groupModalTitle">{groupEdit?.id ? t("Edit Group") : t("Create Group")}</h3>
+          <button className="modal-close" type="button" data-dialog-close title={t("Close")} onClick={() => setGroupEdit(null)}>&times;</button>
         </div>
         <div className="modal-body">
           <div className="form-group">
-            <label htmlFor="editGroupName">Name</label>
+            <label htmlFor="editGroupName">{t("Name")}</label>
             <input
               type="text"
               id="editGroupName"
-              placeholder="Group name (e.g. moderator)"
+              placeholder={t("Group name (e.g. moderator)")}
               maxLength="50"
               value={groupEdit?.name || ''}
               onChange={event => setGroupEdit(current => ({ ...current, name: event.target.value }))}
             />
           </div>
           <div className="form-group">
-            <label htmlFor="editGroupDesc">Description</label>
+            <label htmlFor="editGroupDesc">{t("Description")}</label>
             <input
               type="text"
               id="editGroupDesc"
-              placeholder="Short description"
+              placeholder={t("Short description")}
               maxLength="255"
               value={groupEdit?.description || ''}
               onChange={event => setGroupEdit(current => ({ ...current, description: event.target.value }))}
@@ -922,9 +917,9 @@ export function AdminPage() {
           <StatusMessage className="error-msg" id="groupEditError" message={groupEdit?.error || ''} />
         </div>
         <div className="modal-footer">
-          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setGroupEdit(null)}>Cancel</button>
+          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setGroupEdit(null)}>{t("Cancel")}</button>
           <button className="btn btn-primary" id="saveGroupBtn" type="button" disabled={saveAction.busy} onClick={saveGroup}>
-            {groupEdit?.id ? 'Save' : 'Create'}
+            {groupEdit?.id ? t("Save") : t("Create")}
           </button>
         </div>
       </Modal>
@@ -936,23 +931,23 @@ export function AdminPage() {
         onClose={() => setConnectionEdit(null)}
       >
         <div className="modal-header">
-          <h3 id="connectionModalTitle">{connectionEdit?.id ? 'Edit Website' : 'Add Website'}</h3>
-          <button className="modal-close" type="button" data-dialog-close title="Close" onClick={() => setConnectionEdit(null)}>&times;</button>
+          <h3 id="connectionModalTitle">{connectionEdit?.id ? t("Edit Website") : t("Add Website")}</h3>
+          <button className="modal-close" type="button" data-dialog-close title={t("Close")} onClick={() => setConnectionEdit(null)}>&times;</button>
         </div>
         <div className="modal-body">
           <div className="form-group">
-            <label htmlFor="editConnectionName">Name</label>
+            <label htmlFor="editConnectionName">{t("Name")}</label>
             <input
               type="text"
               id="editConnectionName"
               maxLength="80"
-              placeholder="Internal dashboard"
+              placeholder={t("Internal dashboard")}
               value={connectionEdit?.name || ''}
               onChange={event => setConnectionEdit(current => ({ ...current, name: event.target.value }))}
             />
           </div>
           <div className="form-group">
-            <label htmlFor="editConnectionSlug">URL slug</label>
+            <label htmlFor="editConnectionSlug">{t("URL slug")}</label>
             <input
               type="text"
               id="editConnectionSlug"
@@ -963,7 +958,7 @@ export function AdminPage() {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="editConnectionTarget">Target URL</label>
+            <label htmlFor="editConnectionTarget">{t("Target URL")}</label>
             <input
               type="url"
               id="editConnectionTarget"
@@ -974,18 +969,18 @@ export function AdminPage() {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="editConnectionDesc">Description</label>
+            <label htmlFor="editConnectionDesc">{t("Description")}</label>
             <input
               type="text"
               id="editConnectionDesc"
               maxLength="255"
-              placeholder="Short description shown to allowed users"
+              placeholder={t("Short description shown to allowed users")}
               value={connectionEdit?.description || ''}
               onChange={event => setConnectionEdit(current => ({ ...current, description: event.target.value }))}
             />
           </div>
           <div className="form-group">
-            <label>Allowed groups</label>
+            <label>{t("Allowed groups")}</label>
             <div id="connectionRoleOptions" className="access-option-list">
               {groups.length > 0
                 ? groups.map(group => (
@@ -998,11 +993,11 @@ export function AdminPage() {
                     onChange={event => toggleConnectionRole(group.id, event.target.checked)}
                   />
                 ))
-                : <span className="text-muted">No groups available</span>}
+                : <span className="text-muted">{t("No groups available")}</span>}
             </div>
           </div>
           <div className="form-group">
-            <label>Allowed users</label>
+            <label>{t("Allowed users")}</label>
             <div id="connectionUserOptions" className="access-option-list">
               {users.length > 0
                 ? users.map(user => (
@@ -1015,7 +1010,7 @@ export function AdminPage() {
                     onChange={event => toggleConnectionUser(user.id, event.target.checked)}
                   />
                 ))
-                : <span className="text-muted">No users available</span>}
+                : <span className="text-muted">{t("No users available")}</span>}
             </div>
           </div>
           <label className="toggle-row" htmlFor="editConnectionEnabled">
@@ -1025,7 +1020,7 @@ export function AdminPage() {
               checked={connectionEdit?.enabled || false}
               onChange={event => setConnectionEdit(current => ({ ...current, enabled: event.target.checked }))}
             />
-            <span>Enabled</span>
+            <span>{t("Enabled")}</span>
           </label>
           <label className="toggle-row" htmlFor="editConnectionHidden">
             <input
@@ -1034,7 +1029,7 @@ export function AdminPage() {
               checked={connectionEdit?.hidden || false}
               onChange={event => setConnectionEdit(current => ({ ...current, hidden: event.target.checked }))}
             />
-            <span>Hidden from Connected websites</span>
+            <span>{t("Hidden from Connected websites")}</span>
           </label>
           <label className="toggle-row" htmlFor="editConnectionLegacyRouting">
             <input
@@ -1043,15 +1038,13 @@ export function AdminPage() {
               checked={connectionEdit?.legacyRouting || false}
               onChange={event => setConnectionEdit(current => ({ ...current, legacyRouting: event.target.checked }))}
             />
-            <span>Use legacy proxy routing</span>
+            <span>{t("Use legacy proxy routing")}</span>
           </label>
           <StatusMessage className="error-msg" id="connectionEditError" message={connectionEdit?.error || ''} />
         </div>
         <div className="modal-footer">
-          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setConnectionEdit(null)}>Cancel</button>
-          <button className="btn btn-primary" type="button" id="saveConnectionBtn" disabled={saveAction.busy} onClick={saveConnection}>
-            Save
-          </button>
+          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setConnectionEdit(null)}>{t("Cancel")}</button>
+          <button className="btn btn-primary" type="button" id="saveConnectionBtn" disabled={saveAction.busy} onClick={saveConnection}>{t("Save")}</button>
         </div>
       </Modal>
 
@@ -1062,8 +1055,8 @@ export function AdminPage() {
         onClose={() => setPageEdit(null)}
       >
         <div className="modal-header">
-          <h3 id="pageVisibilityModalTitle">Edit Page Visibility</h3>
-          <button className="modal-close" type="button" data-dialog-close title="Close" onClick={() => setPageEdit(null)}>&times;</button>
+          <h3 id="pageVisibilityModalTitle">{t("Edit Page Visibility")}</h3>
+          <button className="modal-close" type="button" data-dialog-close title={t("Close")} onClick={() => setPageEdit(null)}>&times;</button>
         </div>
         <div className="modal-body">
           <p id="pageVisibilityPath" className="table-subtext">{pageEdit?.path}</p>
@@ -1074,7 +1067,7 @@ export function AdminPage() {
               checked={pageEdit?.publicAccess || false}
               onChange={event => setPageEdit(current => ({ ...current, publicAccess: event.target.checked }))}
             />
-            <span>Show to non-logged-in visitors</span>
+            <span>{t("Show to non-logged-in visitors")}</span>
           </label>
           <label className="toggle-row" htmlFor="editPageVisibilityAuthenticated">
             <input
@@ -1083,10 +1076,10 @@ export function AdminPage() {
               checked={pageEdit?.authenticatedAccess || false}
               onChange={event => setPageEdit(current => ({ ...current, authenticatedAccess: event.target.checked }))}
             />
-            <span>Show to all signed-in users</span>
+            <span>{t("Show to all signed-in users")}</span>
           </label>
           <div className="form-group">
-            <label>Website groups</label>
+            <label>{t("Website groups")}</label>
             <div id="pageVisibilityRoleOptions" className="access-option-list">
               {groups.length > 0
                 ? groups.map(group => (
@@ -1104,11 +1097,11 @@ export function AdminPage() {
                     }))}
                   />
                 ))
-                : <span className="text-muted">No groups available</span>}
+                : <span className="text-muted">{t("No groups available")}</span>}
             </div>
           </div>
           <div className="form-group">
-            <label>Website users</label>
+            <label>{t("Website users")}</label>
             <div id="pageVisibilityUserOptions" className="access-option-list">
               {users.length > 0
                 ? users.map(user => (
@@ -1126,16 +1119,14 @@ export function AdminPage() {
                     }))}
                   />
                 ))
-                : <span className="text-muted">No users available</span>}
+                : <span className="text-muted">{t("No users available")}</span>}
             </div>
           </div>
           <StatusMessage className="error-msg" id="pageVisibilityEditError" message={pageEdit?.error || ''} />
         </div>
         <div className="modal-footer">
-          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setPageEdit(null)}>Cancel</button>
-          <button className="btn btn-primary" type="button" id="savePageVisibilityBtn" disabled={saveAction.busy} onClick={savePageVisibility}>
-            Save
-          </button>
+          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setPageEdit(null)}>{t("Cancel")}</button>
+          <button className="btn btn-primary" type="button" id="savePageVisibilityBtn" disabled={saveAction.busy} onClick={savePageVisibility}>{t("Save")}</button>
         </div>
       </Modal>
 
@@ -1145,13 +1136,13 @@ export function AdminPage() {
         onClose={() => setGuildDetail(null)}
       >
         <div className="modal-header">
-          <h3 id="guildDetailModalTitle">Guild Details</h3>
-          <button className="modal-close" type="button" data-dialog-close title="Close" onClick={() => setGuildDetail(null)}>&times;</button>
+          <h3 id="guildDetailModalTitle">{t("Guild Details")}</h3>
+          <button className="modal-close" type="button" data-dialog-close title={t("Close")} onClick={() => setGuildDetail(null)}>&times;</button>
         </div>
         <div className="modal-body" id="guildDetailContent">
-          {guildDetail?.status === 'loading' && <p>Loading...</p>}
+          {guildDetail?.status === 'loading' && <p>{t("Loading...")}</p>}
           {guildDetail?.status === 'error' && (
-            <p className="status-error" role="alert">Failed to load guild details</p>
+            <p className="status-error" role="alert">{t("Failed to load guild details")}</p>
           )}
           {guildDetail?.status === 'ready' && (() => {
             const guild = guildDetail.guild;
@@ -1159,23 +1150,23 @@ export function AdminPage() {
             const voiceChannels = Array.isArray(guild.voice_channels) ? guild.voice_channels : [];
             const infoItem = (label, value, className = '') => (
               <div className="guild-info-item">
-                <div className="label">{label}</div>
+                <div className="label">{t(label)}</div>
                 <div className={`value ${className}`.trim()}>{value}</div>
               </div>
             );
             return (
               <>
                 <div className="guild-info-card">
-                  <h3>General</h3>
+                  <h3>{t("General")}</h3>
                   <div className="guild-info-grid">
-                    {infoItem('Guild', guild.guild_name || `Guild ${guild.guild_id}`)}
+                    {infoItem('Guild', guild.guild_name || t("Guild {0}", { 0: guild.guild_id }))}
                     {infoItem('Guild ID', guild.guild_id, 'mono')}
                     {infoItem('Language', guild.language)}
                     {infoItem('Guild Admins', `${admins.length} admins`)}
                   </div>
                 </div>
                 <div className="guild-info-card">
-                  <h3>Channels</h3>
+                  <h3>{t("Channels")}</h3>
                   <div className="guild-info-grid">
                     {infoItem('Log Channel', guild.log_channel_id || 'Not set', 'mono')}
                     {infoItem('Roller Channel', guild.roller_channel_id || 'Not set', 'mono')}
@@ -1183,9 +1174,9 @@ export function AdminPage() {
                   </div>
                 </div>
                 <div className="guild-info-card">
-                  <h3>Admin User IDs</h3>
+                  <h3>{t("Admin User IDs")}</h3>
                   {admins.length === 0
-                    ? <p className="text-muted">No guild admins configured</p>
+                    ? <p className="text-muted">{t("No guild admins configured")}</p>
                     : (
                       <ul className="voice-channel-list">
                         {admins.map(id => (
@@ -1195,15 +1186,15 @@ export function AdminPage() {
                     )}
                 </div>
                 <div className="guild-info-card">
-                  <h3>{`Private Voice Channels (${voiceChannels.length})`}</h3>
+                  <h3>{t("Private Voice Channels ({0})", { 0: voiceChannels.length })}</h3>
                   {voiceChannels.length === 0
-                    ? <p className="text-muted">No private voice channels</p>
+                    ? <p className="text-muted">{t("No private voice channels")}</p>
                     : (
                       <ul className="voice-channel-list">
                         {voiceChannels.map(channel => (
                           <li key={channel.channel_id}>
-                            <span>Channel: <span className="mono">{channel.channel_id}</span></span>
-                            <span className="vc-owner">{`Owner: ${channel.owner_id}`}</span>
+                            <span>{t("Channel: ")}<span className="mono">{channel.channel_id}</span></span>
+                            <span className="vc-owner">{t("Owner: {0}", { 0: channel.owner_id })}</span>
                           </li>
                         ))}
                       </ul>
@@ -1214,7 +1205,7 @@ export function AdminPage() {
           })()}
         </div>
         <div className="modal-footer">
-          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setGuildDetail(null)}>Close</button>
+          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setGuildDetail(null)}>{t("Close")}</button>
         </div>
       </Modal>
 
@@ -1225,10 +1216,10 @@ export function AdminPage() {
         className="confirm-box"
         onClose={() => setConfirm(null)}
       >
-        <h3 id="confirmTitle">{confirm?.title}</h3>
-        <p id="confirmMsg">{confirm?.message}</p>
+        <h3 id="confirmTitle">{t(confirm?.title)}</h3>
+        <p id="confirmMsg">{t(confirm?.message)}</p>
         <div className="btn-group">
-          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setConfirm(null)}>Cancel</button>
+          <button className="btn btn-outline" type="button" data-dialog-close onClick={() => setConfirm(null)}>{t("Cancel")}</button>
           <button
             className="btn btn-danger"
             id="confirmOkBtn"
@@ -1239,9 +1230,7 @@ export function AdminPage() {
               setConfirm(null);
               await callback?.();
             })}
-          >
-            Delete
-          </button>
+          >{t("Delete")}</button>
         </div>
       </Modal>
 

@@ -36,6 +36,26 @@ LiuLianBot is a Discord bot and companion website for gaming communities. It pro
 - Discord server managers can configure the temporary private-voice trigger channel from the website dashboard
 - One shared dark design system for every page: a console-style frame (left navigation rail plus top bar), KPI cards, list/table panels with filters and pagination, and consistent buttons, forms, modals and empty states
 - Responsive navigation remembers the desktop rail preference, turns into a keyboard-friendly mobile drawer, and keeps guest-only screens clear about sign-in requirements
+- Refreshed dashboard and mobile-first sign-in screens, password visibility controls, safe return-to-page links after login/terms acceptance, retryable dashboard errors, and stacked dismissible notifications
+- Public scripts, styles, images and vendor assets bypass session database reads and expiry updates; protected HTML keeps its authorization checks and revalidation policy
+- English / Hong Kong Traditional Chinese (`zh-HK`, also accepts `zh_hk`) interface selection on every page, remembered in the browser without resetting forms or remote sessions
+
+### Website language
+
+Use the language selector in the top bar (or above standalone login/share pages)
+to choose **English** or **繁體中文（香港）**. The first visit follows the browser's
+first supported language; Chinese language preferences use `zh-HK`, with English
+as the fallback. A manual choice is stored as `liulianbot.locale` in localStorage.
+If storage is blocked, switching still works for the current page.
+
+Interface labels, accessible names, common status messages and event date
+formatting follow the selection. User names, filenames, event content, game data,
+connection values and original legal documents retain their source content;
+unrecognized server diagnostics also remain unchanged. This preference affects
+the website only, independently of each Discord server's bot language.
+Translations live in `website-part/frontend/src/locales/zh-HK.mjs`; use `t()` for
+interface copy and `message()` for interpolated messages stored in component
+state so existing notifications can change language without losing user data.
 
 ## Project structure
 
@@ -548,6 +568,19 @@ npm run check
 bundle, and runs the complete Node.js test suite. The Node.js tests inject
 database fakes where needed, so they do not require a live MySQL server or start
 the production server.
+
+To check the built website in Chromium, run `npm run build` followed by:
+
+```bash
+WEBSITE_BROWSER_PATH=/path/to/chromium npm run test:website-browser
+```
+
+This smoke test uses local API fixtures and the production Content Security
+Policy to exercise desktop/mobile layouts, navigation, event filters, failed
+request recovery and login controls. It needs no database or real credentials.
+Set `WEBSITE_SCREENSHOT_DIR` to a directory outside the repository to save
+screenshots. In containers without Chromium sandbox support, the test alone can
+use `WEBSITE_BROWSER_NO_SANDBOX=1`; normal browser launches retain the sandbox.
 
 Run the Ruff command from the repository root so both the Discord bot and shared
 Python modules are checked together. The configured baseline includes import,

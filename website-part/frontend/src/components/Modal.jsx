@@ -21,8 +21,11 @@ export function Modal({
 
   useEffect(() => {
     const element = overlayRef.current;
+    const candidates = [...element.ownerDocument.querySelectorAll('.app-shell, nav, main')];
     const controller = createDialog(element, {
-      background: element.ownerDocument.querySelectorAll('nav, main'),
+      // Include the shell's top bar and drawer controls. The modal is portalled
+      // outside the shell, so the complete background can safely become inert.
+      background: candidates.filter(node => !candidates.some(parent => parent !== node && parent.contains(node))),
     });
     controllerRef.current = controller;
 

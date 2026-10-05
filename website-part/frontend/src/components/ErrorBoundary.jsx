@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n.mjs';
 import { Component } from 'react';
 
 // A page-level error boundary: one broken screen should never blank the whole
@@ -26,13 +27,11 @@ export class ErrorBoundary extends Component {
 
     return (
       <main className="error-page error-boundary" id="main-content" role="alert">
-        <h1>Something went wrong</h1>
-        <p>This page could not be displayed. You can retry or return to the dashboard.</p>
+        <h1>{t("Something went wrong")}</h1>
+        <p>{t("This page could not be displayed. You can retry or return to the dashboard.")}</p>
         <div className="error-actions">
-          <button className="btn btn-primary" type="button" onClick={this.retry}>
-            Try again
-          </button>
-          <a className="btn btn-outline" href="/">Go Home</a>
+          <button className="btn btn-primary" type="button" onClick={this.retry}>{t("Try again")}</button>
+          <a className="btn btn-outline" href="/">{t("Go Home")}</a>
         </div>
       </main>
     );

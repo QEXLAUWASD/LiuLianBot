@@ -1,3 +1,4 @@
+import { t, message, useLocale } from '../lib/i18n.mjs';
 import { useEffect, useState } from 'react';
 import { ApiError, requestJSON } from '../lib/apiClient.mjs';
 import { authState } from '../lib/authStore.mjs';
@@ -7,6 +8,7 @@ import { useAsyncAction } from '../hooks/useAsyncAction.mjs';
 const EMPTY_STATUS = { message: '', tone: '' };
 
 export function AccountPage() {
+  useLocale();
   const [username, setUsername] = useState('');
   const [usernamePassword, setUsernamePassword] = useState('');
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
@@ -21,7 +23,7 @@ export function AccountPage() {
   const loadDiscordLink = async () => {
     const data = await requestJSON('/api/auth/discord-link');
     setDiscord({
-      message: data.linked ? `Linked Discord user ${data.discordUserId}` : 'Not linked',
+      message: data.linked ? message("Linked Discord user {0}", { 0: data.discordUserId }) : 'Not linked',
       tone: '',
       code: '',
       linked: Boolean(data.linked),
@@ -119,7 +121,7 @@ export function AccountPage() {
         setDiscord({
           message: 'Code generated.',
           tone: 'success',
-          code: `Run >link ${data.code} in Discord within 10 minutes.`,
+          code: message("Run >link {0} in Discord within 10 minutes.", { 0: data.code }),
           linked: false,
         });
       } catch (error) {
@@ -142,15 +144,15 @@ export function AccountPage() {
   return (
     <main className="main-content" id="main-content">
       <div className="account-container">
-        <h2>Account settings</h2>
-        <p className="account-desc">Manage your sign-in details.</p>
+        <h2>{t("Account settings")}</h2>
+        <p className="account-desc">{t("Manage your sign-in details.")}</p>
 
         <div className="account-grid">
           <section className="settings-card" aria-labelledby="usernameHeading">
-            <h3 id="usernameHeading">Change username</h3>
+            <h3 id="usernameHeading">{t("Change username")}</h3>
             <form id="usernameForm" onSubmit={submitUsername}>
               <div className="form-group">
-                <label htmlFor="newUsername">Username</label>
+                <label htmlFor="newUsername">{t("Username")}</label>
                 <input
                   type="text"
                   id="newUsername"
@@ -163,7 +165,7 @@ export function AccountPage() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="usernameCurrentPassword">Current password</label>
+                <label htmlFor="usernameCurrentPassword">{t("Current password")}</label>
                 <input
                   type="password"
                   id="usernameCurrentPassword"
@@ -183,17 +185,15 @@ export function AccountPage() {
                 className="btn btn-primary"
                 disabled={!ready || usernameAction.busy}
                 aria-busy={!ready || usernameAction.busy}
-              >
-                Save username
-              </button>
+              >{t("Save username")}</button>
             </form>
           </section>
 
           <section className="settings-card" aria-labelledby="passwordHeading">
-            <h3 id="passwordHeading">Change password</h3>
+            <h3 id="passwordHeading">{t("Change password")}</h3>
             <form id="passwordForm" onSubmit={submitPassword}>
               <div className="form-group">
-                <label htmlFor="passwordCurrentPassword">Current password</label>
+                <label htmlFor="passwordCurrentPassword">{t("Current password")}</label>
                 <input
                   type="password"
                   id="passwordCurrentPassword"
@@ -204,7 +204,7 @@ export function AccountPage() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="newPassword">New password</label>
+                <label htmlFor="newPassword">{t("New password")}</label>
                 <input
                   type="password"
                   id="newPassword"
@@ -217,7 +217,7 @@ export function AccountPage() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm new password</label>
+                <label htmlFor="confirmPassword">{t("Confirm new password")}</label>
                 <input
                   type="password"
                   id="confirmPassword"
@@ -239,23 +239,19 @@ export function AccountPage() {
                 className="btn btn-primary"
                 disabled={!ready || passwordAction.busy}
                 aria-busy={!ready || passwordAction.busy}
-              >
-                Save password
-              </button>
+              >{t("Save password")}</button>
             </form>
           </section>
 
           <section className="settings-card" aria-labelledby="discordHeading">
-            <h3 id="discordHeading">Connect Discord</h3>
-            <p className="account-desc">
-              Link this account so Discord event commands use the same signup.
-            </p>
+            <h3 id="discordHeading">{t("Connect Discord")}</h3>
+            <p className="account-desc">{t("Link this account so Discord event commands use the same signup.")}</p>
             <StatusMessage
               id="discordLinkState"
               message={discord.message}
               tone={discord.tone}
             />
-            <div id="discordLinkCode" className="link-code" hidden={!discord.code}>{discord.code}</div>
+            <div id="discordLinkCode" className="link-code" hidden={!discord.code}>{t(discord.code)}</div>
             <button
               id="generateDiscordLink"
               className="btn btn-primary"
@@ -263,9 +259,7 @@ export function AccountPage() {
               hidden={discord.linked}
               disabled={!ready || discordAction.busy}
               onClick={generateDiscordLink}
-            >
-              Generate link code
-            </button>
+            >{t("Generate link code")}</button>
             <button
               id="unlinkDiscord"
               className="btn btn-outline"
@@ -273,9 +267,7 @@ export function AccountPage() {
               hidden={!discord.linked}
               disabled={!ready || discordAction.busy}
               onClick={unlinkDiscord}
-            >
-              Unlink Discord
-            </button>
+            >{t("Unlink Discord")}</button>
           </section>
         </div>
       </div>

@@ -1,19 +1,53 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useEffect, useState } from 'react';
 import { requestJSON } from '../lib/apiClient.mjs';
+import { authDestination } from '../lib/authDestination.mjs';
 import { TabList, TabPanel, useTabs } from '../components/Tabs.jsx';
 import { StatusMessage } from '../components/StatusMessage.jsx';
 import { useAsyncAction } from '../hooks/useAsyncAction.mjs';
 
-export function postAuthDestination(search = globalThis.location?.search || '') {
-  const next = new URLSearchParams(search).get('next');
-  return next && next.startsWith('/connect/') ? next : '/index.html';
+export function postAuthDestination(search) {
+  return authDestination(search);
+}
+
+function authErrorMessage(error, fallback) {
+  if (error?.code === 'NETWORK_ERROR') return 'Unable to connect. Check your connection and try again.';
+  if (error?.status === 429) return 'Too many attempts. Please wait a few minutes before trying again.';
+  if (error?.status >= 500) return 'The server is temporarily unavailable. Please try again shortly.';
+  return error?.message || fallback;
+}
+
+function PasswordField({ id, label, visible, onToggle, ...inputProps }) {
+  useLocale();
+  return (
+    <div className="auth-password-field">
+      <input id={id} type={visible ? 'text' : 'password'} {...inputProps} />
+      <button
+        className="auth-password-toggle"
+        type="button"
+        aria-label={t(label)}
+        aria-pressed={visible}
+        aria-controls={id}
+        disabled={inputProps.disabled}
+        onClick={onToggle}
+      >
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+          {visible && <path d="m3 3 18 18" />}
+        </svg>
+      </button>
+    </div>
+  );
 }
 
 export function LoginPage() {
+  useLocale();
+  const action = useAsyncAction();
   const tabs = useTabs({
     items: [
-      { id: 'login', label: 'Login', tabId: 'login-tab', panelId: 'loginForm' },
-      { id: 'register', label: 'Register', tabId: 'register-tab', panelId: 'registerForm' },
+      { id: 'login', label: 'Login', tabId: 'login-tab', panelId: 'loginForm', disabled: action.busy },
+      { id: 'register', label: 'Register', tabId: 'register-tab', panelId: 'registerForm', disabled: action.busy },
     ],
     initialId: 'login',
   });
@@ -22,13 +56,11 @@ export function LoginPage() {
   const [loginError, setLoginError] = useState('');
   const [registerError, setRegisterError] = useState('');
   const [termsRequired, setTermsRequired] = useState(true);
-  const loginAction = useAsyncAction();
-  const registerAction = useAsyncAction();
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   useEffect(() => {
     let active = true;
-    fetch('/api/auth/terms-status')
-      .then(response => (response.ok ? response.json() : null))
+    requestJSON('/api/auth/terms-status')
       .then(data => {
         if (active && data?.required === false) setTermsRequired(false);
       })
@@ -41,12 +73,13 @@ export function LoginPage() {
   useEffect(() => {
     setLoginError('');
     setRegisterError('');
+    setPasswordVisible(false);
   }, [tabs.activeId]);
 
   const submitLogin = event => {
     event.preventDefault();
     setLoginError('');
-    loginAction.run(async () => {
+    action.run(async () => {
       try {
         const data = await requestJSON('/api/auth/login', {
           method: 'POST',
@@ -59,14 +92,15 @@ export function LoginPage() {
         });
 
         if (data?.success) {
+          const destination = postAuthDestination();
           globalThis.location.href = data.termsRequired
-            ? '/terms.html?next=/index.html'
-            : postAuthDestination();
+            ? `/terms.html?next=${encodeURIComponent(destination)}`
+            : destination;
         } else {
-          setLoginError('Login failed');
+          setLoginError('Unable to sign in. Please try again.');
         }
       } catch (error) {
-        setLoginError(error.message || 'Login failed');
+        setLoginError(authErrorMessage(error, 'Unable to sign in. Please try again.'));
       }
     });
   };
@@ -76,20 +110,20 @@ export function LoginPage() {
     setRegisterError('');
 
     const username = register.username.trim();
-    if (username.length < 3) {
-      setRegisterError('Username must be at least 3 characters');
+    if (username.length < 3 || username.length > 20) {
+      setRegisterError('Username must be 3–20 characters.');
       return;
     }
-    if (register.password.length < 8) {
-      setRegisterError('Password must be at least 8 characters');
+    if (register.password.length < 8 || register.password.length > 128) {
+      setRegisterError('Password must be 8–128 characters.');
       return;
     }
     if (termsRequired && !register.termsAccepted) {
-      setRegisterError('You must accept the Terms of Service and Privacy Policy');
+      setRegisterError('Please accept the Terms of Service and Privacy Policy to continue.');
       return;
     }
 
-    registerAction.run(async () => {
+    action.run(async () => {
       try {
         const data = await requestJSON('/api/auth/register', {
           method: 'POST',
@@ -104,59 +138,71 @@ export function LoginPage() {
         if (data?.success) {
           globalThis.location.href = postAuthDestination();
         } else {
-          setRegisterError('Registration failed');
+          setRegisterError('Unable to create your account. Please try again.');
         }
       } catch (error) {
-        setRegisterError(error.message || 'Registration failed');
+        setRegisterError(authErrorMessage(error, 'Unable to create your account. Please try again.'));
       }
     });
   };
 
   return (
     <main className="auth-container" id="main-content">
-      <aside className="auth-aside">
-        <p className="page-eyebrow">LiuLianBot</p>
-        <h2>Your home server, one sign-in away.</h2>
-        <p>
-          Sign in to roll Rainbow Six picks, plan events, browse the FnOS file
-          browser and open remote sessions to your own machines.
-        </p>
-        <ul>
-          <li><span aria-hidden="true">🎯</span> Operator and map rollers shared with the Discord bot</li>
-          <li><span aria-hidden="true">🗂️</span> FnOS file browser with expiring share links</li>
-          <li><span aria-hidden="true">🖥️</span> SSH, RDP and Chromium workspaces for linked accounts</li>
+      <aside className="auth-aside" aria-label={t("About LiuLianBot")}>
+        <a className="auth-brand" href="/index.html">
+          <span className="auth-brand-mark" aria-hidden="true">L</span>
+          <span>LiuLianBot<span className="auth-brand-caption">{t("YOUR PERSONAL WORKSPACE")}</span></span>
+        </a>
+        <p className="page-eyebrow auth-eyebrow">{t("Play. Connect. Get things done.")}</p>
+        <h2>{t("Your server.")}<br /><span>{t("All together.")}</span></h2>
+        <p className="auth-intro">{t("From your next Rainbow Six pick to your home server. A familiar place for everything you do.")}</p>
+        <ul className="auth-features">
+          <li><span className="auth-feature-number" aria-hidden="true">01</span><div><strong>{t("Make the next pick")}</strong><p>{t("Roll operators and maps. Plan your next game.")}</p></div></li>
+          <li><span className="auth-feature-number" aria-hidden="true">02</span><div><strong>{t("Keep your files close")}</strong><p>{t("Browse FnOS and share files with expiring links.")}</p></div></li>
+          <li><span className="auth-feature-number" aria-hidden="true">03</span><div><strong>{t("Connect to your machines")}</strong><p>{t("Open SSH, RDP and browser sessions in one place.")}</p></div></li>
         </ul>
       </aside>
 
       <div className="auth-card tabs">
-        <h1>🎮 LiuLianBot</h1>
-        <p className="subtitle">R6 Roller System</p>
+        <p className="page-eyebrow">{t("YOUR WORKSPACE")}</p>
+        <h1>{tabs.activeId === 'login' ? t("Welcome back.") : t("Make yourself at home.")}</h1>
+        <p className="subtitle">
+          {tabs.activeId === 'login' ? t("Sign in to pick up where you left off.") : t("Create an account to get started.")}
+        </p>
 
-        <TabList tabs={tabs} label="Account access" />
+        <TabList tabs={tabs} label={t("Account access")} />
 
-        <TabPanel as="form" tabs={tabs} id="login" className="auth-form" onSubmit={submitLogin}>
+        <TabPanel as="form" tabs={tabs} id="login" className="auth-form" onSubmit={submitLogin} aria-busy={action.busy} aria-describedby="loginError">
           <div className="form-group">
-            <label htmlFor="loginUsername">Username</label>
+            <label htmlFor="loginUsername">{t("Username")}</label>
             <input
               type="text"
               id="loginUsername"
-              placeholder="Enter username"
+              name="username"
+              placeholder={t("Enter your username")}
               required
-              minLength="3"
+              minLength={3}
+              maxLength={20}
               autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              disabled={action.busy}
               value={login.username}
               onChange={event => setLogin({ ...login, username: event.target.value })}
             />
           </div>
           <div className="form-group">
-            <label htmlFor="loginPassword">Password</label>
-            <input
-              type="password"
+            <label htmlFor="loginPassword">{t("Password")}</label>
+            <PasswordField
               id="loginPassword"
-              placeholder="Enter password"
+              name="password"
+              label={t("Show login password")}
+              visible={passwordVisible && tabs.activeId === 'login'}
+              onToggle={() => setPasswordVisible(value => !value)}
+              placeholder={t("Enter your password")}
               required
-              minLength="6"
               autoComplete="current-password"
+              disabled={action.busy}
               value={login.password}
               onChange={event => setLogin({ ...login, password: event.target.value })}
             />
@@ -165,79 +211,81 @@ export function LoginPage() {
             <input
               type="checkbox"
               id="rememberLogin"
+              disabled={action.busy}
               checked={login.remember}
               onChange={event => setLogin({ ...login, remember: event.target.checked })}
             />
-            <span>Remember me for 30 days</span>
+            <span>{t("Remember me for 30 days")}</span>
           </label>
-          <StatusMessage
-            className="error-msg"
-            id="loginError"
-            message={loginError}
-            role="alert"
-            live="assertive"
-          />
-          <button type="submit" className="btn btn-primary" disabled={loginAction.busy} aria-busy={loginAction.busy}>
-            Login
+          <StatusMessage className="error-msg" id="loginError" message={loginError} role="alert" live="assertive" />
+          <button type="submit" className="btn btn-primary" disabled={action.busy} aria-busy={action.busy}>
+            {action.busy ? t("Signing in…") : t("Sign in")}
+            {!action.busy && <span aria-hidden="true">→</span>}
           </button>
         </TabPanel>
 
-        <TabPanel as="form" tabs={tabs} id="register" className="auth-form" onSubmit={submitRegister}>
+        <TabPanel as="form" tabs={tabs} id="register" className="auth-form" onSubmit={submitRegister} aria-busy={action.busy} aria-describedby="regError">
           <div className="form-group">
-            <label htmlFor="regUsername">Username</label>
+            <label htmlFor="regUsername">{t("Username")}</label>
             <input
               type="text"
               id="regUsername"
-              placeholder="3-20 characters"
+              name="username"
+              placeholder={t("Choose a username")}
               required
-              minLength="3"
-              maxLength="20"
+              minLength={3}
+              maxLength={20}
               autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-describedby="regUsernameHint"
+              disabled={action.busy}
               value={register.username}
               onChange={event => setRegister({ ...register, username: event.target.value })}
             />
+            <p className="auth-field-hint" id="regUsernameHint">{t("3–20 characters.")}</p>
           </div>
           <div className="form-group">
-            <label htmlFor="regPassword">Password</label>
-            <input
-              type="password"
+            <label htmlFor="regPassword">{t("Password")}</label>
+            <PasswordField
               id="regPassword"
-              placeholder="8-128 characters"
+              name="password"
+              label={t("Show new password")}
+              visible={passwordVisible && tabs.activeId === 'register'}
+              onToggle={() => setPasswordVisible(value => !value)}
+              placeholder={t("Create a password")}
               required
-              minLength="8"
-              maxLength="128"
+              minLength={8}
+              maxLength={128}
               autoComplete="new-password"
+              aria-describedby="regPasswordHint"
+              disabled={action.busy}
               value={register.password}
               onChange={event => setRegister({ ...register, password: event.target.value })}
             />
+            <p className="auth-field-hint" id="regPasswordHint">{t("8–128 characters. Choose a unique password.")}</p>
           </div>
           <label className="remember-row" id="termsAcceptanceRow" htmlFor="termsAccepted" hidden={!termsRequired}>
             <input
               type="checkbox"
               id="termsAccepted"
               required={termsRequired}
+              disabled={action.busy}
               checked={register.termsAccepted}
               onChange={event => setRegister({ ...register, termsAccepted: event.target.checked })}
             />
-            <span>
-              I agree to the{' '}
-              <a href="/terms.html" target="_blank" rel="noopener">
-                Terms of Service and Privacy Policy
-              </a>
-              .
+            <span>{t("I agree to the")}{' '}
+              <a href="/terms.html" target="_blank" rel="noopener">{t("Terms of Service and Privacy Policy")}<span className="sr-only">{t(" (opens in a new tab)")}</span>
+              </a>.
             </span>
           </label>
-          <StatusMessage
-            className="error-msg"
-            id="regError"
-            message={registerError}
-            role="alert"
-            live="assertive"
-          />
-          <button type="submit" className="btn btn-primary" disabled={registerAction.busy} aria-busy={registerAction.busy}>
-            Register
+          <StatusMessage className="error-msg" id="regError" message={registerError} role="alert" live="assertive" />
+          <button type="submit" className="btn btn-primary" disabled={action.busy} aria-busy={action.busy}>
+            {action.busy ? t("Creating account…") : t("Create account")}
+            {!action.busy && <span aria-hidden="true">→</span>}
           </button>
         </TabPanel>
+        <p className="auth-footer">{t("Your games, files and connections. One account.")}</p>
       </div>
     </main>
   );

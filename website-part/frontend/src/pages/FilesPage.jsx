@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal } from '../components/Modal.jsx';
 import { StatusMessage } from '../components/StatusMessage.jsx';
@@ -39,6 +40,7 @@ function permissionLabel(user) {
 }
 
 export function FilesPage() {
+  useLocale();
   const [grant, setGrant] = useState(null);
   const [current, setCurrent] = useState('');
   const [entries, setEntries] = useState([]);
@@ -285,9 +287,9 @@ export function FilesPage() {
     <main className="main-content file-page" id="main-content">
       <header className="file-hero">
         <div>
-          <p className="panel-kicker">FNOS STORAGE</p>
+          <p className="panel-kicker">{t("FNOS STORAGE")}</p>
           <h1>檔案與資料夾</h1>
-          <p>瀏覽、儲存與分享你的檔案。</p>
+          <p>{t("瀏覽、儲存與分享你的檔案。")}</p>
         </div>
         <a className="btn btn-outline" href="/share.html">開啟分享碼</a>
       </header>
@@ -297,7 +299,7 @@ export function FilesPage() {
       {grant && !read && (
         <section id="accessPanel" className="file-panel">
           <h2>需要 LiuLian 授權</h2>
-          <p>請送出申請，待 LiuLian 核准後即可存取。</p>
+          <p>{t("請送出申請，待 LiuLian 核准後即可存取。")}</p>
           <button
             id="requestAccess"
             className="btn btn-primary"
@@ -370,7 +372,7 @@ export function FilesPage() {
                 disabled={uploading}
                 onChange={upload}
               />
-              <span>最多 1 GiB，同名檔案不會被覆蓋。</span>
+              <span>{t("最多 1 GiB，同名檔案不會被覆蓋。")}</span>
             </form>
           )}
 
@@ -383,7 +385,7 @@ export function FilesPage() {
                 onChange={event => setShareHours(event.target.value)}
               >
                 {SHARE_HOURS.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                  <option key={option.value} value={option.value}>{t(option.label)}</option>
                 ))}
               </select>
               <button
@@ -493,14 +495,14 @@ export function FilesPage() {
               </tbody>
             </table>
           </div>
-          <p id="emptyFiles" hidden={visibleEntries.length !== 0}>此資料夾沒有符合的項目。</p>
+          <p id="emptyFiles" hidden={visibleEntries.length !== 0}>{t("此資料夾沒有符合的項目。")}</p>
         </section>
       )}
 
       {shareResult && (
         <section id="shareResult" className="file-panel">
           <h2>分享已建立</h2>
-          <p>持有此碼的人可讀取分享內容；資料夾分享包含其子目錄。</p>
+          <p>{t("持有此碼的人可讀取分享內容；資料夾分享包含其子目錄。")}</p>
           <label htmlFor="shareCode">分享碼（僅顯示一次）</label>
           <input id="shareCode" readOnly value={shareResult.code} />
           <label htmlFor="shareLink">分享連結</label>
@@ -515,10 +517,10 @@ export function FilesPage() {
       {canShare && (
         <section id="sharesPanel" className="file-panel">
           <h2>有效分享</h2>
-          <p>LiuLian 可查看及撤銷所有分享；其他使用者只能管理自己建立的分享。</p>
+          <p>{t("LiuLian 可查看及撤銷所有分享；其他使用者只能管理自己建立的分享。")}</p>
           <div id="shareRows">
             {shares.length === 0
-              ? '目前沒有有效分享。'
+              ? t("目前沒有有效分享。")
               : shares.map(item => (
                 <div className="file-record" key={item.id}>
                   <span>{`${item.name} · 到期 ${formatTime(item.expires_at)}`}</span>
@@ -533,15 +535,15 @@ export function FilesPage() {
 
       {grant?.owner && (
         <section id="permissionsPanel" className="file-panel">
-          <h2>帳號授權</h2>
+          <h2>{t("帳號授權")}</h2>
           <p>權限適用於所有 /vol*/1000 目錄。寫入與分享權限均需要讀取權限。</p>
           <form id="permissionForm" onSubmit={savePermissions}>
-            <label htmlFor="grantUsername">網站帳號</label>
+            <label htmlFor="grantUsername">{t("網站帳號")}</label>
             <input
               id="grantUsername"
               maxLength="20"
               required
-              placeholder="輸入要授權的帳號"
+              placeholder={t("輸入要授權的帳號")}
               value={grantForm.username}
               onChange={event => setGrantForm({ ...grantForm, username: event.target.value })}
             />
@@ -580,9 +582,7 @@ export function FilesPage() {
             {shareUsers.map(user => (
               <div className="file-record" key={user.user_id}>
                 <span>{`${user.username} · ${permissionLabel(user)}`}</span>
-                <button className="btn btn-outline" type="button" onClick={() => loadGrantForm(user)}>
-                  編輯／核准
-                </button>
+                <button className="btn btn-outline" type="button" onClick={() => loadGrantForm(user)}>{t("編輯／核准")}</button>
                 <button className="btn btn-outline" type="button" onClick={() => revokePermissions(user)}>
                   撤銷全部權限
                 </button>

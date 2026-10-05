@@ -1,5 +1,23 @@
 # Patch notes
 
+## Hong Kong Traditional Chinese interface (since `c57699a`, 2026-10-05)
+
+- Added `zh-HK` / English selection throughout the website, including standalone login/share pages; accepts `zh_hk`, follows supported browser preferences initially and remembers manual choices with a blocked-storage fallback.
+- Added an explicit React translation catalog for navigation, dashboard, login/register, accounts, events, administration, rollers and the existing Chinese tool pages. Language changes preserve mounted forms, filters and connections; account/event/file content and protocol values remain untouched.
+- Localized accessible labels, page titles, common status messages, interpolated notifications and Hong Kong event-date formatting. Original legal text keeps its `zh-Hant` language annotation; unknown diagnostics retain their source wording.
+- Added six localization regression tests and extended browser smoke coverage for form preservation, cross-page/reload persistence, English restoration and mobile layout. Updated both README files and rebuilt tracked frontend assets; no dependency or `.gitignore` changes needed.
+- Validation: `npm run check` passes all 345 tests; Chromium desktop/mobile smoke with production CSP passes in English and `zh-HK`. Checks use local API fixtures; Production deployment has not been performed.
+
+## Website review, usability and delivery performance (since `c57699a`, 2026-10-05)
+
+- Refreshed dashboard and login layouts with focused page styles, a lighter CSS-only hero illustration, compact mobile statistics, readable horizontally scrolling tables, and a sign-in form that appears first on mobile.
+- Dashboard authentication/loading/error/empty states are distinct. Failed API reads retain unknown counts instead of reporting zero, events and websites can retry independently, pending requests abort on cleanup, and hidden event pages do not display event data. Added clear-filter controls and live result counts.
+- Login and terms acceptance share safe return-path validation, preserve the original page/query/hash, and reject external or browser-normalized redirect bypasses. Added password visibility controls, actionable errors and submission guards while keeping existing short-password accounts compatible.
+- Fixed navigation keyboard menus, hidden-item focus traps, website-list retries and mobile-to-desktop drawer cleanup. Modals also lock the top bar; notifications stack without overlapping and have keyboard-accessible dismiss buttons. Concurrent page-visibility reads share one pending request.
+- Public JS/CSS/image/vendor requests now bypass session middleware. Integration tests verify zero session reads/touches for GET, HEAD and 304, while private HTML and proxy routing retain their guards. HTML revalidates with `no-cache`; share pages retain `no-store`.
+- Added `npm run test:website-browser` with deterministic local API fixtures and production CSP; updated both README files and rebuilt tracked `public/` assets. No new runtime dependencies or ignore rules were needed; screenshots and browser libraries remain outside the repository.
+- Validation: `npm run check` passes (339 tests, 29 added), Chromium desktop/mobile smoke passes, dashboard/login axe WCAG A/AA checks report no violations, and `git diff --check` passes. Browser checks use fixtures; no live MySQL, production login or real remote-host session was exercised. Production deployment has not been performed.
+
 ## WebRDP 解碼器 CSP 相容性修正（基準：`3200c13`，2026-09-28）
 
 - 修正舊版 RLE 解碼器初始化使用 `eval`，遭正式環境的 `script-src 'self'` 阻擋，導致顯示「畫面解碼器尚未就緒，請重新整理頁面」的問題。改為直接初始化並保留既有 Module 設定。

@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useState } from 'react';
 import { requestJSON } from '../lib/apiClient.mjs';
 import { TabList, TabPanel, useTabs } from '../components/Tabs.jsx';
@@ -8,17 +9,19 @@ export const FALLBACK_ICON = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org
 const HISTORY_LIMIT = 20;
 
 function ResultError({ message }) {
+  useLocale();
   return (
     <div className="result-card">
-      <p className="status-error" role="alert">{`❌ ${message}`}</p>
+      <p className="status-error" role="alert">{`❌ ${t(message)}`}</p>
     </div>
   );
 }
 
 function LoadoutItem({ label, value }) {
+  useLocale();
   return (
     <div className="loadout-item">
-      <span className="label">{label}</span>
+      <span className="label">{t(label)}</span>
       <span className="value">{value}</span>
     </div>
   );
@@ -29,10 +32,11 @@ function sideClass(operator) {
 }
 
 function OperatorResult({ operator }) {
+  useLocale();
   if (!operator) {
     return (
       <div className="result-placeholder">
-        <p>Click &quot;Roll Operator&quot; to get started!</p>
+        <p>{t("Click \"Roll Operator\" to get started!")}</p>
       </div>
     );
   }
@@ -44,7 +48,7 @@ function OperatorResult({ operator }) {
       <img
         className={`op-icon ${className}`}
         src={operator.icon || FALLBACK_ICON}
-        alt={operator.name || 'Operator'}
+        alt={operator.name || t("Operator")}
         width="98"
         height="98"
         onError={event => {
@@ -52,21 +56,22 @@ function OperatorResult({ operator }) {
         }}
       />
       <div className="op-name">{operator.name}</div>
-      <span className={`op-side ${className}`}>{operator.side}</span>
+      <span className={`op-side ${className}`}>{t(operator.side)}</span>
       <div className="loadout">
-        <LoadoutItem label="Primary" value={operator.primary} />
-        <LoadoutItem label="Secondary" value={operator.secondary} />
-        <LoadoutItem label="Gadget" value={operator.gadget} />
+        <LoadoutItem label={t("Primary")} value={operator.primary} />
+        <LoadoutItem label={t("Secondary")} value={operator.secondary} />
+        <LoadoutItem label={t("Gadget")} value={operator.gadget} />
       </div>
     </div>
   );
 }
 
 function MapResult({ map }) {
+  useLocale();
   if (!map) {
     return (
       <div className="result-placeholder">
-        <p>Click &quot;Roll Map&quot; to get started!</p>
+        <p>{t("Click \"Roll Map\" to get started!")}</p>
       </div>
     );
   }
@@ -78,14 +83,15 @@ function MapResult({ map }) {
       <div className="map-name">{map.name}</div>
       <div className="map-location">{`📍 ${map.location}`}</div>
       <div className="map-details">
-        <div className="map-detail"><span>Mode:</span>{` ${map.gameMode}`}</div>
-        <div className="map-detail"><span>Playlist:</span>{` ${map.playlist}`}</div>
+        <div className="map-detail"><span>{t("Mode:")}</span>{` ${map.gameMode}`}</div>
+        <div className="map-detail"><span>{t("Playlist:")}</span>{` ${map.playlist}`}</div>
       </div>
     </div>
   );
 }
 
 function OperatorHistory({ history }) {
+  useLocale();
   if (history.length === 0) return null;
   return (
     <div className="history-list">
@@ -109,6 +115,7 @@ function OperatorHistory({ history }) {
 }
 
 function MapHistory({ history }) {
+  useLocale();
   if (history.length === 0) return null;
   return (
     <div className="history-list">
@@ -123,6 +130,7 @@ function MapHistory({ history }) {
 }
 
 export function RollerPage({ search = globalThis.location?.search || '' }) {
+  useLocale();
   const initialTab = new URLSearchParams(search).get('tab') === 'map' ? 'map' : 'operator';
   const tabs = useTabs({
     items: [
@@ -166,9 +174,9 @@ export function RollerPage({ search = globalThis.location?.search || '' }) {
   return (
     <main className="main-content" id="main-content">
       <div className="roller-container tabs">
-        <h2>🎲 R6 Roller</h2>
+        <h2>{t("🎲 R6 Roller")}</h2>
 
-        <TabList tabs={tabs} label="Roll type" />
+        <TabList tabs={tabs} label={t("Roll type")} />
 
         <TabPanel tabs={tabs} id="operator">
           <div className="roller-controls">
@@ -180,7 +188,7 @@ export function RollerPage({ search = globalThis.location?.search || '' }) {
                 checked={side === ''}
                 onChange={() => setSide('')}
               />
-              {' Both Sides'}
+              {t(' Both Sides')}
             </label>
             <label>
               <input
@@ -190,7 +198,7 @@ export function RollerPage({ search = globalThis.location?.search || '' }) {
                 checked={side === 'att'}
                 onChange={() => setSide('att')}
               />
-              {' Attacker Only'}
+              {t(' Attacker Only')}
             </label>
             <label>
               <input
@@ -200,7 +208,7 @@ export function RollerPage({ search = globalThis.location?.search || '' }) {
                 checked={side === 'def'}
                 onChange={() => setSide('def')}
               />
-              {' Defender Only'}
+              {t(' Defender Only')}
             </label>
             <button
               id="rollOpBtn"
@@ -209,7 +217,7 @@ export function RollerPage({ search = globalThis.location?.search || '' }) {
               disabled={operatorAction.busy}
               onClick={rollOperator}
             >
-              {operatorAction.busy ? '🎯 Rolling...' : '🎯 Roll Operator'}
+              {operatorAction.busy ? t("🎯 Rolling...") : t("🎯 Roll Operator")}
             </button>
           </div>
 
@@ -218,7 +226,7 @@ export function RollerPage({ search = globalThis.location?.search || '' }) {
           </div>
 
           <div id="opHistory" className="roll-history">
-            <h3>History</h3>
+            <h3>{t("History")}</h3>
             <div id="opHistoryList">
               <OperatorHistory history={operatorHistory} />
             </div>
@@ -234,7 +242,7 @@ export function RollerPage({ search = globalThis.location?.search || '' }) {
               disabled={mapAction.busy}
               onClick={rollMap}
             >
-              {mapAction.busy ? '🗺️ Rolling...' : '🗺️ Roll Map'}
+              {mapAction.busy ? t("🗺️ Rolling...") : t("🗺️ Roll Map")}
             </button>
           </div>
 
@@ -243,7 +251,7 @@ export function RollerPage({ search = globalThis.location?.search || '' }) {
           </div>
 
           <div id="mapHistory" className="roll-history">
-            <h3>History</h3>
+            <h3>{t("History")}</h3>
             <div id="mapHistoryList">
               <MapHistory history={mapHistory} />
             </div>

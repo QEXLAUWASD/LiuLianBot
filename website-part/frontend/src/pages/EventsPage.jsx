@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useEffect, useState } from 'react';
 import { requestJSON } from '../lib/apiClient.mjs';
 import { formatUtc8, utc8InputToIso } from '../lib/timeZone.mjs';
@@ -16,6 +17,7 @@ const EMPTY_FORM = {
 };
 
 export function EventCard({ event, onChanged }) {
+  useLocale();
   const joined = Boolean(Number(event.joined));
   const action = useAsyncAction();
 
@@ -33,9 +35,9 @@ export function EventCard({ event, onChanged }) {
           {`${event.mode} | ${formatUtc8(event.start_at || event.startAt)}`}
         </div>
         <h2>{event.title}</h2>
-        <p>{event.description || 'No additional notes.'}</p>
+        <p>{event.description || t("No additional notes.")}</p>
         <div className="event-detail">
-          {`Server ${event.guild_name || event.guild_id || event.guildId} | Host ${event.creator_username || 'You'}`}
+          {t("Server {0} | Host {1}", { 0: event.guild_name || event.guild_id || event.guildId, 1: event.creator_username || t('You') })}
         </div>
       </div>
       <div className="event-card-action">
@@ -46,7 +48,7 @@ export function EventCard({ event, onChanged }) {
           disabled={action.busy}
           onClick={toggle}
         >
-          {joined ? 'Leave' : 'Join'}
+          {joined ? t("Leave") : t("Join")}
         </button>
       </div>
     </article>
@@ -54,6 +56,7 @@ export function EventCard({ event, onChanged }) {
 }
 
 export function EventsPage() {
+  useLocale();
   const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [listStatus, setListStatus] = useState({ message: 'Loading events...', tone: '' });
@@ -109,8 +112,8 @@ export function EventsPage() {
     <main className="main-content events-page" id="main-content">
       <header className="page-heading">
         <div>
-          <h1>R6 Events</h1>
-          <p>Plan matches and keep one shared signup list with Discord.</p>
+          <h1>{t("R6 Events")}</h1>
+          <p>{t("Plan matches and keep one shared signup list with Discord.")}</p>
         </div>
         {isAdmin && (
           <button
@@ -121,18 +124,16 @@ export function EventsPage() {
               setPanelOpen(true);
               document.getElementById('eventTitle')?.focus();
             }}
-          >
-            Create event
-          </button>
+          >{t("Create event")}</button>
         )}
       </header>
 
       {isAdmin && (
         <section id="createEventPanel" className="event-form-panel" hidden={!panelOpen} aria-labelledby="createEventHeading">
-          <h2 id="createEventHeading">Create an event</h2>
+          <h2 id="createEventHeading">{t("Create an event")}</h2>
           <form id="eventForm" className="event-form" onSubmit={submit}>
             <div className="form-group">
-              <label htmlFor="eventTitle">Title</label>
+              <label htmlFor="eventTitle">{t("Title")}</label>
               <input
                 id="eventTitle"
                 maxLength="100"
@@ -142,7 +143,7 @@ export function EventsPage() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="eventMode">Mode</label>
+              <label htmlFor="eventMode">{t("Mode")}</label>
               <input
                 id="eventMode"
                 maxLength="30"
@@ -151,7 +152,7 @@ export function EventsPage() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="eventGuild">Discord server ID</label>
+              <label htmlFor="eventGuild">{t("Discord server ID")}</label>
               <input
                 id="eventGuild"
                 inputMode="numeric"
@@ -162,7 +163,7 @@ export function EventsPage() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="eventChannel">Reminder channel ID (optional)</label>
+              <label htmlFor="eventChannel">{t("Reminder channel ID (optional)")}</label>
               <input
                 id="eventChannel"
                 inputMode="numeric"
@@ -172,7 +173,7 @@ export function EventsPage() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="eventStart">Start time (UTC+8)</label>
+              <label htmlFor="eventStart">{t("Start time (UTC+8)")}</label>
               <input
                 id="eventStart"
                 type="datetime-local"
@@ -182,7 +183,7 @@ export function EventsPage() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="eventCapacity">Players</label>
+              <label htmlFor="eventCapacity">{t("Players")}</label>
               <input
                 id="eventCapacity"
                 type="number"
@@ -194,7 +195,7 @@ export function EventsPage() {
               />
             </div>
             <div className="form-group event-description">
-              <label htmlFor="eventDescription">Notes</label>
+              <label htmlFor="eventDescription">{t("Notes")}</label>
               <textarea
                 id="eventDescription"
                 maxLength="500"
@@ -205,9 +206,7 @@ export function EventsPage() {
             </div>
             <StatusMessage id="eventFormStatus" message={formStatus.message} tone={formStatus.tone} />
             <div className="form-actions">
-              <button className="btn btn-primary" type="submit" disabled={createAction.busy}>
-                Create
-              </button>
+              <button className="btn btn-primary" type="submit" disabled={createAction.busy}>{t("Create")}</button>
               <button
                 id="cancelCreateEvent"
                 className="btn btn-outline"
@@ -216,16 +215,14 @@ export function EventsPage() {
                   setPanelOpen(false);
                   setForm(EMPTY_FORM);
                 }}
-              >
-                Cancel
-              </button>
+              >{t("Cancel")}</button>
             </div>
           </form>
         </section>
       )}
 
       <StatusMessage id="eventsStatus" message={listStatus.message} tone={listStatus.tone} />
-      <section id="eventList" className="event-list" aria-label="Upcoming events">
+      <section id="eventList" className="event-list" aria-label={t("Upcoming events")}>
         {events.map(event => (
           <EventCard key={event.id} event={event} onChanged={load} />
         ))}

@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { requestJSON } from '../lib/apiClient.mjs';
 import { logout } from '../lib/authStore.mjs';
@@ -49,6 +50,15 @@ function isActiveLink(pathname, href) {
   return pathname === href || (href === '/index.html' && pathname === '/');
 }
 
+function isVisibleControl(node) {
+  if (node.closest('[hidden], [inert]')) return false;
+  for (let current = node; current; current = current.parentElement) {
+    const style = node.ownerDocument.defaultView?.getComputedStyle(current);
+    if (style?.display === 'none' || style?.visibility === 'hidden') return false;
+  }
+  return true;
+}
+
 export function NavBar({
   pathname = globalThis.location?.pathname || '',
   collapsed = false,
@@ -56,6 +66,7 @@ export function NavBar({
   onNavigate,
   onToggleCollapse,
 } = {}) {
+  useLocale();
   const { status, user, error } = useAuth();
   const pages = usePageVisibility();
   const signedIn = status === 'signed-in';
@@ -67,8 +78,8 @@ export function NavBar({
   const [openMenu, setOpenMenu] = useState('');
   const [connections, setConnections] = useState({ status: 'idle', items: [] });
   const navElementRef = useRef(null);
-  const navRef = useRef(null);
-  const toggleRef = useRef(null);
+  const menuToggles = useRef({});
+  const pendingMenuFocus = useRef(null);
   const [mobileDrawerHidden, setMobileDrawerHidden] = useState(false);
   const dropdownOpen = openMenu === 'websites';
 
@@ -88,7 +99,7 @@ export function NavBar({
     const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
     const trapFocus = event => {
       if (!mobileOpen || !media.matches || event.key !== 'Tab') return;
-      const focusable = [...nav.querySelectorAll(focusableSelector)].filter(node => !node.hidden);
+      const focusable = [...nav.querySelectorAll(focusableSelector)].filter(isVisibleControl);
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -102,8 +113,8 @@ export function NavBar({
     };
     update();
     let focusFrame;
+    nav.addEventListener('keydown', trapFocus);
     if (mobileOpen && media.matches) {
-      nav.addEventListener('keydown', trapFocus);
       const focusFirst = () => nav.querySelector('.nav-brand, .nav-link')?.focus();
       if (typeof globalThis.requestAnimationFrame === 'function') focusFrame = globalThis.requestAnimationFrame(focusFirst);
       else focusFirst();
@@ -128,28 +139,73 @@ export function NavBar({
   }, []);
 
   useEffect(() => {
-    if (!openMenu) return undefined;
-    const onKeyDown = event => {
-      if (event.key !== 'Escape') return;
-      setOpenMenu('');
-      toggleRef.current?.focus();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [openMenu]);
+    const edge = pendingMenuFocus.current;
+    if (!edge || !openMenu) return;
+    const toggle = menuToggles.current[openMenu];
+    const menu = document.getElementById(toggle?.getAttribute('aria-controls'));
+    if (document.activeElement !== toggle && !menu?.contains(document.activeElement)) {
+      pendingMenuFocus.current = null;
+      return;
+    }
+    const items = [...(menu?.querySelectorAll('[role="menuitem"]') || [])]
+      .filter(isVisibleControl);
+    if (!items.length) return;
+    pendingMenuFocus.current = null;
+    (edge === 'last' ? items.at(-1) : items[0]).focus();
+  }, [openMenu, connections]);
 
-  const toggleMenuSection = key => setOpenMenu(current => (current === key ? '' : key));
+  const toggleMenuSection = key => {
+    pendingMenuFocus.current = null;
+    setOpenMenu(current => (current === key ? '' : key));
+  };
 
-  const toggleWebsites = () => {
-    const next = dropdownOpen ? '' : 'websites';
-    setOpenMenu(next);
-    if (next !== 'websites' || connections.status !== 'idle') return;
+  const loadConnections = () => {
+    if (!['idle', 'error'].includes(connections.status)) return;
     setConnections({ status: 'loading', items: [] });
     requestJSON('/api/connections')
       .then(data => setConnections({ status: 'ready', items: data?.connections || [] }))
       .catch(() => setConnections({ status: 'error', items: [] }));
+  };
+
+  const toggleWebsites = () => {
+    toggleMenuSection('websites');
+    if (!dropdownOpen) loadConnections();
+  };
+
+  const onNavKeyDown = event => {
+    if (event.key === 'Escape' && openMenu) {
+      event.preventDefault();
+      event.stopPropagation();
+      pendingMenuFocus.current = null;
+      setOpenMenu('');
+      menuToggles.current[openMenu]?.focus();
+      return;
+    }
+    const toggleKey = Object.keys(menuToggles.current)
+      .find(key => menuToggles.current[key] === event.target);
+    if (toggleKey && ['ArrowDown', 'ArrowUp'].includes(event.key)) {
+      event.preventDefault();
+      const edge = event.key === 'ArrowUp' ? 'last' : 'first';
+      const menu = document.getElementById(event.target.getAttribute('aria-controls'));
+      const items = [...menu.querySelectorAll('[role="menuitem"]')].filter(isVisibleControl);
+      if (openMenu === toggleKey && items.length) {
+        (edge === 'last' ? items.at(-1) : items[0]).focus();
+      } else {
+        pendingMenuFocus.current = edge;
+        setOpenMenu(toggleKey);
+      }
+      if (toggleKey === 'websites') loadConnections();
+      return;
+    }
+    const menu = event.target.closest('[role="menu"]');
+    if (!menu || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const items = [...menu.querySelectorAll('[role="menuitem"]')].filter(isVisibleControl);
+    if (!items.length) return;
+    event.preventDefault();
+    const index = items.indexOf(event.target);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+      : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    items[next].focus();
   };
 
   const linkVisible = link => {
@@ -169,13 +225,13 @@ export function NavBar({
         href={link.href}
         hidden={isHiddenLink(link)}
         role={role}
-        title={link.label}
+        title={t(link.label)}
         {...(link.icon ? { 'data-icon': link.icon } : {})}
         {...(link.pageKey ? { 'data-page-key': link.pageKey } : {})}
         {...(active ? { 'aria-current': 'page' } : {})}
         onClick={onNavigate}
       >
-        <span className="nav-label">{link.label}</span>
+        <span className="nav-label">{t(link.label)}</span>
         {role === 'menuitem' && <span className="nav-dropdown-open" aria-hidden="true">↗</span>}
       </a>
     );
@@ -192,41 +248,44 @@ export function NavBar({
       ref={navElementRef}
       id="siteNav"
       className="navbar sidebar"
-      aria-label="Primary"
+      aria-label={t("Primary navigation")}
       aria-hidden={mobileDrawerHidden ? 'true' : undefined}
       data-collapsed={collapsed ? 'true' : 'false'}
+      onKeyDown={onNavKeyDown}
     >
-      <a className="skip-link" href="#main-content">Skip to content</a>
+      <a className="skip-link" href="#main-content">{t("Skip to content")}</a>
 
       <div className="sidebar-head">
         <a className="nav-brand" href="/index.html" onClick={onNavigate}>
           <span className="nav-brand-mark" aria-hidden="true">🎮</span>
           <span className="nav-brand-text">
             <strong>LiuLianBot</strong>
-            <span className="nav-brand-sub">Home server console</span>
+            <span className="nav-brand-sub">{t("Home server console")}</span>
           </span>
         </a>
       </div>
 
-      <div className="nav-links" id="siteNavLinks" ref={navRef}>
-        <p className="sidebar-section">Main</p>
+      <div className="nav-links" id="siteNavLinks">
+        <p className="sidebar-section">{t("Main")}</p>
         {NAV_LINKS.filter(linkVisible).map(link => renderLink(link))}
 
         {workspaceLinks.length > 0 && (
           <div className="nav-dropdown">
             <button
+              ref={node => { menuToggles.current.workspaces = node; }}
               className="nav-link nav-menu-toggle"
               type="button"
               data-icon="🖥️"
-              title="Workspaces"
+              title={t("Workspaces")}
               aria-expanded={openMenu === 'workspaces'}
               aria-controls="workspaceMenu"
+              aria-haspopup="menu"
               onClick={() => toggleMenuSection('workspaces')}
             >
-              <span className="nav-label">Workspaces</span>
+              <span className="nav-label">{t("Workspaces")}</span>
               <span className="dropdown-chevron" aria-hidden="true">▾</span>
             </button>
-            <div className="nav-dropdown-menu" id="workspaceMenu" role="menu" hidden={openMenu !== 'workspaces'}>
+            <div className="nav-dropdown-menu" id="workspaceMenu" role="menu" aria-label={t("Workspaces")} hidden={openMenu !== 'workspaces'}>
               {workspaceLinks.map(link => renderLink(link, { role: 'menuitem' }))}
             </div>
           </div>
@@ -235,32 +294,35 @@ export function NavBar({
         {signedIn && (
           <div className="nav-dropdown" id="websiteDropdown">
             <button
-              ref={toggleRef}
+              ref={node => { menuToggles.current.websites = node; }}
               className="nav-link nav-dropdown-toggle"
               type="button"
               data-icon="🔗"
-              title="Connected websites"
+              title={t("Connected websites")}
               aria-expanded={dropdownOpen}
               aria-controls="websiteDropdownMenu"
+              aria-haspopup="menu"
               onClick={toggleWebsites}
             >
-              <span className="nav-label">Connected websites</span>
+              <span className="nav-label">{t("Connected websites")}</span>
               <span className="dropdown-chevron" aria-hidden="true">▾</span>
             </button>
             <div
               className="nav-dropdown-menu"
               id="websiteDropdownMenu"
               role="menu"
+              aria-label={t("Connected websites")}
               hidden={!dropdownOpen}
             >
               {connections.status === 'ready' && connections.items.length === 0 && (
-                <div className="nav-dropdown-status">No websites available</div>
+                <div className="nav-dropdown-status">{t("No websites available")}</div>
               )}
               {connections.status === 'error' && (
-                <div className="nav-dropdown-status nav-dropdown-error">Unable to load websites</div>
+                <div className="nav-dropdown-status nav-dropdown-error" role="status">{t("Unable to load websites")}<button className="btn btn-sm btn-outline" type="button" role="menuitem" onClick={loadConnections}>{t("Retry")}</button>
+                </div>
               )}
               {connections.status !== 'ready' && connections.status !== 'error' && (
-                <div className="nav-dropdown-status">Loading...</div>
+                <div className="nav-dropdown-status">{t("Loading...")}</div>
               )}
               {connections.status === 'ready' && connections.items.map(connection => (
                 <a
@@ -282,18 +344,20 @@ export function NavBar({
         {manageLinks.length > 0 && (
           <div className="nav-dropdown">
             <button
+              ref={node => { menuToggles.current.manage = node; }}
               className="nav-link nav-menu-toggle"
               type="button"
               data-icon="⚙️"
-              title="Administration"
+              title={t("Administration")}
               aria-expanded={openMenu === 'manage'}
               aria-controls="manageMenu"
+              aria-haspopup="menu"
               onClick={() => toggleMenuSection('manage')}
             >
-              <span className="nav-label">Administration</span>
+              <span className="nav-label">{t("Administration")}</span>
               <span className="dropdown-chevron" aria-hidden="true">▾</span>
             </button>
-            <div className="nav-dropdown-menu" id="manageMenu" role="menu" hidden={openMenu !== 'manage'}>
+            <div className="nav-dropdown-menu" id="manageMenu" role="menu" aria-label={t("Administration")} hidden={openMenu !== 'manage'}>
               {manageLinks.map(link => renderLink(link, { role: 'menuitem' }))}
             </div>
           </div>
@@ -307,13 +371,13 @@ export function NavBar({
               className="nav-username"
               id="navUsername"
               href="/account.html"
-              title="Account settings"
+              title={t("Account settings")}
             >
               {`👤 ${user.username}`}
             </a>
           )}
           {status === 'signed-out' && (
-            <a className="btn btn-sm btn-primary" href="/login.html">Login</a>
+            <a className="btn btn-sm btn-primary" href="/login.html">{t("Login")}</a>
           )}
           {signedIn && (
             <button
@@ -324,9 +388,7 @@ export function NavBar({
               disabled={logoutState.busy}
               aria-busy={logoutState.busy}
               onClick={onLogout}
-            >
-              Logout
-            </button>
+            >{t("Logout")}</button>
           )}
           <span
             className={`nav-auth-status${logoutState.error || status === 'error' ? ' status-error' : ''}`}
@@ -335,22 +397,22 @@ export function NavBar({
             aria-live="polite"
             title={status === 'error' ? error?.message : undefined}
           >
-            {status === 'loading' ? 'Loading account...' : ''}
-            {status === 'error' ? 'Unable to load account' : ''}
-            {logoutState.message}
+            {status === 'loading' ? t("Loading account...") : ''}
+            {status === 'error' ? t("Unable to load account") : ''}
+            {t(logoutState.message)}
           </span>
         </div>
 
         <button
           className="sidebar-collapse"
           type="button"
-          aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
-          title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          aria-label={collapsed ? t("Expand navigation") : t("Collapse navigation")}
+          title={collapsed ? t("Expand navigation") : t("Collapse navigation")}
           aria-pressed={collapsed}
           onClick={onToggleCollapse}
         >
           <span className="sidebar-collapse-icon" aria-hidden="true">{collapsed ? '»' : '«'}</span>
-          <span className="nav-label">{collapsed ? 'Expand' : 'Collapse navigation'}</span>
+          <span className="nav-label">{collapsed ? t("Expand") : t("Collapse navigation")}</span>
         </button>
       </div>
     </nav>

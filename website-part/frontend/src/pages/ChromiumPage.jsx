@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useEffect, useRef, useState } from 'react';
 import { canvasPoint, ChromiumSession } from '../lib/chromiumSession.mjs';
 import { StatusMessage } from '../components/StatusMessage.jsx';
@@ -9,6 +10,7 @@ export const CHROMIUM_QUICK_LINKS = Object.freeze([
 ]);
 
 export function ChromiumPage() {
+  useLocale();
   const [address, setAddress] = useState('');
   const [view, setView] = useState('home');
   const [status, setStatus] = useState({ message: 'Chromium 已就緒。', tone: '' });
@@ -68,7 +70,7 @@ export function ChromiumPage() {
       <div className="page-heading">
         <div>
           <h1>Chromium</h1>
-          <p>在伺服器端 Chrome 瀏覽器內瀏覽網站。</p>
+          <p>{t("在伺服器端 Chrome 瀏覽器內瀏覽網站。")}</p>
         </div>
         <button
           id="chromiumHomeButton"
@@ -101,7 +103,7 @@ export function ChromiumPage() {
 
       <section id="chromiumHome" className="chromium-home" aria-labelledby="chromiumHomeHeading" hidden={view !== 'home'}>
         <h2 id="chromiumHomeHeading">開始瀏覽</h2>
-        <p>輸入網址後，系統會建立你的伺服器端 Chromium 工作階段。</p>
+        <p>{t("輸入網址後，系統會建立你的伺服器端 Chromium 工作階段。")}</p>
         <div className="chromium-quick-links" aria-label="快速連結">
           {CHROMIUM_QUICK_LINKS.map(link => (
             <a

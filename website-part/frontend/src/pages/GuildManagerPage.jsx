@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useEffect, useState } from 'react';
 import { requestJSON } from '../lib/apiClient.mjs';
 import { StatusMessage } from '../components/StatusMessage.jsx';
@@ -6,6 +7,7 @@ import { useAsyncAction } from '../hooks/useAsyncAction.mjs';
 const EMPTY_DETAIL = { channels: [], languages: [], logTypes: [], log_channels: {} };
 
 export function GuildManagerPage() {
+  useLocale();
   const [guilds, setGuilds] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -96,13 +98,13 @@ export function GuildManagerPage() {
   return (
     <main className="main-content guild-manager-page" id="main-content">
       <div className="page-heading">
-        <h1>Discord Server Manager</h1>
-        <p>Manage settings for Discord servers where your linked account is an owner or bot administrator.</p>
+        <h1>{t("Discord Server Manager")}</h1>
+        <p>{t("Manage settings for Discord servers where your linked account is an owner or bot administrator.")}</p>
       </div>
       <StatusMessage id="managerStatus" message={status.message} tone={status.tone} />
-      <section className="guild-manager-layout" aria-label="Discord server settings">
+      <section className="guild-manager-layout" aria-label={t("Discord server settings")}>
         <aside className="guild-list-panel">
-          <h2>Your servers</h2>
+          <h2>{t("Your servers")}</h2>
           <div id="guildList" className="guild-list">
             {guilds.map(guild => (
               <button
@@ -124,7 +126,7 @@ export function GuildManagerPage() {
             <h2 id="guildName">{detail.guild_name}</h2>
             <form id="guildSettingsForm" onSubmit={submit}>
               <label className="form-group" htmlFor="guildLanguage">
-                {'Bot language'}
+                {t('Bot language')}
                 <select
                   id="guildLanguage"
                   required
@@ -137,15 +139,15 @@ export function GuildManagerPage() {
                 </select>
               </label>
 
-              <h3>Private voice channels</h3>
+              <h3>{t("Private voice channels")}</h3>
               <label className="form-group" htmlFor="privateVoiceTriggerChannel">
-                {'Trigger voice channel'}
+                {t('Trigger voice channel')}
                 <select
                   id="privateVoiceTriggerChannel"
                   value={form.privateVoiceTriggerId}
                   onChange={event => setForm({ ...form, privateVoiceTriggerId: event.target.value })}
                 >
-                  <option value="">Disabled</option>
+                  <option value="">{t("Disabled")}</option>
                   {voiceChannels.map(channel => (
                     <option key={channel.channel_id} value={channel.channel_id}>
                       {channel.channel_name}
@@ -153,12 +155,9 @@ export function GuildManagerPage() {
                   ))}
                 </select>
               </label>
-              <p className="table-subtext">
-                When a member joins this channel, the bot creates a temporary private voice
-                channel in the same category.
-              </p>
+              <p className="table-subtext">{t("When a member joins this channel, the bot creates a temporary private voice channel in the same category.")}</p>
 
-              <h3>Log channels</h3>
+              <h3>{t("Log channels")}</h3>
               <div id="logChannelFields" className="log-channel-fields">
                 {(detail.logTypes || []).map(logType => (
                   <label className="form-group log-channel-field" key={logType}>
@@ -171,7 +170,7 @@ export function GuildManagerPage() {
                         logChannels: { ...form.logChannels, [logType]: event.target.value },
                       })}
                     >
-                      <option value="">Use all channel</option>
+                      <option value="">{t("Use all channel")}</option>
                       {textChannels.map(channel => (
                         <option key={channel.channel_id} value={channel.channel_id}>
                           {`#${channel.channel_name}`}
@@ -182,18 +181,13 @@ export function GuildManagerPage() {
                 ))}
               </div>
 
-              <button className="btn btn-primary" type="submit" disabled={saveAction.busy}>
-                Save settings
-              </button>
+              <button className="btn btn-primary" type="submit" disabled={saveAction.busy}>{t("Save settings")}</button>
             </form>
           </section>
         ) : (
           <section id="managerEmpty" className="guild-settings-panel">
-            <h2>Select a server</h2>
-            <p>
-              Your Discord account must be linked from Account settings, then have
-              server-owner or bot-admin access.
-            </p>
+            <h2>{t("Select a server")}</h2>
+            <p>{t("Your Discord account must be linked from Account settings, then have server-owner or bot-admin access.")}</p>
           </section>
         )}
       </section>

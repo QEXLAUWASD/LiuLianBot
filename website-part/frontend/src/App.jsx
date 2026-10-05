@@ -1,9 +1,11 @@
+import { t, useLocale } from './lib/i18n.mjs';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { NavBar } from './components/NavBar.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { NotFoundPage } from './pages/NotFoundPage.jsx';
 import { TermsPage } from './pages/TermsPage.jsx';
+import { LanguageSelect } from './components/LanguageSelect.jsx';
 
 // Small screens that every visitor may need stay in the main bundle. The heavy
 // authenticated screens (admin, remote desktop, Chromium, file browser) are
@@ -64,10 +66,11 @@ export const PAGE_TITLES = Object.freeze({
 });
 
 function PageFallback() {
+  useLocale();
   return (
     <div className="page-loading" role="status" aria-live="polite">
       <span className="page-loading-spinner" aria-hidden="true" />
-      <span>Loading page…</span>
+      <span>{t("Loading page…")}</span>
     </div>
   );
 }
@@ -75,8 +78,15 @@ function PageFallback() {
 const NAV_COLLAPSED_KEY = 'liulianbot.nav-collapsed';
 
 export function App({ page = globalThis.document?.body?.dataset.page } = {}) {
+  const locale = useLocale();
   const Page = PAGE_COMPONENTS[page] || NotFoundPage;
   const withNav = PAGES_WITH_NAV.has(page);
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    const title = PAGE_TITLES[page] || ({ login: 'Login', terms: 'Terms of Service and Privacy Policy', share: 'File sharing' })[page] || 'Page not found';
+    document.title = `LiuLianBot - ${t(title)}`;
+  }, [locale, page]);
 
   // `navOpen` drives the drawer on narrow screens, `navCollapsed` the icon rail
   // that the sidebar toggle switches to on wide screens.
@@ -102,17 +112,40 @@ export function App({ page = globalThis.document?.body?.dataset.page } = {}) {
     });
   }, []);
 
+  useEffect(() => {
+    if (!withNav) return undefined;
+    const media = globalThis.matchMedia?.('(max-width: 1080px)');
+    if (!media) return undefined;
+    const closeOnDesktop = () => {
+      if (!media.matches) closeNav();
+    };
+    closeOnDesktop();
+    if (typeof media.addEventListener === 'function') media.addEventListener('change', closeOnDesktop);
+    else media.addListener?.(closeOnDesktop);
+    return () => {
+      if (typeof media.removeEventListener === 'function') media.removeEventListener('change', closeOnDesktop);
+      else media.removeListener?.(closeOnDesktop);
+    };
+  }, [closeNav, withNav]);
+
   const previousNavOpen = useRef(false);
   useEffect(() => {
-    if (previousNavOpen.current && !navOpen) {
-      const restore = () => navToggleRef.current?.focus();
-      if (typeof globalThis.requestAnimationFrame === 'function') {
-        globalThis.requestAnimationFrame(restore);
-      } else {
-        restore();
-      }
-    }
+    const wasOpen = previousNavOpen.current;
     previousNavOpen.current = navOpen;
+    if (!wasOpen || navOpen) return undefined;
+    const restore = () => {
+      // A viewport resize closes the drawer too, but the mobile toggle is
+      // hidden on desktop. Keep focus on the now-visible sidebar in that case.
+      const media = globalThis.matchMedia?.('(max-width: 1080px)');
+      if (media && !media.matches) return;
+      navToggleRef.current?.focus();
+    };
+    if (typeof globalThis.requestAnimationFrame === 'function') {
+      const frame = globalThis.requestAnimationFrame(restore);
+      return () => globalThis.cancelAnimationFrame?.(frame);
+    }
+    restore();
+    return undefined;
   }, [navOpen]);
 
   useEffect(() => {
@@ -121,7 +154,6 @@ export function App({ page = globalThis.document?.body?.dataset.page } = {}) {
     const onKeyDown = event => {
       if (event.key !== 'Escape') return;
       closeNav();
-      navToggleRef.current?.focus();
     };
     document.addEventListener('keydown', onKeyDown);
 
@@ -140,7 +172,7 @@ export function App({ page = globalThis.document?.body?.dataset.page } = {}) {
   );
 
   if (!withNav) {
-    return <ErrorBoundary>{content}</ErrorBoundary>;
+    return <><div className="standalone-language"><LanguageSelect /></div><ErrorBoundary>{content}</ErrorBoundary></>;
   }
 
   return (
@@ -161,7 +193,7 @@ export function App({ page = globalThis.document?.body?.dataset.page } = {}) {
           <button
             className="nav-backdrop"
             type="button"
-            aria-label="Close navigation"
+            aria-label={t("Close navigation")}
             onClick={closeNav}
           />
         )}
@@ -174,13 +206,14 @@ export function App({ page = globalThis.document?.body?.dataset.page } = {}) {
               type="button"
               aria-expanded={navOpen}
               aria-controls="siteNav"
-              aria-label={navOpen ? 'Close navigation' : 'Open navigation'}
+              aria-label={navOpen ? t("Close navigation") : t("Open navigation")}
               onClick={() => setNavOpen(open => !open)}
             >
               <span className="topbar-toggle-icon" aria-hidden="true">☰</span>
-              <span className="sr-only">Toggle navigation</span>
+              <span className="sr-only">{t("Toggle navigation")}</span>
             </button>
-            <p className="topbar-title">{PAGE_TITLES[page] || 'LiuLianBot'}</p>
+            <p className="topbar-title">{t(PAGE_TITLES[page] || 'LiuLianBot')}</p>
+            <LanguageSelect />
           </header>
 
           {content}

@@ -1,3 +1,20 @@
+function referrerConnectionSlug(req) {
+  const header = req.get('referer') || req.get('referrer');
+  if (!header) return null;
+
+  try {
+    const host = req.get('host');
+    const referrer = new URL(header, `${req.protocol}://${host || 'localhost'}`);
+    if (host && referrer.host !== host) return null;
+    const match = referrer.pathname.match(
+      /^\/connect\/([a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?)(?=\/|$)/i
+    );
+    return match ? match[1].toLowerCase() : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function getUpstreamCookies(cookieHeader, slug) {
   if (!cookieHeader) return '';
   const prefix = `llb_${slug}_`;
@@ -120,6 +137,7 @@ function rewriteHtmlRootUrls(html, slug, requestUrl = '/') {
 }
 
 module.exports = {
+  referrerConnectionSlug,
   getUpstreamCookies,
   rewriteSetCookie,
   rewriteLocation,

@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StatusMessage } from '../components/StatusMessage.jsx';
 import { breadcrumbTrail, filesRequest, formatSize, formatTime, joinPath } from '../lib/filesApi.mjs';
@@ -32,6 +33,7 @@ function downloadThroughForm(action, fields) {
 }
 
 export function SharePage({ location = globalThis.location } = {}) {
+  useLocale();
   const [codeInput, setCodeInput] = useState(() => initialCode(location?.hash));
   const [share, setShare] = useState(null);
   const [current, setCurrent] = useState('');
@@ -112,9 +114,9 @@ export function SharePage({ location = globalThis.location } = {}) {
     <main className="main-content file-page" id="main-content">
       <header className="file-hero">
         <div>
-          <p className="panel-kicker">LIULIANBOT SHARE</p>
-          <h1>有人與你分享了檔案</h1>
-          <p>輸入分享碼即可瀏覽與下載，無需登入。</p>
+          <p className="panel-kicker">{t("LIULIANBOT SHARE")}</p>
+          <h1>{t("有人與你分享了檔案")}</h1>
+          <p>{t("輸入分享碼即可瀏覽與下載，無需登入。")}</p>
         </div>
         <a className="btn btn-outline" href="/files.html">我的檔案</a>
       </header>
@@ -231,7 +233,7 @@ export function SharePage({ location = globalThis.location } = {}) {
               </tbody>
             </table>
           </div>
-          <p id="emptyFiles" hidden={!share.directory || share.entries.length > 0}>此資料夾目前沒有檔案。</p>
+          <p id="emptyFiles" hidden={!share.directory || share.entries.length > 0}>{t("此資料夾目前沒有檔案。")}</p>
           <button
             id="downloadSharedFile"
             className="btn btn-primary"

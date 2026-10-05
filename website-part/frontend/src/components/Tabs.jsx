@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useEffect, useId, useRef, useState } from 'react';
 
 // ARIA tabs: roving tabindex, arrow/home/end navigation and disabled tabs are
@@ -83,15 +84,16 @@ export function useTabs({ items, initialId = null }) {
 }
 
 export function TabList({ tabs, label, className = '' }) {
+  useLocale();
   return (
     <div
       className={`tab-list${className ? ` ${className}` : ''}`}
       role="tablist"
-      aria-label={label}
+      aria-label={t(label)}
     >
       {tabs.items.map(item => (
         <button key={item.id} {...tabs.tabProps(item.id)}>
-          {item.label}
+          {t(item.label)}
         </button>
       ))}
     </div>

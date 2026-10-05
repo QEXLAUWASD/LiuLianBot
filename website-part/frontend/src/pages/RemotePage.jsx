@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { requestJSON } from '../lib/apiClient.mjs';
 import { clearRdpCanvas } from '../lib/rdp/rdpRenderer.mjs';
@@ -40,6 +41,7 @@ const EMPTY_SSH = {
 };
 
 export function RemotePage({ socketFactory = globalThis.io } = {}) {
+  useLocale();
   const [features, setFeatures] = useState({ ssh: true, rdp: true });
   const [serverProfile, setServerProfile] = useState({ ssh: null, rdp: null });
   const [serverStorageAvailable, setServerStorageAvailable] = useState(false);
@@ -391,7 +393,7 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
     <main className="main-content remote-page" id="main-content">
       <header className="remote-hero">
         <div>
-          <p className="remote-eyebrow">REMOTE WORKSPACE / WEBRDP</p>
+          <p className="remote-eyebrow">{t("REMOTE WORKSPACE / WEBRDP")}</p>
           <h1>遠端工作區</h1>
           <p className="remote-desc">
             在瀏覽器內連線至 Windows 桌面。畫面與輸入會透過受保護的 Socket.IO 工作階段傳送。
@@ -399,7 +401,7 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
         </div>
         <div id="rdpStatusBadge" className="remote-status-badge" data-state={rdpState.state}>
           <span className="remote-status-dot" aria-hidden="true" />
-          <span id="rdpStatusBadgeText">{rdpState.message}</span>
+          <span id="rdpStatusBadgeText">{t(rdpState.message)}</span>
         </div>
       </header>
 
@@ -407,7 +409,7 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
         <div className="webrdp-toolbar">
           <div className="remote-panel-heading">
             <div>
-              <p className="panel-kicker">BROWSER RDP</p>
+              <p className="panel-kicker">{t("BROWSER RDP")}</p>
               <h2 id="rdpHeading">WebRDP 桌面</h2>
             </div>
             <span id="rdpHostLabel" className="rdp-host-label">{rdpHostLabel}</span>
@@ -442,7 +444,7 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
           <div id="rdpEmptyState" className="rdp-empty-state" hidden={rdpBusy}>
             <div className="rdp-empty-icon" aria-hidden="true">▣</div>
             <h3>準備好連線</h3>
-            <p>在右側輸入主機與登入資訊，然後按下「連線至桌面」。</p>
+            <p>{t("在右側輸入主機與登入資訊，然後按下「連線至桌面」。")}</p>
           </div>
           <div id="rdpLoadingState" className="rdp-loading-state" hidden={rdpState.state !== 'connecting'}>
             <span className="rdp-spinner" aria-hidden="true" />
@@ -452,7 +454,7 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
         <StatusMessage
           id="rdpStatus"
           className="status-msg remote-inline-status"
-          message={rdpState.message}
+          message={t(rdpState.message)}
           tone={rdpState.state === 'error' ? 'error' : rdpState.state === 'connected' ? 'success' : ''}
         />
       </section>
@@ -461,14 +463,12 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
         <section id="rdpConnectPanel" className="remote-panel rdp-connect-panel" aria-labelledby="rdpConnectHeading" hidden={!features.rdp}>
           <div className="remote-panel-heading">
             <div>
-              <p className="panel-kicker">CONNECTION</p>
+              <p className="panel-kicker">{t("CONNECTION")}</p>
               <h2 id="rdpConnectHeading">連線設定</h2>
             </div>
             <span className="protocol-chip">RDP</span>
           </div>
-          <p className="remote-note">
-            每位使用者可保存多組連線，密碼會加密儲存於帳號資料庫。更新時密碼留空會保留原密碼。
-          </p>
+          <p className="remote-note">{t("每位使用者可保存多組連線，密碼會加密儲存於帳號資料庫。更新時密碼留空會保留原密碼。")}</p>
           <form id="rdpForm" className="remote-form" onSubmit={connectRdp}>
             <label className="field-span-2" htmlFor="rdpProfileList">
               {'我的連線設定'}
@@ -590,7 +590,7 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
           <section className="remote-panel remote-info-panel" aria-labelledby="rdpInfoHeading">
             <div className="remote-panel-heading">
               <div>
-                <p className="panel-kicker">SESSION</p>
+                <p className="panel-kicker">{t("SESSION")}</p>
                 <h2 id="rdpInfoHeading">工作階段資訊</h2>
               </div>
             </div>
@@ -607,7 +607,7 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
           <section className="remote-panel" aria-labelledby="rdpDownloadHeading">
             <div className="remote-panel-heading">
               <div>
-                <p className="panel-kicker">ALTERNATIVE</p>
+                <p className="panel-kicker">{t("ALTERNATIVE")}</p>
                 <h2 id="rdpDownloadHeading">下載連線檔</h2>
               </div>
             </div>
@@ -624,7 +624,7 @@ export function RemotePage({ socketFactory = globalThis.io } = {}) {
       <section id="sshPanel" className="remote-panel ssh-section" aria-labelledby="sshHeading" hidden={!features.ssh}>
         <div className="remote-panel-heading">
           <div>
-            <p className="panel-kicker">SECURE SHELL</p>
+            <p className="panel-kicker">{t("SECURE SHELL")}</p>
             <h2 id="sshHeading">SSH 終端機</h2>
           </div>
           <StatusMessage

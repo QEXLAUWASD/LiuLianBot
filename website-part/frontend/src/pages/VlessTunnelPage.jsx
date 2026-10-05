@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n.mjs';
 import { useEffect, useRef, useState } from 'react';
 import { requestJSON } from '../lib/apiClient.mjs';
 import { StatusMessage } from '../components/StatusMessage.jsx';
@@ -16,6 +17,7 @@ export function savedSources(storage = globalThis.localStorage) {
 }
 
 export function VlessTunnelPage() {
+  useLocale();
   const tabs = useTabs({
     items: [
       { id: 'vless', label: 'VLESS 位址', tabId: 'vlessSourceTab', panelId: 'vlessSourcePanel' },
@@ -109,9 +111,9 @@ export function VlessTunnelPage() {
       <div className="tunnel-container">
         <header className="tunnel-hero">
           <div>
-            <p className="panel-kicker">INTERNAL NETWORK ACCESS</p>
-            <h1>Interim VLESS Tunnel</h1>
-            <p>產生一條短期 VLESS 連線，並將它加入你現有的 VLESS 位址或 Clash / Mihomo 設定。</p>
+            <p className="panel-kicker">{t("INTERNAL NETWORK ACCESS")}</p>
+            <h1>{t("Interim VLESS Tunnel")}</h1>
+            <p>{t("產生一條短期 VLESS 連線，並將它加入你現有的 VLESS 位址或 Clash / Mihomo 設定。")}</p>
           </div>
           <span className="protocol-chip">VLESS</span>
         </header>
@@ -120,16 +122,16 @@ export function VlessTunnelPage() {
           <section className="tunnel-panel" aria-labelledby="sourceHeading">
             <div className="tunnel-panel-heading">
               <div>
-                <p className="panel-kicker">YOUR CONFIGURATION</p>
+                <p className="panel-kicker">{t("YOUR CONFIGURATION")}</p>
                 <h2 id="sourceHeading">原有設定</h2>
               </div>
               <span className="tunnel-step">01</span>
             </div>
 
-            <TabList tabs={tabs} label="Configuration format" className="tunnel-tabs" />
+            <TabList tabs={tabs} label={t("Configuration format")} className="tunnel-tabs" />
 
             <TabPanel tabs={tabs} id="vless">
-              <label className="tunnel-label" htmlFor="vlessSource">VLESS / V2Ray server address</label>
+              <label className="tunnel-label" htmlFor="vlessSource">{t("VLESS / V2Ray server address")}</label>
               <textarea
                 id="vlessSource"
                 rows="8"
@@ -176,7 +178,7 @@ export function VlessTunnelPage() {
           <aside className="tunnel-panel tunnel-info-panel" aria-labelledby="tunnelInfoHeading">
             <div className="tunnel-panel-heading">
               <div>
-                <p className="panel-kicker">TEMPORARY ACCESS</p>
+                <p className="panel-kicker">{t("TEMPORARY ACCESS")}</p>
                 <h2 id="tunnelInfoHeading">隧道說明</h2>
               </div>
               <span className="tunnel-step">02</span>
@@ -184,7 +186,7 @@ export function VlessTunnelPage() {
             <dl className="tunnel-facts">
               <div><dt>用途</dt><dd>連接網站伺服器可到達的內部網絡</dd></div>
               <div><dt>輸出</dt><dd>VLESS 位址或 Clash YAML</dd></div>
-              <div><dt>保存</dt><dd>原有設定只保存在你的瀏覽器</dd></div>
+              <div><dt>保存</dt><dd>{t("原有設定只保存在你的瀏覽器")}</dd></div>
             </dl>
             <p className="tunnel-warning">
               請只在可信任的 V2Ray / Clash 用戶端使用輸出內容。產生結果會顯示有效期限。
@@ -195,7 +197,7 @@ export function VlessTunnelPage() {
         <section className="tunnel-panel tunnel-result-panel" aria-labelledby="resultHeading">
           <div className="tunnel-panel-heading">
             <div>
-              <p className="panel-kicker">MERGED OUTPUT</p>
+              <p className="panel-kicker">{t("MERGED OUTPUT")}</p>
               <h2 id="resultHeading">合併結果</h2>
             </div>
             <span className="tunnel-step">03</span>
@@ -211,7 +213,7 @@ export function VlessTunnelPage() {
             rows="16"
             readOnly
             spellCheck="false"
-            placeholder="完成上面的設定後，合併結果會顯示在這裡。"
+            placeholder={t("完成上面的設定後，合併結果會顯示在這裡。")}
             ref={outputRef}
             value={result.config}
           />

@@ -13,6 +13,7 @@ const { requirePageVisibility } = require('./middleware/page_visibility');
 const { requestContext } = require('./middleware/request_context');
 const { errorHandler } = require('./middleware/error_handler');
 const { securityHeaders } = require('./middleware/security_headers');
+const { referrerConnectionSlug } = require('./proxy_helpers');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -34,12 +35,35 @@ function homeRedirectPath(session) {
   return session?.user ? '/index.html' : '/login.html';
 }
 
+function sendPage(res, filename) {
+  res.set('Cache-Control', 'no-cache');
+  return res.sendFile(path.join(PUBLIC_DIR, filename));
+}
+
 function createApp({ sessionOptions, sessionMiddleware, routers }) {
   const app = express();
 
   // Security headers come first so even redirects and errors carry them.
   app.use(securityHeaders);
   if (sessionOptions.cookie.secure) app.set('trust proxy', 1);
+
+  // Public scripts, styles and images need no session lookup or expiry update.
+  // Mount each directory separately so HTML still passes through page guards.
+  const publicAssets = express.Router();
+  for (const directory of ['assets', 'css', 'img', 'vendor']) {
+    publicAssets.use(`/${directory}`, express.static(path.join(PUBLIC_DIR, directory), {
+      index: false,
+      redirect: false,
+      setHeaders: setStaticCacheHeaders,
+    }));
+  }
+  app.use((req, res, next) => {
+    // Upstream apps can request the same root-relative asset paths. Keep those
+    // requests in the authenticated proxy redirect flow below.
+    if (referrerConnectionSlug(req)) return next();
+    return publicAssets(req, res, next);
+  });
+
   app.use(sessionMiddleware || session(sessionOptions));
   if (routers.health) app.use('/healthz', routers.health);
   if (routers.connectionProxy.redirectRootRelativeRequest) {
@@ -69,7 +93,7 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   if (routers.vlessTunnel) app.use('/api/vless-tunnel', routers.vlessTunnel);
 
   app.get('/files.html', requirePageAuth, (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'files.html'));
+    sendPage(res, 'files.html');
   });
   app.get('/share.html', (req, res) => {
     res.set('Referrer-Policy', 'no-referrer');
@@ -78,34 +102,34 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   });
 
   app.get('/roller.html', requirePageVisibility('roller'), (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'roller.html'));
+    sendPage(res, 'roller.html');
   });
   app.get('/index.html', requirePageAuth, (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+    sendPage(res, 'index.html');
   });
   app.get('/account.html', requirePageAuth, requirePageVisibility('account'), (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'account.html'));
+    sendPage(res, 'account.html');
   });
   app.get('/guild-manager.html', requirePageAuth, (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'guild-manager.html'));
+    sendPage(res, 'guild-manager.html');
   });
   app.get('/events.html', requirePageAuth, requirePageVisibility('events'), (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'events.html'));
+    sendPage(res, 'events.html');
   });
   app.get('/remote.html', requireRemotePageAccess, requirePageVisibility('remote'), (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'remote.html'));
+    sendPage(res, 'remote.html');
   });
   app.get('/chromium.html', requirePageAuth, requirePageVisibility('chromium'), (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'chromium.html'));
+    sendPage(res, 'chromium.html');
   });
   app.get('/vless-tunnel.html', requirePageAuth, requirePageVisibility('vless-tunnel'), (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'vless-tunnel.html'));
+    sendPage(res, 'vless-tunnel.html');
   });
   app.get('/terms.html', (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'terms.html'));
+    sendPage(res, 'terms.html');
   });
   app.get('/admin.html', requirePageAuth, requireAdmin, (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
+    sendPage(res, 'admin.html');
   });
 
   app.use('/connect/:slug', routers.connectionProxy);
@@ -115,7 +139,7 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   });
   app.use(errorHandler);
   app.use((req, res) => {
-    res.status(404).sendFile(path.join(PUBLIC_DIR, '404.html'));
+    sendPage(res.status(404), '404.html');
   });
 
   return app;

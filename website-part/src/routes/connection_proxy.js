@@ -3,6 +3,7 @@ const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middl
 const { requireConnectionAccess } = require('../middleware/connection_auth');
 const { getConnectionAccessBySlug } = require('../db');
 const {
+  referrerConnectionSlug,
   getUpstreamCookies,
   rewriteSetCookie,
   rewriteLocation,
@@ -75,23 +76,6 @@ function applyUpstreamRootPath(req) {
     target_url: target.origin,
   };
   req.url = upstreamPath;
-}
-
-function referrerConnectionSlug(req) {
-  const header = req.get('referer') || req.get('referrer');
-  if (!header) return null;
-
-  try {
-    const host = req.get('host');
-    const referrer = new URL(header, `${req.protocol}://${host || 'localhost'}`);
-    if (host && referrer.host !== host) return null;
-    const match = referrer.pathname.match(
-      /^\/connect\/([a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?)(?=\/|$)/i
-    );
-    return match ? match[1].toLowerCase() : null;
-  } catch (_) {
-    return null;
-  }
 }
 
 function createRedirectRootRelativeRequest(getAccessBySlug = getConnectionAccessBySlug) {
