@@ -6,6 +6,7 @@ import { StatusMessage } from '../../frontend/src/components/StatusMessage.jsx';
 import { authState } from '../../frontend/src/lib/authStore.mjs';
 import { detectLocale, getLocale, LOCALE_KEY, message, normalizeLocale, setLocale, t } from '../../frontend/src/lib/i18n.mjs';
 import zhHK from '../../frontend/src/locales/zh-HK.mjs';
+import zhCN from '../../frontend/src/locales/zh-CN.mjs';
 import { formatUtc8 } from '../../frontend/src/lib/timeZone.mjs';
 import { click, flush, mockFetch, render, selectOption, setupDom, typeInto } from '../support/react.mjs';
 
@@ -14,6 +15,12 @@ before(async () => { await PAGE_LOADERS.dashboard(); });
 test('locale preference accepts zh_hk and follows saved choice before browser language', () => {
   assert.equal(normalizeLocale('zh_hk'), 'zh-HK');
   assert.equal(normalizeLocale('ZH-hant-HK'), 'zh-HK');
+  for (const tag of ['zh_cn', 'zh-CN', 'zh-Hans', 'zh-Hans-HK', 'zh-SG']) {
+    assert.equal(normalizeLocale(tag), 'zh-CN');
+  }
+  assert.equal(normalizeLocale('zh-Hant-CN'), 'zh-HK');
+  assert.equal(detectLocale(null, ['zh-CN', 'en']), 'zh-CN');
+  assert.equal(detectLocale({ getItem: () => 'zh_cn' }, ['zh-HK']), 'zh-CN');
   assert.equal(normalizeLocale('en-GB'), 'en');
   assert.equal(normalizeLocale('fr'), null);
   assert.equal(detectLocale({ getItem: () => 'en' }, ['zh-HK']), 'en');
@@ -28,7 +35,11 @@ test('translations preserve unknown text, whitespace and interpolation values', 
   assert.equal(t('Unknown server diagnostic', {}, 'zh-HK'), 'Unknown server diagnostic');
   assert.equal(t('User "{0}" deleted', { 0: 'Home <script>' }, 'zh-HK'), '已刪除用戶「Home <script>」');
   assert.equal(t('Login', {}, 'en'), 'Login');
-  for (const [key, value] of Object.entries(zhHK)) {
+  assert.deepEqual(Object.keys(zhCN).sort(), Object.keys(zhHK).sort());
+  assert.equal(t('  Login ', {}, 'zh_cn'), '  登录 ');
+  assert.equal(t('Unknown server diagnostic', {}, 'zh-CN'), 'Unknown server diagnostic');
+  assert.equal(t('User "{0}" deleted', { 0: 'Home <script>' }, 'zh-CN'), '已删除用户「Home <script>」');
+  for (const [key, value] of [...Object.entries(zhHK), ...Object.entries(zhCN)]) {
     const placeholders = text => [...text.matchAll(/\{(\w+)\}/g)].map(match => match[1]).sort();
     assert.deepEqual(placeholders(value), placeholders(key), `translation must preserve placeholders: ${key}`);
     assert.ok(value.trim(), key);
@@ -67,6 +78,16 @@ test('language switching persists, updates accessibility metadata and preserves 
   assert.equal(document.getElementById('loginPassword').value, 'unchanged-secret');
   assert.equal(document.getElementById('loginUsername').placeholder, '輸入用戶名稱');
   assert.equal(document.querySelector('[aria-controls="loginPassword"]').getAttribute('aria-label'), '顯示登入密碼');
+  selectOption(document.querySelector('.language-select select'), 'zh-CN');
+  await flush();
+  assert.equal(document.documentElement.lang, 'zh-CN');
+  assert.equal(document.title, 'LiuLianBot - 登录');
+  assert.equal(localStorage.getItem(LOCALE_KEY), 'zh-CN');
+  assert.equal(document.querySelector('h1').textContent, '欢迎回来。');
+  assert.equal(document.getElementById('loginUsername').value, 'Home');
+  assert.equal(document.getElementById('loginPassword').value, 'unchanged-secret');
+  assert.equal(document.getElementById('loginUsername').placeholder, '输入用户名');
+  assert.equal(document.querySelector('[aria-controls="loginPassword"]').getAttribute('aria-label'), '显示登录密码');
   click(document.getElementById('register-tab'));
   typeInto(document.getElementById('regUsername'), 'Register');
   selectOption(document.querySelector('.language-select select'), 'en');
@@ -92,6 +113,15 @@ test('dashboard localizes labels and dates without changing event data, filters 
   assert.equal(document.querySelector('#siteNav a[href="/index.html"] .nav-label').textContent, '首頁');
   assert.match(formatUtc8('2030-10-11T12:00:00Z'), /20:00/);
   assert.equal(fetchMock.calls.length, requests, 'language changes must not refetch or reconnect');
+  selectOption(document.querySelector('.language-select select'), 'zh-CN');
+  await flush();
+  assert.equal(document.getElementById('eventTableCount').textContent, '1 个活动');
+  assert.equal(document.getElementById('eventSearch').value, 'Login');
+  assert.equal(document.querySelector('.table-title').textContent, 'Login');
+  assert.equal(formatUtc8('2030-10-11T12:00:00Z'), new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Hong_Kong', dateStyle: 'medium', timeStyle: 'short', hour12: false,
+  }).format(new Date('2030-10-11T12:00:00Z')));
+  assert.equal(fetchMock.calls.length, requests);
   selectOption(document.querySelector('.language-select select'), 'en');
   await flush();
   assert.equal(document.getElementById('eventTableCount').textContent, '1 event');

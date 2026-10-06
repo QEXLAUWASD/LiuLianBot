@@ -1,14 +1,19 @@
 import { useSyncExternalStore } from 'react';
 import zhHK from '../locales/zh-HK.mjs';
+import zhCN from '../locales/zh-CN.mjs';
 
 export const LOCALE_KEY = 'liulianbot.locale';
-export const SUPPORTED_LOCALES = Object.freeze(['en', 'zh-HK']);
+export const SUPPORTED_LOCALES = Object.freeze(['en', 'zh-HK', 'zh-CN']);
+const dictionaries = { 'zh-HK': zhHK, 'zh-CN': zhCN };
 const listeners = new Set();
 const MESSAGE = Symbol('localized-message');
 let locale;
 
 export function normalizeLocale(value) {
   const tag = String(value || '').replaceAll('_', '-').toLowerCase();
+  const parts = tag.split('-');
+  if (parts[0] === 'zh' && !parts.includes('hant')
+    && (parts.includes('hans') || parts.includes('cn') || parts.includes('sg'))) return 'zh-CN';
   if (tag === 'zh' || tag.startsWith('zh-')) return 'zh-HK';
   if (tag === 'en' || tag.startsWith('en-')) return 'en';
   return null;
@@ -65,8 +70,9 @@ export function t(source, values = {}, language = getLocale()) {
   ), language);
   if (typeof source !== 'string') return source;
   const key = source.trim();
-  const translated = language === 'zh-HK' && Object.hasOwn(zhHK, key)
-    ? source.slice(0, source.indexOf(key)) + zhHK[key] + source.slice(source.indexOf(key) + key.length)
+  const dictionary = dictionaries[normalizeLocale(language)];
+  const translated = dictionary && Object.hasOwn(dictionary, key)
+    ? source.slice(0, source.indexOf(key)) + dictionary[key] + source.slice(source.indexOf(key) + key.length)
     : source;
   return translated.replace(/\{(\w+)\}/g, (match, name) => Object.hasOwn(values, name) ? String(values[name]) : match);
 }

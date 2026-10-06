@@ -59,13 +59,14 @@ Mihomo Hysteria2/VLESS and OpenWrt/procd VPN hosts are also supported. The websi
 - Responsive navigation remembers the desktop rail preference, turns into a keyboard-friendly mobile drawer, and keeps guest-only screens clear about sign-in requirements
 - Refreshed dashboard and mobile-first sign-in screens, password visibility controls, safe return-to-page links after login/terms acceptance, retryable dashboard errors, and stacked dismissible notifications
 - Public scripts, styles, images and vendor assets bypass session database reads and expiry updates; protected HTML keeps its authorization checks and revalidation policy
-- English / Hong Kong Traditional Chinese (`zh-HK`, also accepts `zh_hk`) interface selection on every page, remembered in the browser without resetting forms or remote sessions
+- English / Hong Kong Traditional Chinese (`zh-HK`, also accepts `zh_hk`) / Simplified Chinese (`zh-CN`, also accepts `zh_cn`) interface selection on every page, remembered in the browser without resetting forms or remote sessions
 
 ### Website language
 
 Use the language selector in the top bar (or above standalone login/share pages)
-to choose **English** or **繁體中文（香港）**. The first visit follows the browser's
-first supported language; Chinese language preferences use `zh-HK`, with English
+to choose **English**, **繁體中文（香港）**, or **简体中文**. The first visit follows the browser's
+first supported language; `zh-CN`, `zh-SG`, and `zh-Hans` preferences use Simplified
+Chinese (`zh-CN`), while other Chinese preferences use `zh-HK`, with English
 as the fallback. A manual choice is stored as `liulianbot.locale` in localStorage.
 If storage is blocked, switching still works for the current page.
 
@@ -74,7 +75,7 @@ formatting follow the selection. User names, filenames, event content, game data
 connection values and original legal documents retain their source content;
 unrecognized server diagnostics also remain unchanged. This preference affects
 the website only, independently of each Discord server's bot language.
-Translations live in `website-part/frontend/src/locales/zh-HK.mjs`; use `t()` for
+Translations live in `website-part/frontend/src/locales/zh-HK.mjs` and `zh-CN.mjs`; use `t()` for
 interface copy and `message()` for interpolated messages stored in component
 state so existing notifications can change language without losing user data.
 
@@ -92,7 +93,7 @@ LiuLianBot/
 |   |-- commands/                 # Prefix-command handlers and shared user-target parsing
 |   |-- core/                     # Bot lifecycle, config, and slash adapter
 |   |-- features/                 # Discord event features
-|   |-- locales/                  # English and Traditional Chinese strings
+|   |-- locales/                  # English, Traditional and Simplified Chinese strings
 |   |-- tests/                    # Python test suite
 |   |-- updater/                  # Git-based updater
 |   `-- utils/                    # Database and logging utilities

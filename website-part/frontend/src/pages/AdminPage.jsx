@@ -521,7 +521,7 @@ export function AdminPage() {
                           ))
                           : <span className="text-muted">{t("No groups")}</span>}
                       </td>
-                      <td>{user.created_at ? new Date(user.created_at).toLocaleDateString(locale === 'zh-HK' ? 'zh-HK' : 'en-GB') : '-'}</td>
+                      <td>{user.created_at ? new Date(user.created_at).toLocaleDateString(locale === 'en' ? 'en-GB' : locale) : '-'}</td>
                       <td className="actions">
                         <button {...actionButtonProps('edit-user', user.id)}>{t("Edit Groups")}</button>
                         <button {...actionButtonProps('delete-user', user.id, 'btn-danger')}>{t("Delete")}</button>
@@ -762,7 +762,7 @@ export function AdminPage() {
                     <td className="mono">{item.guild_id}</td>
                     <td>{String(item.command_count || 0)}</td>
                     <td>{String(item.voice_joins || 0)}</td>
-                    <td>{item.last_day ? new Date(item.last_day).toLocaleDateString(locale === 'zh-HK' ? 'zh-HK' : 'en-GB') : '-'}</td>
+                    <td>{item.last_day ? new Date(item.last_day).toLocaleDateString(locale === 'en' ? 'en-GB' : locale) : '-'}</td>
                   </tr>
                 )))}
               </tbody>

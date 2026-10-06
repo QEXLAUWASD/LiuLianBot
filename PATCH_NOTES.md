@@ -1,5 +1,12 @@
 # Patch notes
 
+## Website Simplified Chinese (since `930880d`, 2026-10-06)
+
+- Added Simplified Chinese (`zh-CN`, including `zh_cn` aliases) to every website language selector, with a complete dictionary matching Traditional Chinese coverage.
+- Browser preferences recognize `zh-CN`, `zh-SG` and `zh-Hans`; Traditional Chinese remains available. Date formatting, page metadata, accessible labels and saved preferences follow the selection.
+- Updated both READMEs and built frontend assets. No new dependencies or ignore patterns are required.
+- Validation: JavaScript checks, production build and all 402 tests passed, including dictionary placeholders/coverage, locale detection, switching without losing login inputs or event filters, and Simplified Chinese dates.
+
 ## Clash routing rule set selector and custom YAML (since `366152b`, 2026-10-06)
 
 - Added a per-VPN-user rule set selector and list column: all VPN, LAN direct, China direct, China direct with advertising-domain blocking, and custom YAML. The catalog is administrator-only and includes localized explanations.

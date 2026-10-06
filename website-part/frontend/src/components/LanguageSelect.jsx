@@ -9,6 +9,7 @@ export function LanguageSelect() {
       <select value={locale} onChange={event => setLocale(event.target.value)}>
         <option value="en" lang="en">English</option>
         <option value="zh-HK" lang="zh-HK">繁體中文（香港）</option>
+        <option value="zh-CN" lang="zh-CN">简体中文</option>
       </select>
     </label>
   );
