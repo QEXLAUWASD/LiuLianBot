@@ -1,6 +1,9 @@
 // Hong Kong Traditional Chinese. Keys are the existing source UI copy.
 // Keep identifiers, user content, game data and protocol/configuration values intact.
 export default Object.freeze({
+  "VPN username": "VPN 用戶名稱",
+  "VPN users are managed independently. Enter a name to create a VPN subscription.": "VPN 用戶獨立管理，輸入名稱即可建立 VPN 訂閱。",
+  "Enter a VPN username (1–100 characters)": "請輸入 VPN 用戶名稱（1–100 字元）",
   "Server list / status": "伺服器列表／狀態",
   "VPN users": "VPN 用戶",
   "Add VPN user": "新增 VPN 用戶",

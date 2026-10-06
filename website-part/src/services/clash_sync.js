@@ -27,7 +27,7 @@ function createSyncWorker({ poolProvider = getPool, transport = syncOverSsh, pro
           if (!profile) throw new Error('SSH profile is missing');
           const [users] = await conn.execute(`SELECT s.user_id, s.expires_at FROM website_clash_grants g
             JOIN website_clash_subscriptions s ON s.user_id=g.user_id
-            JOIN website_users u ON u.id=s.user_id
+            JOIN website_clash_users u ON u.id=s.user_id
             WHERE g.server_id=? AND s.enabled=1 AND s.expires_at>UTC_TIMESTAMP()`, [server.id]);
           const activeUsers = server.enabled && !server.deleted_at ? users : [];
           const accounts = [];

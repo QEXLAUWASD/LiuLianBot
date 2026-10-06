@@ -567,6 +567,31 @@ const MIGRATIONS = [
       // No user foreign key: deleted users must still be revoked on the VPS.
     },
   },
+  {
+    version: '022',
+    name: 'Independent Clash VPN users',
+    async up(conn) {
+      await conn.execute(`CREATE TABLE IF NOT EXISTS website_clash_users (
+        id VARCHAR(64) NOT NULL PRIMARY KEY, username VARCHAR(100) NOT NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+      // Preserve IDs, URLs, grants and encrypted credentials while separating identities.
+      await conn.execute(`INSERT INTO website_clash_users (id, username)
+        SELECT s.user_id, LEFT(u.username,100) FROM website_clash_subscriptions s
+        JOIN website_users u ON u.id=s.user_id
+        ON DUPLICATE KEY UPDATE id=VALUES(id)`);
+      const [foreignKeys] = await conn.execute(`SELECT CONSTRAINT_NAME, REFERENCED_TABLE_NAME
+        FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE()
+        AND TABLE_NAME='website_clash_subscriptions' AND COLUMN_NAME='user_id'
+        AND REFERENCED_TABLE_NAME IS NOT NULL`);
+      for (const key of foreignKeys.filter(key => key.REFERENCED_TABLE_NAME === 'website_users')) {
+        await conn.execute('ALTER TABLE website_clash_subscriptions DROP FOREIGN KEY `' + key.CONSTRAINT_NAME.replaceAll('`', '``') + '`');
+      }
+      if (!foreignKeys.some(key => key.REFERENCED_TABLE_NAME === 'website_clash_users')) {
+        await conn.execute(`ALTER TABLE website_clash_subscriptions ADD CONSTRAINT fk_clash_subscription_vpn_user
+          FOREIGN KEY (user_id) REFERENCES website_clash_users(id) ON DELETE CASCADE`);
+      }
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

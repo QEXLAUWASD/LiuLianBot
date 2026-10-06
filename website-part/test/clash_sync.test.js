@@ -32,6 +32,9 @@ test('worker publishes encrypted per-user credentials only after successful SSH 
   const messages = [];
   const f = fixture({ transport: async (profile, payload) => messages.push(payload) });
   await f.worker.runOnce();
+  const lookup = f.calls.find(([sql]) => sql.includes('SELECT s.user_id'))[0];
+  assert.match(lookup, /JOIN website_clash_users/);
+  assert.doesNotMatch(lookup, /JOIN website_users\b/);
   const account = decryptProfile(f.stored.get('user'), key);
   assert.notEqual(account.password, 'shared');
   assert.equal(JSON.parse(account.proxy_json).password, `${account.name}:${account.password}`);

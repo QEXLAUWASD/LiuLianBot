@@ -412,14 +412,17 @@ All `/api/admin/clash/*` endpoints require a signed-in user whose current databa
 | PUT | `/api/admin/clash/servers/:id` | Same body → `{ id }` |
 | DELETE | `/api/admin/clash/servers/:id` | Retains a disabled tombstone until managed remote accounts are revoked → `{ success: true }` |
 | GET | `/api/admin/clash/subscriptions` | `{ subscriptions: [{ user_id, username, enabled, expires_at, server_ids, path }] }` |
-| PUT | `/api/admin/clash/subscriptions/:userId` | `{ enabled, expires_at, server_ids }` → `{ success: true }`; replaces all grants atomically; preserves an existing subscription URL |
-| DELETE | `/api/admin/clash/subscriptions/:userId` | Removes subscription and cascading grants; immediately invalidates URL; retains website user and account records for background SSH revocation → `{ success: true }` |
+| POST | `/api/admin/clash/subscriptions` | `{ username, enabled, expires_at, server_ids }` → `201 { user_id }`; creates an independent VPN identity, subscription and grants atomically |
+| PUT | `/api/admin/clash/subscriptions/:userId` | `{ username?, enabled, expires_at, server_ids }` → `{ success: true }`; renames an existing VPN user and replaces all grants atomically; preserves the subscription URL; unknown VPN IDs return 404 |
+| DELETE | `/api/admin/clash/subscriptions/:userId` | Removes the independent VPN identity, subscription and cascading grants; immediately invalidates URL; retains website user and account records for background SSH revocation → `{ success: true }` |
 | POST | `/api/admin/clash/subscriptions/:userId/rotate` | Replaces URL token; old URL immediately stops working → `{ success: true }` |
 | GET | `/clash-sub/:token.yaml` | Bearer URL, no session required → current `application/yaml` for granted enabled nodes only |
 
 `expires_at` is an ISO timestamp with timezone. The UI uses UTC+8; the database stores UTC. `server_ids` contains numeric positive IDs (up to 200). Empty grants are permitted, but cannot download a configuration. New subscription tokens contain 256 bits of cryptographic randomness. Fetch the subscriptions list after saving or rotating to obtain the current path.
 
 `proxy_yaml` contains one Clash/Mihomo proxy object, without `name` or cross-node references, up to 16 KB; supported types are `ss`, `vmess`, `vless`, `trojan`, `hysteria2`, `tuic`, `socks5`, and `http`. Specify the protocol's cipher, password, UUID, transport and TLS options as required by your VPN server. YAML anchors/aliases are rejected. The generated profile has a `VPN` select group and `MATCH,VPN` routing, following the [Mihomo select group format](https://wiki.metacubex.one/en/config/proxy-groups/select/).
+
+`user_id` identifies an independent VPN identity in `website_clash_users`, not a website login. VPN users can be created by name; names are labels and authentication uses the subscription token/per-node credentials. Migration `022` copies existing VPN identities with unchanged IDs/URLs/grants/credentials and moves the subscription foreign key to the VPN user table. Website-account deletion no longer removes VPN users.
 
 Publication is dynamic: each download reads current grants, node settings and UTC expiry from MySQL in one statement. No static files or deployment jobs are needed. Invalid, expired, disabled and rotated tokens return 404; zero available nodes returns 403. Responses include `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow` and, on success, `subscription-userinfo: expire=<Unix timestamp>`.
 

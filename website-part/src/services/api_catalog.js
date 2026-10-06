@@ -22,7 +22,7 @@ const groups = {
   admin: [
     'GET admin/clash/servers', 'POST admin/clash/servers', 'PUT admin/clash/servers/:id', 'DELETE admin/clash/servers/:id',
     'GET admin/clash/profiles', 'GET admin/clash/sync-status', 'POST admin/clash/sync',
-    'GET admin/clash/subscriptions', 'PUT admin/clash/subscriptions/:userId', 'DELETE admin/clash/subscriptions/:userId', 'POST admin/clash/subscriptions/:userId/rotate',
+    'GET admin/clash/subscriptions', 'POST admin/clash/subscriptions', 'PUT admin/clash/subscriptions/:userId', 'DELETE admin/clash/subscriptions/:userId', 'POST admin/clash/subscriptions/:userId/rotate',
     'GET admin/users', 'PUT admin/users/:id', 'DELETE admin/users/:id',
     'GET admin/groups', 'POST admin/groups', 'PUT admin/groups/:id', 'DELETE admin/groups/:id',
     'GET admin/connections', 'POST admin/connections', 'PUT admin/connections/:id', 'DELETE admin/connections/:id',

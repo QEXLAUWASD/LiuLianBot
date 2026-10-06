@@ -6,6 +6,8 @@
 
 格式依據：[Hysteria2 userpass](https://v2.hysteria.network/docs/advanced/Full-Server-Config/)、[sing-box Hysteria2](https://sing-box.sagernet.org/configuration/inbound/hysteria2/)、[sing-box SS2022 多用戶](https://sing-box.sagernet.org/configuration/inbound/shadowsocks/)、[Xray VLESS clients](https://xtls.github.io/en/config/inbounds/vless.html)。此版本不直接管理 shadowsocks-rust／libev；該類節點可繼續作未管理節點。
 
+VPN 用戶使用獨立資料表，不需建立網站帳號。Migration `022` 保留現有 ID、訂閱網址、授權與憑證；網站帳號刪除不再影響 VPN 訂閱。
+
 ## 1. 網站主機設定
 
 將 [ssh-profiles.example.json](ssh-profiles.example.json) 複製到網站使用者可讀取、repository 外的 `/etc/liulianbot/clash-ssh-profiles.json`，填入真實 SSH host、username、私鑰路徑、host key SHA256 **64 位十六進位**雜湊，以及 VPS target 名稱。`credential_style` 對獨立 Hysteria2 必須為 `hysteria2-userpass`；sing-box／Xray／Mihomo 使用 `standard`。每個節點使用不同 target，且 target 只對應一個入站。
@@ -19,7 +21,7 @@ CLASH_SSH_PROFILES_FILE=/etc/liulianbot/clash-ssh-profiles.json
 CLASH_CREDENTIAL_ENCRYPTION_KEY=<base64 編碼的 32-byte 金鑰>
 ```
 
-金鑰可用 `openssl rand -base64 32` 產生，請備份；更換金鑰會使既有帳戶憑證無法解密。網站啟動自動執行 migration `021`。SSH 設定內容只在伺服器端讀取，後台只顯示 profile 名稱。帳戶憑證在資料庫使用 AES-256-GCM 加密。
+金鑰可用 `openssl rand -base64 32` 產生，請備份；更換金鑰會使既有帳戶憑證無法解密。網站啟動自動執行 migration `021`／`022`。SSH 設定內容只在伺服器端讀取，後台只顯示 profile 名稱。帳戶憑證在資料庫使用 AES-256-GCM 加密。
 
 ## 2. VPS 安裝工具
 
@@ -73,7 +75,7 @@ systemctl status liulian-vpn-expire.timer
 
 1. 先建立 VPN 節點，取得 ID；設定 VPS target 的 `owner_prefix`。
 2. 在節點的「SSH 管理設定」選擇對應 profile，儲存後按「立即同步」。
-3. 設定用戶到期時間與可用節點；同步成功前，不會在訂閱中提供新的個別憑證。
+3. 在 VPN 用戶列表按「新增」，輸入獨立 VPN 用戶名稱、到期時間與可用節點；同步成功前，不會在訂閱中提供新的個別憑證。
 4. 在「SSH 同步」確認 `ready`、上次同步時間。失敗顯示 `error` 並自動重試，不會回退到共用憑證。
 5. 用測試用戶驗證訂閱及 VPN 連線，設定短期到期時間，再確認下載停止、該帳戶從 VPS 移除；也可暫停網站，確認 VPS timer 仍能清理。
 

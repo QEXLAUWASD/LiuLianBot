@@ -98,7 +98,7 @@ test('subscription deletion locks the user and retains individual account record
   execute = async sql => sql.startsWith('SELECT id') ? [[{ id: 'u' }]] : [{ affectedRows: 1 }];
   await repository.deleteSubscription('u');
   assert.equal(calls[0], 'begin');
-  assert.match(calls[1][0], /website_users.*FOR UPDATE/);
+  assert.match(calls[1][0], /website_clash_users.*FOR UPDATE/);
   assert.deepEqual(calls[2], ['DELETE FROM website_clash_subscriptions WHERE user_id=?', ['u']]);
   assert.deepEqual(calls.slice(-2), ['commit', 'release']);
   assert.equal(calls.some(call => Array.isArray(call) && /DELETE FROM website_(users|clash_accounts)/.test(call[0])), false);
@@ -110,4 +110,52 @@ test('missing subscription deletion rolls back and releases its transaction', as
   await assert.rejects(repository.deleteSubscription('u'), { statusCode: 404 });
   assert.equal(calls.includes('commit'), false);
   assert.deepEqual(calls.slice(-2), ['rollback', 'release']);
+});
+
+test('independent VPN user creation uses its own UUID and commits user/subscription/grants together', async () => {
+  calls = [];
+  execute = async () => [{ affectedRows: 1 }];
+  const id = await repository.saveSubscription(null, { ...data, username: 'VPN customer' });
+  assert.match(id, /^[a-f0-9-]{36}$/);
+  const user = calls.find(call => Array.isArray(call) && call[0].startsWith('INSERT INTO website_clash_users'));
+  assert.deepEqual(user[1], [id, 'VPN customer']);
+  assert.equal(calls.some(call => Array.isArray(call) && /website_users\b/.test(call[0])), false);
+  assert.deepEqual(calls.slice(-2), ['commit', 'release']);
+});
+
+test('failed independent VPN creation rolls back the identity as well as the subscription', async () => {
+  calls = [];
+  execute = async sql => {
+    if (sql.startsWith('INSERT INTO website_clash_grants')) throw new Error('invalid grant');
+    return [{ affectedRows: 1 }];
+  };
+  await assert.rejects(repository.saveSubscription(null, { ...data, username: 'VPN customer' }));
+  assert.equal(calls.includes('commit'), false);
+  assert.deepEqual(calls.slice(-2), ['rollback', 'release']);
+});
+
+test('migration 022 preserves existing VPN identities and replaces only the website-user foreign key', async () => {
+  const { MIGRATIONS } = require('../src/db/migrate');
+  for (const keys of [[{ CONSTRAINT_NAME: 'old_user_fk', REFERENCED_TABLE_NAME: 'website_users' }],
+    [{ CONSTRAINT_NAME: 'fk_clash_subscription_vpn_user', REFERENCED_TABLE_NAME: 'website_clash_users' }], []]) {
+    const statements = [];
+    await MIGRATIONS.find(m => m.version === '022').up({ execute: async sql => {
+      statements.push(sql);
+      return sql.includes('information_schema.KEY_COLUMN_USAGE') ? [keys] : [{ affectedRows: 1 }];
+    } });
+    assert.match(statements[1], /SELECT s.user_id, LEFT\(u.username,100\)/);
+    assert.equal(statements.some(sql => /UPDATE website_clash_(subscriptions|accounts|grants)|DELETE FROM/.test(sql)), false);
+    assert.equal(statements.some(sql => sql.includes('DROP FOREIGN KEY')), keys.some(key => key.REFERENCED_TABLE_NAME === 'website_users'));
+    assert.equal(statements.some(sql => sql.includes('ADD CONSTRAINT')), !keys.some(key => key.REFERENCED_TABLE_NAME === 'website_clash_users'));
+  }
+});
+
+test('VPN rename locks the independent identity and preserves existing subscription tokens', async () => {
+  calls = [];
+  execute = async sql => sql.startsWith('SELECT id') ? [[{ id: 'u' }]] : [{ affectedRows: 1 }];
+  await repository.saveSubscription('u', { ...data, username: 'Renamed VPN user' });
+  assert.match(calls[1][0], /website_clash_users.*FOR UPDATE/);
+  assert.deepEqual(calls[2], ['UPDATE website_clash_users SET username=? WHERE id=?', ['Renamed VPN user', 'u']]);
+  const upsert = calls.find(call => Array.isArray(call) && call[0].includes('ON DUPLICATE KEY'));
+  assert.doesNotMatch(upsert[0].split('ON DUPLICATE KEY UPDATE')[1], /token/);
 });

@@ -4,7 +4,7 @@ import { formatUtc8, utc8InputToIso } from '../lib/timeZone.mjs';
 import { t, useLocale } from '../lib/i18n.mjs';
 
 const blankServer = () => ({ name: '', enabled: true, management_profile: '', proxy_yaml: 'type: vless\nserver: vpn.example.com\nport: 443\nuuid: 00000000-0000-0000-0000-000000000000\ntls: true\nudp: true\n' });
-const blankSubscription = () => ({ user_id: '', enabled: true, expires_at: '', server_ids: [] });
+const blankSubscription = () => ({ user_id: '', username: '', enabled: true, expires_at: '', server_ids: [] });
 const dateInput = value => new Date(new Date(value).getTime() + 8 * 3600000).toISOString().slice(0, 19);
 
 export function ClashAdmin({ askConfirm }) {
@@ -19,11 +19,11 @@ export function ClashAdmin({ askConfirm }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const load = async () => {
-    const [servers, subscriptions, users, profiles, sync] = await Promise.all([
-      requestJSON('/api/admin/clash/servers'), requestJSON('/api/admin/clash/subscriptions'), requestJSON('/api/admin/users'),
+    const [servers, subscriptions, profiles, sync] = await Promise.all([
+      requestJSON('/api/admin/clash/servers'), requestJSON('/api/admin/clash/subscriptions'),
       requestJSON('/api/admin/clash/profiles'), requestJSON('/api/admin/clash/sync-status'),
     ]);
-    setData({ servers: servers.servers, subscriptions: subscriptions.subscriptions, users: users.users, profiles: profiles.profiles, sync: sync.servers });
+    setData({ servers: servers.servers, subscriptions: subscriptions.subscriptions, profiles: profiles.profiles, sync: sync.servers });
   };
   useEffect(() => { load().catch(err => setError(err.message)); }, []);
   const run = async action => {
@@ -74,8 +74,9 @@ export function ClashAdmin({ askConfirm }) {
       {data.sync.some(item => item.deleted_at) && <details><summary>{t('Pending server removals')}</summary><ul>{data.sync.filter(item => item.deleted_at).map(item => <li key={item.id}>{item.name}: {t(item.sync_status)} {item.sync_error || ''}</li>)}</ul></details>}
       </section>
       <section className="clash-management-section" aria-labelledby="clash-users-title">
-      <div className="clash-list-header"><h3 id="clash-users-title">{t('VPN users')}</h3><button className="btn btn-primary" type="button" disabled={busy || !data.users.some(user => !data.subscriptions.some(item => item.user_id === user.id))} onClick={() => { setSubscription(blankSubscription()); setEditingUser(false); setUserEditor(true); }}>{t('Add VPN user')}</button></div>
-      <div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th>{t('Username')}</th><th>{t('Expires at (UTC+8)')}</th><th>{t('Status')}</th><th>{t('Allowed VPN servers')}</th><th>{t('Subscription URL')}</th><th>{t('Actions')}</th></tr></thead>
+      <div className="clash-list-header"><h3 id="clash-users-title">{t('VPN users')}</h3><button className="btn btn-primary" type="button" disabled={busy} onClick={() => { setSubscription(blankSubscription()); setEditingUser(false); setUserEditor(true); }}>{t('Add VPN user')}</button></div>
+      <p>{t('VPN users are managed independently. Enter a name to create a VPN subscription.')}</p>
+      <div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th>{t('VPN username')}</th><th>{t('Expires at (UTC+8)')}</th><th>{t('Status')}</th><th>{t('Allowed VPN servers')}</th><th>{t('Subscription URL')}</th><th>{t('Actions')}</th></tr></thead>
         <tbody>{!data.subscriptions.length && <tr><td colSpan={6}>{t('No VPN users yet')}</td></tr>}{data.subscriptions.map(item => <tr key={item.user_id}><td>{item.username}</td><td>{formatUtc8(item.expires_at)}</td><td>{t(!item.enabled ? 'Disabled' : Date.parse(item.expires_at) <= Date.now() ? 'Expired' : 'Enabled')}</td>
           <td>{item.server_ids.map(id => data.servers.find(server => Number(server.id) === Number(id))?.name).filter(Boolean).join(', ') || '—'}</td><td><input aria-label={`${t('Subscription URL')} ${item.username}`} readOnly value={`${globalThis.location.origin}${item.path}`} onFocus={event => event.target.select()} /></td>
           <td><div className="clash-actions"><button className="btn btn-sm btn-outline" type="button" disabled={busy} onClick={() => selectUser(item.user_id)}>{t('Edit')}</button>{' '}
@@ -85,11 +86,11 @@ export function ClashAdmin({ askConfirm }) {
             }))}>{t('Remove')}</button>
           </div></td></tr>)}</tbody></table></div>
       {userEditor && <form className="clash-editor" onSubmit={event => { event.preventDefault(); run(async () => {
-        await sendJSON(`/api/admin/clash/subscriptions/${encodeURIComponent(subscription.user_id)}`, { enabled: subscription.enabled, expires_at: utc8InputToIso(subscription.expires_at), server_ids: subscription.server_ids }, { method: 'PUT' });
+        await sendJSON(editingUser ? `/api/admin/clash/subscriptions/${encodeURIComponent(subscription.user_id)}` : '/api/admin/clash/subscriptions', { username: subscription.username, enabled: subscription.enabled, expires_at: utc8InputToIso(subscription.expires_at), server_ids: subscription.server_ids }, { method: editingUser ? 'PUT' : 'POST' });
         setSubscription(blankSubscription()); setUserEditor(false);
       }); }}><fieldset disabled={busy}>
         <legend>{t(editingUser ? 'Edit VPN user' : 'Add VPN user')}</legend>
-        <div className="form-group"><label htmlFor="vpn-user">{t('Username')}</label><select id="vpn-user" required disabled={editingUser} value={subscription.user_id} onChange={event => selectUser(event.target.value)}><option value="">{t('Select user')}</option>{data.users.filter(user => user.id === subscription.user_id || !data.subscriptions.some(item => item.user_id === user.id)).map(user => <option key={user.id} value={user.id}>{user.username}</option>)}</select></div>
+        <div className="form-group"><label htmlFor="vpn-user">{t('VPN username')}</label><input id="vpn-user" required maxLength={100} value={subscription.username} onChange={event => setSubscription({ ...subscription, username: event.target.value })} /></div>
         <div className="form-group"><label htmlFor="vpn-expiry">{t('Expires at (UTC+8)')}</label><input id="vpn-expiry" type="datetime-local" step="1" required value={subscription.expires_at} onChange={event => setSubscription({ ...subscription, expires_at: event.target.value })} /></div>
         <label><input type="checkbox" checked={subscription.enabled} onChange={event => setSubscription({ ...subscription, enabled: event.target.checked })} /> {t('Enabled')}</label>
         <p>{t('Allowed VPN servers')}</p>

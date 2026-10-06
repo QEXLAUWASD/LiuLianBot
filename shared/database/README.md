@@ -88,3 +88,5 @@ npm run check
 
 `config.json` 只可以喺本機或部署環境建立，唔好提交；Bot token、Website
 `SESSION_SECRET` 同 database password 都應該使用獨立嘅秘密管理方式保存。
+
+Clash VPN 使用獨立 `website_clash_users`（migration `022`），同 `website_users` 登入帳號分開。遷移保留舊 ID／訂閱／授權／憑證，將訂閱外鍵改指 VPN 用戶；網站帳號刪除不影響 VPN。VPN 用戶刪除會清除訂閱及授權，但保留 `website_clash_accounts` 供背景 SSH 撤銷。

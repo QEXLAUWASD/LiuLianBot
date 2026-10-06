@@ -68,4 +68,13 @@ function renderConfig(servers) {
     proxies, 'proxy-groups': [{ name: 'VPN', type: 'select', proxies: proxies.map(proxy => proxy.name) }],
     rules: ['MATCH,VPN'] }, { noRefs: true, lineWidth: 120 });
 }
-module.exports = { positiveId, normalizeServer, normalizeSubscription, renderConfig };
+function normalizeVpnUser(body = {}, requireName = false) {
+  const data = normalizeSubscription(body);
+  if (requireName || Object.hasOwn(body, 'username')) {
+    const username = typeof body.username === 'string' ? body.username.trim() : '';
+    if (!username || username.length > 100 || /[\x00-\x1f\x7f]/.test(username)) throw new InputError('Enter a VPN username (1–100 characters)');
+    data.username = username;
+  }
+  return data;
+}
+module.exports = { positiveId, normalizeServer, normalizeSubscription, normalizeVpnUser, renderConfig };

@@ -1,5 +1,12 @@
 # Patch notes
 
+## Independent VPN users (since `69dc421`, 2026-10-06)
+
+- Separated VPN identities from website login accounts using `website_clash_users`. Migration `022` copies existing identities and replaces the subscription foreign key while preserving IDs, subscription tokens, grants and encrypted per-node credentials. Website account deletion no longer removes VPN access.
+- Administrators can create VPN users directly by name, rename/edit expiry and node access, or remove them. Added POST subscription creation with a generated UUID; creation and grant updates are atomic. Removal retains encrypted account records for SSH revocation. The UI no longer fetches website users and names are labels; subscription tokens and generated node credentials provide client authentication.
+- Updated README/setup/database guidance, API catalog/OpenAPI and built assets. No new secret files or ignore patterns are required.
+- Validation: JavaScript checks, production build and all 387 tests passed (5 added), including independent identity creation/rename/rollback, migration foreign-key replacement/retry, admin authorization/name validation, frontend creation and VPN-only synchronization. Database migration was checked with fixtures; live MySQL/VPS deployment was not performed.
+
 ## Clash server and VPN user lists (since `aae9567`, 2026-10-06)
 
 - Reorganized Clash administration into a server list with status, last sync and errors, followed by VPN users with a right-aligned Add action and per-row Edit/Remove actions. Add/edit forms open on demand and can be cancelled; URL rotation remains in the user editor. Added empty states and English/Traditional Chinese copy.

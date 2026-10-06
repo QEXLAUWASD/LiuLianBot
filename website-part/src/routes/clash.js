@@ -4,7 +4,7 @@ const repository = require('../db/clash');
 const { InputError } = require('../errors');
 const { AppError } = require('../errors');
 const { readProfiles } = require('../services/clash_ssh');
-const { positiveId, normalizeServer, normalizeSubscription, renderConfig } = require('../services/clash_config');
+const { positiveId, normalizeServer, normalizeVpnUser, renderConfig } = require('../services/clash_config');
 
 function createRouters({ db = repository, adminAuth = requireAdmin, syncWorker } = {}) {
   const admin = express.Router();
@@ -31,6 +31,7 @@ function createRouters({ db = repository, adminAuth = requireAdmin, syncWorker }
   admin.put('/servers/:id', handle(async (req, res) => res.json({ id: await db.saveServer(positiveId(req.params.id), normalizeServer(req.body)) })));
   admin.delete('/servers/:id', handle(async (req, res) => { await db.deleteServer(positiveId(req.params.id)); res.json({ success: true }); }));
   admin.get('/subscriptions', handle(async (req, res) => res.json({ subscriptions: await db.listSubscriptions() })));
+  admin.post('/subscriptions', handle(async (req, res) => res.status(201).json({ user_id: await db.saveSubscription(null, normalizeVpnUser(req.body, true)) })));
   admin.get('/sync-status', handle(async (req, res) => res.json({ servers: await db.listSyncStatus() })));
   admin.post('/sync', handle(async (req, res) => {
     if (!syncWorker) return res.status(503).json({ error: 'SSH sync worker is unavailable' });
@@ -38,7 +39,7 @@ function createRouters({ db = repository, adminAuth = requireAdmin, syncWorker }
     res.status(202).json({ success: true });
   }));
   admin.put('/subscriptions/:userId', handle(async (req, res) => {
-    await db.saveSubscription(userId(req), normalizeSubscription(req.body)); res.json({ success: true });
+    await db.saveSubscription(userId(req), normalizeVpnUser(req.body)); res.json({ success: true });
   }));
   admin.delete('/subscriptions/:userId', handle(async (req, res) => { await db.deleteSubscription(userId(req)); res.json({ success: true }); }));
   admin.post('/subscriptions/:userId/rotate', handle(async (req, res) => { await db.rotateToken(userId(req)); res.json({ success: true }); }));

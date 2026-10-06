@@ -42,7 +42,7 @@ async function deleteServer(id) {
 async function listSubscriptions() {
   const pool = await getPool();
   const [rows] = await pool.execute(`SELECT s.*, u.username, g.server_id FROM website_clash_subscriptions s
-    JOIN website_users u ON u.id=s.user_id LEFT JOIN website_clash_grants g ON g.user_id=s.user_id ORDER BY u.username`);
+    JOIN website_clash_users u ON u.id=s.user_id LEFT JOIN website_clash_grants g ON g.user_id=s.user_id ORDER BY u.username`);
   const grouped = new Map();
   for (const row of rows) {
     if (!grouped.has(row.user_id)) grouped.set(row.user_id, { user_id: row.user_id, username: row.username,
@@ -56,8 +56,14 @@ async function saveSubscription(userId, data) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const [users] = await conn.execute('SELECT id FROM website_users WHERE id=? FOR UPDATE', [userId]);
-    if (!users.length) throw missing();
+    if (!userId) {
+      userId = crypto.randomUUID();
+      await conn.execute('INSERT INTO website_clash_users (id,username) VALUES (?,?)', [userId, data.username]);
+    } else {
+      const [users] = await conn.execute('SELECT id FROM website_clash_users WHERE id=? FOR UPDATE', [userId]);
+      if (!users.length) throw missing();
+      if (data.username !== undefined) await conn.execute('UPDATE website_clash_users SET username=? WHERE id=?', [data.username, userId]);
+    }
     await conn.execute(`INSERT INTO website_clash_subscriptions (user_id,token,expires_at,enabled) VALUES (?,?,?,?)
       ON DUPLICATE KEY UPDATE expires_at=VALUES(expires_at), enabled=VALUES(enabled)`,
     [userId, crypto.randomBytes(32).toString('hex'), data.expires_at, data.enabled]);
@@ -66,6 +72,7 @@ async function saveSubscription(userId, data) {
       await conn.execute('INSERT INTO website_clash_grants (user_id,server_id) VALUES (?,?)', [userId, serverId]);
     }
     await conn.commit();
+    return userId;
   } catch (err) { await conn.rollback(); throw err; } finally { conn.release(); }
 }
 async function rotateToken(userId) {
@@ -80,10 +87,11 @@ async function deleteSubscription(userId) {
   try {
     await conn.beginTransaction();
     // Serialize with subscription creation/editing; retain account records for SSH revocation.
-    const [users] = await conn.execute('SELECT id FROM website_users WHERE id=? FOR UPDATE', [userId]);
+    const [users] = await conn.execute('SELECT id FROM website_clash_users WHERE id=? FOR UPDATE', [userId]);
     if (!users.length) throw missing();
     const [result] = await conn.execute('DELETE FROM website_clash_subscriptions WHERE user_id=?', [userId]);
     if (!result.affectedRows) throw missing();
+    await conn.execute('DELETE FROM website_clash_users WHERE id=?', [userId]);
     await conn.commit();
   } catch (err) { await conn.rollback(); throw err; } finally { conn.release(); }
 }
