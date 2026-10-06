@@ -12,6 +12,9 @@ The website automatically publishes each user's latest configuration at `/clash-
 Forward `/clash-sub/` to the Node website service over HTTPS and disable proxy caching. Keep subscription URLs private and redact them from access logs. Unmanaged nodes control downloads only. SSH-managed nodes provision independent user credentials and automatically revoke expired/disabled/ungranted accounts; see the [SSH VPS setup guide](website-part/deploy/clash-vps/README.md) for mixed Hysteria2, sing-box and Xray servers. The website synchronizes in the background and a VPS-local timer enforces expiry during website outages. Configuration changes restart the VPN service and briefly disconnect other sessions. Legacy shared credentials require separate rotation on the VPS. See [Clash API documentation](docs/API.md#clash-vpn-subscriptions).
 
 
+Mihomo Hysteria2/VLESS and OpenWrt/procd VPN hosts are also supported. The website worker itself does not require systemd. Empty VPS targets do not enable account revocation. See [SSH VPN setup](website-part/deploy/clash-vps/README.md).
+
+
 ## Features
 
 ### Discord bot

@@ -1,5 +1,12 @@
 # Patch notes
 
+## Mihomo account management and OpenWrt expiry (since `cde348d`, 2026-10-06)
+
+- Added Mihomo Hysteria2 and VLESS/Reality per-user reconciliation with expiry, namespace preservation, stable disabled sentinels, YAML validation before activation, and restart rollback. Mihomo Hysteria2 uses raw individual passwords, unlike standalone Hysteria2 userpass. Mihomo SS2022 shared-password listeners remain unsupported for individual revocation.
+- Added OpenWrt/procd service control and a foreground expiry daemon with immediate/minute cleanup, overlap prevention and sanitized errors. The website worker itself does not require systemd.
+- Updated installation guidance, target examples and both READMEs. Read-only SSH inspection of Digi Pro 2 confirmed Ubuntu 20.04.6, Mihomo v1.19.32 and an active expiry timer with zero targets; no VPS configuration or services were changed. The other seven VPS were not inspected.
+- Validation: full website JavaScript check, production build and all 377 tests passed (5 added); procd shell syntax and `git diff --check` passed. Live provisioning, VPN connections and expiry were not exercised.
+
 ## Admin Clash subscriptions and SSH auto-revocation (since `108ac79`, 2026-10-06)
 
 - Added an administrator-only Clash subscription tab and guarded APIs to create/edit/disable/delete VPN nodes, manage per-user expiry and allowed nodes, rotate URLs, select SSH management profiles, inspect sync status and request retries. English/Traditional Chinese UI uses UTC+8 expiry input.

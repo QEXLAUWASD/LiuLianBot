@@ -1,7 +1,7 @@
 const crypto = require('node:crypto');
 
 function applyAccounts(source, target, payload, now = Date.now()) {
-  if (!target || !['sing-box', 'xray', 'hysteria2'].includes(target.engine) ||
+  if (!target || !['sing-box', 'xray', 'hysteria2', 'mihomo'].includes(target.engine) ||
       !/^llb-s[1-9]\d*-$/.test(target.owner_prefix || '') || payload.owner_prefix !== target.owner_prefix ||
       !['ss', 'vless', 'vmess', 'trojan', 'hysteria2'].includes(target.protocol) || !Array.isArray(payload.accounts) || payload.accounts.length > 10000) {
     throw new Error('Invalid target or ownership');
@@ -19,7 +19,28 @@ function applyAccounts(source, target, payload, now = Date.now()) {
   }
   const active = payload.accounts.filter(account => Date.parse(account.expires_at) > now);
   const result = structuredClone(source);
-  if (target.engine === 'hysteria2') {
+  if (target.engine === 'mihomo') {
+    const listeners = result.listeners?.filter(listener => listener.name === target.inbound_tag);
+    if (!target.inbound_tag || listeners?.length !== 1) throw new Error('Expected exactly one matching Mihomo listener');
+    const listener = listeners[0];
+    if (listener.type !== target.protocol || !['hysteria2', 'vless'].includes(target.protocol)) throw new Error('Unsupported Mihomo listener');
+    const previous = source.listeners.find(item => item.name === target.inbound_tag);
+    if (target.protocol === 'hysteria2') {
+      if (!listener.users || typeof listener.users !== 'object' || Array.isArray(listener.users)) throw new Error('Mihomo Hysteria2 requires a users map');
+      listener.users = Object.fromEntries([...Object.entries(listener.users).filter(([name]) => !name.startsWith(target.owner_prefix)),
+        ...active.map(account => [account.name, account.password])]);
+      if (!Object.keys(listener.users).length) {
+        const name = `${target.owner_prefix}disabled`;
+        listener.users[name] = previous.users[name] || crypto.randomBytes(32).toString('hex');
+      }
+    } else {
+      if (!Array.isArray(listener.users)) throw new Error('Mihomo VLESS requires a users array');
+      listener.users = [...listener.users.filter(user => !String(user.username || '').startsWith(target.owner_prefix)),
+        ...active.map(account => ({ username: account.name, uuid: account.uuid, ...(account.flow ? { flow: account.flow } : {}) }))];
+      if (!listener.users.length) listener.users.push(previous.users.find(user => user.username === `${target.owner_prefix}disabled`) ||
+        { username: `${target.owner_prefix}disabled`, uuid: crypto.randomUUID() });
+    }
+  } else if (target.engine === 'hysteria2') {
     if (target.protocol !== 'hysteria2' || result.auth?.type !== 'userpass' || !result.auth.userpass || typeof result.auth.userpass !== 'object' || Array.isArray(result.auth.userpass)) {
       throw new Error('Standalone Hysteria2 requires an existing userpass auth map');
     }

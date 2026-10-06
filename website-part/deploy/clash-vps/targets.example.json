@@ -24,5 +24,23 @@
     "binary": "/usr/bin/sing-box",
     "inbound_tag": "ss-in",
     "service": "sing-box.service"
+  },
+  "mihomo-hy2": {
+    "engine": "mihomo",
+    "protocol": "hysteria2",
+    "owner_prefix": "llb-s4-",
+    "config_path": "/etc/mihomo-server/config.yaml",
+    "binary": "/usr/local/bin/mihomo",
+    "inbound_tag": "hysteria2-in",
+    "service": "mihomo-server.service"
+  },
+  "mihomo-vless": {
+    "engine": "mihomo",
+    "protocol": "vless",
+    "owner_prefix": "llb-s5-",
+    "config_path": "/etc/mihomo-server/config.yaml",
+    "binary": "/usr/local/bin/mihomo",
+    "inbound_tag": "vless-reality-in",
+    "service": "mihomo-server.service"
   }
 }

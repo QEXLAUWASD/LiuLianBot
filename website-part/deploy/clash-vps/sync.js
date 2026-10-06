@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const yaml = require('js-yaml');
 const { applyAccounts } = require('./config_accounts');
+const { managerFor, runService, expiryCommand } = require('./services');
 const TARGETS = '/etc/liulian-vpn/targets.json';
 const STATE_DIR = '/var/lib/liulian-vpn';
 
@@ -34,32 +35,34 @@ function rootOwnedPath(filename, directory = false) {
 }
 function validateTarget(target) {
   if (!target || !path.isAbsolute(target.config_path || '') || !path.isAbsolute(target.binary || '') ||
-      !/^[a-zA-Z0-9_.@-]+\.service$/.test(target.service || '')) throw new Error('Invalid root target configuration');
+      typeof target.service !== 'string') throw new Error('Invalid root target configuration');
+  if (managerFor(target) === 'procd') rootOwnedPath(`/etc/init.d/${target.service}`);
   rootOwnedPath(target.config_path);
 }
 function synchronize(target, payload, statePath, { validate = validateTarget, runCommand = run } = {}) {
   validate(target);
   const raw = fs.readFileSync(target.config_path, 'utf8');
-  const source = target.engine === 'hysteria2' ? yaml.load(raw, { schema: yaml.JSON_SCHEMA }) : JSON.parse(raw);
+  const source = ['hysteria2', 'mihomo'].includes(target.engine) ? yaml.load(raw, { schema: yaml.JSON_SCHEMA }) : JSON.parse(raw);
   const updated = applyAccounts(source, target, payload);
   const changed = JSON.stringify(source) !== JSON.stringify(updated);
   if (changed) {
-    const content = target.engine === 'hysteria2' ? yaml.dump(updated, { noRefs: true }) : `${JSON.stringify(updated, null, 2)}\n`;
+    const content = ['hysteria2', 'mihomo'].includes(target.engine) ? yaml.dump(updated, { noRefs: true }) : `${JSON.stringify(updated, null, 2)}\n`;
     const candidate = `${target.config_path}.llb-candidate`;
     const ownership = fs.statSync(target.config_path);
     try {
       atomicWrite(candidate, content, ownership.mode & 0o777, ownership);
       if (target.engine === 'sing-box') runCommand(target.binary, ['check', '-c', candidate]);
       if (target.engine === 'xray') runCommand(target.binary, ['run', '-test', '-config', candidate]);
+      if (target.engine === 'mihomo') runCommand(target.binary, ['-t', '-d', path.dirname(target.config_path), '-f', candidate]);
       // Hysteria2 has no assumed test command: structural/auth validation above, rollback below.
       atomicWrite(`${target.config_path}.llb-backup`, raw, 0o600);
       fs.renameSync(candidate, target.config_path);
       try {
-        runCommand('/usr/bin/systemctl', ['restart', target.service]);
-        runCommand('/usr/bin/systemctl', ['is-active', '--quiet', target.service]);
+        runService(target, 'restart', runCommand);
+        runService(target, 'running', runCommand);
       } catch (error) {
         atomicWrite(target.config_path, raw, ownership.mode & 0o777, ownership);
-        try { runCommand('/usr/bin/systemctl', ['restart', target.service]); } catch {}
+        try { runService(target, 'restart', runCommand); } catch {}
         throw error;
       }
     } finally { try { fs.unlinkSync(candidate); } catch {} }
@@ -95,14 +98,16 @@ function main(payload, expire = false) {
     if (failed) throw new Error('Expiry cleanup failed');
   } else {
     // Website outages must not leave managed credentials active indefinitely.
-    run('/usr/bin/systemctl', ['is-active', '--quiet', 'liulian-vpn-expire.timer']);
+    const expiry = expiryCommand();
+    if (expiry.binary.startsWith('/etc/init.d/')) rootOwnedPath(expiry.binary);
+    run(expiry.binary, expiry.args);
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(payload.target || '') || !Object.hasOwn(targets, payload.target)) throw new Error('Unknown target');
     const target = targets[payload.target];
     const statePath = path.join(STATE_DIR, `${payload.target}.json`);
     // Validate the complete payload before making the expiry intent durable.
     validateTarget(target);
     const raw = fs.readFileSync(target.config_path, 'utf8');
-    applyAccounts(target.engine === 'hysteria2' ? yaml.load(raw, { schema: yaml.JSON_SCHEMA }) : JSON.parse(raw), target, payload);
+    applyAccounts(['hysteria2', 'mihomo'].includes(target.engine) ? yaml.load(raw, { schema: yaml.JSON_SCHEMA }) : JSON.parse(raw), target, payload);
     atomicWrite(`${statePath}.intent`, JSON.stringify(payload));
     synchronize(target, payload, statePath);
     fs.unlinkSync(`${statePath}.intent`);

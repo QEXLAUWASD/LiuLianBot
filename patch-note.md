@@ -1,5 +1,12 @@
 # 完整更新紀錄
 
+## Mihomo 帳戶管理同 OpenWrt 到期清理（基準：`cde348d`，2026-10-06）
+
+- 新增 Mihomo Hysteria2 同 VLESS／Reality 個別帳戶同步與到期撤銷；保留其他命名空間帳戶，先驗證 YAML，啟動失敗會回滾。Mihomo Hysteria2 使用個別密碼；SS2022 共用密碼 listener 仍唔支援個別撤銷。
+- 新增 OpenWrt／procd 服務管理同到期 daemon，啟動即清理、每分鐘重試、避免重疊，錯誤唔包含憑證。網站背景同步本身唔需要 systemd。
+- 更新安裝文件、target 範例同兩份 README。已用 SSH 唯讀確認 Digi Pro 2 使用 Ubuntu 20.04.6／Mihomo v1.19.32；timer 運行但 target 數為 0。冇修改 VPS 或重啟服務，另外 7 台未檢查。
+- 驗證：完整網站 JavaScript 檢查、production build 同全部 377 個測試通過（新增 5 個），procd shell 語法同 `git diff --check` 通過。未進行實機帳戶同步、VPN 連線或到期撤銷驗證。
+
 ## 管理員 Clash 訂閱與 SSH 自動撤銷（基準：`108ac79`，2026-10-06）
 
 - 新增管理員專用 Clash 訂閱分頁與受保護 API，支援新增／編輯／停用／刪除 VPN 節點、個別用戶到期時間與可用節點授權、重設網址、選擇 SSH 管理設定、查看同步狀態及手動重試。介面支援英文／繁體中文，到期時間使用 UTC+8。

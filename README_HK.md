@@ -12,6 +12,9 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 部署時用 HTTPS 將 `/clash-sub/` 轉送到 Node 網站服務，並停用代理快取。訂閱網址屬於憑證，請保密並避免記錄完整網址。未管理節點只限制訂閱下載；SSH 管理節點會建立個別用戶憑證，到期、停用或移除授權時自動撤銷。混合 Hysteria2、sing-box 同 Xray 的設定詳見 [SSH VPS 安裝文件](website-part/deploy/clash-vps/README.md)。網站定時同步，VPS 本機 timer 在網站離線時仍會清理到期帳戶；帳戶變更會重啟 VPN 服務並短暫中斷其他連線。舊共用憑證須另外喺 VPS 輪替。詳見 [Clash API 文件](docs/API.md#clash-vpn-subscriptions)。
 
 
+另支援 Mihomo Hysteria2／VLESS 同 OpenWrt／procd VPN 主機；網站背景同步本身唔需要 systemd。VPS targets 為空時，帳戶撤銷仍未啟用。詳見 [SSH VPN 設定](website-part/deploy/clash-vps/README.md)。
+
+
 ## 功能
 
 程式入口、指令處理同 Bot／網站之間嘅資料流程，見[功能運作導覽（繁體中文）](docs/FEATURE_WALKTHROUGH.zh-TW.md)。
