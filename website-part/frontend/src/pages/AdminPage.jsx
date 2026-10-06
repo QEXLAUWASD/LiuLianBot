@@ -2,6 +2,7 @@ import { t, message, useLocale } from '../lib/i18n.mjs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, requestJSON } from '../lib/apiClient.mjs';
 import { formatUtc8, utc8InputToIso } from '../lib/timeZone.mjs';
+import { ClashAdmin } from '../components/ClashAdmin.jsx';
 import { Modal } from '../components/Modal.jsx';
 import { StatusMessage } from '../components/StatusMessage.jsx';
 import { TabList, TabPanel, useTabs } from '../components/Tabs.jsx';
@@ -10,6 +11,7 @@ import { useAsyncAction } from '../hooks/useAsyncAction.mjs';
 import { useToast } from '../hooks/useToast.mjs';
 
 const TABS = [
+  { id: 'clash', label: 'Clash subscriptions', tabId: 'clash-tab', panelId: 'clashTab' },
   { id: 'users', label: '👤 Users', tabId: 'users-tab', panelId: 'usersTab' },
   { id: 'groups', label: '🔐 Groups', tabId: 'groups-tab', panelId: 'groupsTab' },
   { id: 'guilds', label: '🌐 Discord Guilds', tabId: 'guilds-tab', panelId: 'guildsTab' },
@@ -493,6 +495,10 @@ export function AdminPage() {
         <h2>{t("⚙️ Admin Panel")}</h2>
 
         <TabList tabs={tabs} label={t("Administration sections")} />
+
+        <TabPanel tabs={tabs} id="clash">
+          {tabs.activeId === 'clash' && <ClashAdmin askConfirm={askConfirm} />}
+        </TabPanel>
 
         <TabPanel tabs={tabs} id="users">
           <div className="admin-table-wrapper">

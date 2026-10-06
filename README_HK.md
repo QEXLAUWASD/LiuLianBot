@@ -2,6 +2,16 @@
 
 LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。提供《彩虹六號：圍攻》抽選、臨時私人語音頻道、伺服器事件記錄、可設定抽選系統、活動，以及帳戶同連線管理網站。
 
+
+## Clash VPN 訂閱管理
+
+喺 **管理員後台 → Clash 訂閱管理**，管理員可以新增／編輯／刪除 VPN 節點、設定每位網站用戶可以使用嘅 VPN、到期時間（UTC+8）、停用訂閱、重設訂閱網址、選擇 SSH 管理設定同查看／重試同步。節點輸入係單一 Clash/Mihomo 代理 YAML，唔使填 name；憑證、TLS 同傳輸設定須同現有 VPN 伺服器一致。支援 SS、VMess、VLESS、Trojan、Hysteria2、TUIC、SOCKS5 同 HTTP。
+
+儲存後會自動喺 `/clash-sub/<隨機代碼>.yaml` 提供最新用戶設定。呢個係從 MySQL 即時產生嘅 HTTP 端點，唔使建立靜態檔案或手動部署。網站啟動時會自動執行 migration `020`／`021` 建立節點、訂閱、授權及加密個別帳戶資料表。用戶下次更新訂閱就會取得變更；未知、停用或到期網址回傳 404，無可用授權節點回傳 403。
+
+部署時用 HTTPS 將 `/clash-sub/` 轉送到 Node 網站服務，並停用代理快取。訂閱網址屬於憑證，請保密並避免記錄完整網址。未管理節點只限制訂閱下載；SSH 管理節點會建立個別用戶憑證，到期、停用或移除授權時自動撤銷。混合 Hysteria2、sing-box 同 Xray 的設定詳見 [SSH VPS 安裝文件](website-part/deploy/clash-vps/README.md)。網站定時同步，VPS 本機 timer 在網站離線時仍會清理到期帳戶；帳戶變更會重啟 VPN 服務並短暫中斷其他連線。舊共用憑證須另外喺 VPS 輪替。詳見 [Clash API 文件](docs/API.md#clash-vpn-subscriptions)。
+
+
 ## 功能
 
 程式入口、指令處理同 Bot／網站之間嘅資料流程，見[功能運作導覽（繁體中文）](docs/FEATURE_WALKTHROUGH.zh-TW.md)。

@@ -29,6 +29,9 @@ const bodies = {
   'PUT admin/users/:id': object({ role_ids: integers }),
   'POST admin/groups': object({ name: string, description: string }),
   'PUT admin/groups/:id': object({ name: string, description: string }),
+  'POST admin/clash/servers': object({ name: string, enabled: boolean, proxy_yaml: string, management_profile: { type: 'string', nullable: true } }),
+  'PUT admin/clash/servers/:id': object({ name: string, enabled: boolean, proxy_yaml: string, management_profile: { type: 'string', nullable: true } }),
+  'PUT admin/clash/subscriptions/:userId': object({ enabled: boolean, expires_at: { type: 'string', format: 'date-time' }, server_ids: integers }),
   'POST admin/connections': connection,
   'PUT admin/connections/:id': connection,
   'PUT admin/events/:id/visibility': object({ visible: boolean }),
@@ -53,6 +56,9 @@ const requiredFields = {
   'POST files/archive': ['paths'], 'PUT files/permissions': ['username', 'read', 'write', 'share'],
   'POST files/shares': ['path', 'hours'], 'POST files/folder': ['path'],
   'POST files/rename': ['from', 'to'], 'DELETE files/entry': ['path'],
+  'POST admin/clash/servers': ['name', 'enabled', 'proxy_yaml'],
+  'PUT admin/clash/servers/:id': ['name', 'enabled', 'proxy_yaml'],
+  'PUT admin/clash/subscriptions/:userId': ['enabled', 'expires_at', 'server_ids'],
   'PUT admin/users/:id': ['role_ids'], 'POST admin/groups': ['name'], 'PUT admin/groups/:id': ['name'],
   'POST admin/connections': ['name', 'slug', 'target_url'], 'PUT admin/connections/:id': ['name', 'slug', 'target_url'],
   'PUT admin/events/:id/visibility': ['visible'], 'POST admin/announcements': ['guildId', 'channelId', 'content', 'scheduledAt'],
@@ -91,6 +97,7 @@ function createOpenApi(cookieName = 'connect.sid') {
       };
       if (bodies[key]) operation.requestBody = { required: true, content: { 'application/json': { schema: bodies[key] } } };
       if (key === 'PUT files/upload') operation.requestBody = { required: true, content: { 'application/octet-stream': { schema: { type: 'string', format: 'binary' } } } };
+      if (relative === 'admin/clash/sync') operation.responses[202] = { description: 'SSH synchronization requested; poll sync-status for the outcome.' };
       if (relative === 'mobile/connect/:slug') operation.responses = {
         302: { description: 'Legacy browser redirect to the authorized proxy path.', headers: { Location: { schema: string } } },
         401: operation.responses[401], 403: operation.responses[403], 404: operation.responses[404],
@@ -101,6 +108,13 @@ function createOpenApi(cookieName = 'connect.sid') {
   }
   for (const endpoint of ['capabilities', 'openapi']) paths[`/api/mobile/${endpoint}`] = { get: {
     operationId: `get_mobile_${endpoint}`, tags: ['discovery'], security: [], responses: { 200: { description: 'Public API discovery document', content: { 'application/json': { schema: { type: 'object' } } } } },
+  } };
+  paths['/clash-sub/{token}.yaml'] = { get: {
+    operationId: 'get_clash_subscription', tags: ['clash'], security: [],
+    description: 'Bearer subscription URL. No session required. Only enabled, unexpired subscriptions with enabled granted servers can download; responses are never cached.',
+    parameters: [{ name: 'token', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-f0-9]{64}$' } }],
+    responses: { 200: { description: 'Current Clash YAML', content: { 'application/yaml': { schema: { type: 'string' } } } },
+      403: { description: 'No enabled VPN servers are granted' }, 404: { description: 'Unknown, expired or disabled subscription' } },
   } };
   paths['/healthz'] = { get: { operationId: 'get_health', tags: ['health'], security: [], responses: { 200: { description: 'Database ready' }, 503: { description: 'Database unavailable' } } } };
   return {

@@ -400,3 +400,42 @@ npm run check
 - Chromium：鍵盤 input 可帶 `modifiers`（整數 0–15），Alt=1、Ctrl=2、Meta=4、Shift=8，可組合；省略時沿用原協定。WebSocket upgrade 檢查登入及 Chromium 頁面可見度。
 
 離線規格見 [openapi.json](openapi.json)。修改契約後執行 `cd website-part && npm run docs:api`，再執行 `npm run check`；測試會確認規格快照與產生器一致。
+
+## Clash VPN subscriptions
+
+All `/api/admin/clash/*` endpoints require a signed-in user whose current database role includes `admin`. Management responses use `Cache-Control: no-store`.
+
+| Method | Path | Body / response |
+| --- | --- | --- |
+| GET | `/api/admin/clash/servers` | `{ servers: [{ id, name, enabled, proxy_yaml }] }`; includes node credentials for administrators only |
+| POST | `/api/admin/clash/servers` | `{ name, enabled, proxy_yaml, management_profile? }` → `201 { id }` |
+| PUT | `/api/admin/clash/servers/:id` | Same body → `{ id }` |
+| DELETE | `/api/admin/clash/servers/:id` | Retains a disabled tombstone until managed remote accounts are revoked → `{ success: true }` |
+| GET | `/api/admin/clash/subscriptions` | `{ subscriptions: [{ user_id, username, enabled, expires_at, server_ids, path }] }` |
+| PUT | `/api/admin/clash/subscriptions/:userId` | `{ enabled, expires_at, server_ids }` → `{ success: true }`; replaces all grants atomically; preserves an existing subscription URL |
+| POST | `/api/admin/clash/subscriptions/:userId/rotate` | Replaces URL token; old URL immediately stops working → `{ success: true }` |
+| GET | `/clash-sub/:token.yaml` | Bearer URL, no session required → current `application/yaml` for granted enabled nodes only |
+
+`expires_at` is an ISO timestamp with timezone. The UI uses UTC+8; the database stores UTC. `server_ids` contains numeric positive IDs (up to 200). Empty grants are permitted, but cannot download a configuration. New subscription tokens contain 256 bits of cryptographic randomness. Fetch the subscriptions list after saving or rotating to obtain the current path.
+
+`proxy_yaml` contains one Clash/Mihomo proxy object, without `name` or cross-node references, up to 16 KB; supported types are `ss`, `vmess`, `vless`, `trojan`, `hysteria2`, `tuic`, `socks5`, and `http`. Specify the protocol's cipher, password, UUID, transport and TLS options as required by your VPN server. YAML anchors/aliases are rejected. The generated profile has a `VPN` select group and `MATCH,VPN` routing, following the [Mihomo select group format](https://wiki.metacubex.one/en/config/proxy-groups/select/).
+
+Publication is dynamic: each download reads current grants, node settings and UTC expiry from MySQL in one statement. No static files or deployment jobs are needed. Invalid, expired, disabled and rotated tokens return 404; zero available nodes returns 403. Responses include `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow` and, on success, `subscription-userinfo: expire=<Unix timestamp>`.
+
+Forward `/clash-sub/` to the Node website service over HTTPS, preserving the path and disabling caching; do not serve it as a static directory. Treat the whole URL as a credential and redact it from proxy/access logs. Unmanaged nodes control downloads only. Managed nodes publish individual credentials only after successful SSH provisioning and automatically revoke accounts on expiry, disablement, grant removal, user deletion or node deletion. Migration 021 stores AES-GCM encrypted credentials and retains node tombstones so failed revocation can retry. Legacy shared credentials require separate rotation. Clients receive node changes on their next subscription refresh.
+
+### SSH-managed nodes
+
+`management_profile` is an optional name from the private `CLASH_SSH_PROFILES_FILE`; empty/null means unmanaged. Supported managed protocols are SS2022 AES, VLESS, VMess, Trojan and Hysteria2. Individual credentials require `CLASH_CREDENTIAL_ENCRYPTION_KEY` (base64 32-byte AES key). SSH profiles, keys, passwords and remote target paths are server-side configuration, never supplied by subscription clients.
+
+| Method | Path | Response |
+| --- | --- | --- |
+| GET | `/api/admin/clash/profiles` | `{ profiles: [profileName] }`; names only |
+| GET | `/api/admin/clash/sync-status` | `{ servers: [{ id, name, management_profile, sync_status, synced_at, sync_error, deleted_at }] }` including retained deletion records |
+| POST | `/api/admin/clash/sync` | `202 { success: true }`; requests a background synchronization, not confirmation of remote completion |
+
+Statuses: `unmanaged`, `pending`, `ready`, `error`, `revoked`. The worker starts on website startup and attempts reconciliation every 30 seconds. Failures retry with the same individual credentials, and database/VPS locks prevent overlapping writers. Nodes with errors, pending provisioning, or unapplied accounts cannot publish a shared fallback credential.
+
+Managed profile, protocol, cipher, base password, listener port and flow cannot be changed in place; create another node so the old target remains available for revocation. Node deletion retains a tombstone and retries SSH until remote accounts have been removed. Website user deletion similarly removes the user from the desired remote account set without deleting the credential cleanup record.
+
+For installation, root-owned target mapping, forced-command SSH/sudo setup, VPS-local expiry during website outages, backup/rollback behavior and service restart impact, see [SSH VPS setup](../website-part/deploy/clash-vps/README.md). Actual VPS configuration paths and services must match the operator's installation. Successful synchronization and local expiry use service restarts, so other sessions on that service briefly disconnect. Revocation timing depends on the polling interval, SSH availability and service operation.

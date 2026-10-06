@@ -1,0 +1,3 @@
+#!/bin/sh
+# Install this root-owned wrapper at /usr/local/libexec/liulian-vpn-sync.
+exec /usr/bin/flock -w 120 /var/lib/liulian-vpn/helper.lock /usr/bin/node /opt/liulian-vpn/sync.js "$@"

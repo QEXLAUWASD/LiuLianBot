@@ -524,6 +524,49 @@ const MIGRATIONS = [
     name: 'ensure uuid-wide user identifiers after the file-browser migration',
     up: widenUserIdColumns,
   },
+  {
+    version: '020',
+    name: 'Clash VPN servers and per-user subscriptions',
+    async up(conn) {
+      await conn.execute(`CREATE TABLE IF NOT EXISTS website_clash_servers (
+        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        enabled TINYINT(1) NOT NULL DEFAULT 1,
+        proxy_json TEXT NOT NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+      await conn.execute(`CREATE TABLE IF NOT EXISTS website_clash_subscriptions (
+        user_id VARCHAR(64) NOT NULL PRIMARY KEY,
+        token CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+        expires_at DATETIME NOT NULL,
+        enabled TINYINT(1) NOT NULL DEFAULT 1,
+        FOREIGN KEY (user_id) REFERENCES website_users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+      await conn.execute(`CREATE TABLE IF NOT EXISTS website_clash_grants (
+        user_id VARCHAR(64) NOT NULL,
+        server_id INT NOT NULL,
+        PRIMARY KEY (user_id, server_id),
+        FOREIGN KEY (user_id) REFERENCES website_clash_subscriptions(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (server_id) REFERENCES website_clash_servers(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+    },
+  },
+  {
+    version: '021',
+    name: 'SSH-managed Clash accounts and synchronization status',
+    async up(conn) {
+      for (const definition of [
+        'management_profile VARCHAR(64) NULL', "sync_status VARCHAR(16) NOT NULL DEFAULT 'unmanaged'",
+        'synced_at DATETIME NULL', 'sync_error VARCHAR(255) NULL', 'deleted_at DATETIME NULL',
+      ]) await addColumnIfMissing(conn, 'ALTER TABLE website_clash_servers ADD COLUMN ' + definition);
+      await conn.execute(`CREATE TABLE IF NOT EXISTS website_clash_accounts (
+        server_id INT NOT NULL, user_id VARCHAR(64) NOT NULL,
+        credential_encrypted TEXT NOT NULL, applied TINYINT(1) NOT NULL DEFAULT 0,
+        PRIMARY KEY (server_id, user_id),
+        FOREIGN KEY (server_id) REFERENCES website_clash_servers(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+      // No user foreign key: deleted users must still be revoked on the VPS.
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

@@ -1,5 +1,15 @@
 # Patch notes
 
+## Admin Clash subscriptions and SSH auto-revocation (since `108ac79`, 2026-10-06)
+
+- Added an administrator-only Clash subscription tab and guarded APIs to create/edit/disable/delete VPN nodes, manage per-user expiry and allowed nodes, rotate URLs, select SSH management profiles, inspect sync status and request retries. English/Traditional Chinese UI uses UTC+8 expiry input.
+- Added migrations `020` and `021` for VPN nodes, random subscription tokens, transactional grants and AES-256-GCM encrypted individual accounts. Deletion keeps revocation tombstones; independent credentials are only published after SSH acknowledges successful provisioning.
+- Automatically publish current per-user Clash YAML at `/clash-sub/<token>.yaml` with expiry checks and no caching. Unmanaged nodes restrict subscription downloads; managed nodes revoke accounts on expiry, disablement, grant removal, user deletion or node deletion.
+- Added SSH reconciliation every 30 seconds with pinned host keys, a fixed command/stdin protocol, sanitized errors, retry and a database lock. Added a root-owned VPS helper for standalone Hysteria2 userpass, sing-box multi-user VLESS/VMess/Trojan/Hysteria2/SS2022 AES, and Xray VLESS/VMess/Trojan. The VPS-local minute timer enforces expiry during website outages; file locking, durable intent, validated atomic config replacement, backups and restart rollback protect updates.
+- Updated both READMEs, detailed VPS installation/examples, API catalog/OpenAPI and tracked frontend assets. Ignore real local SSH profiles; the standalone helper reuses the existing js-yaml dependency with a lockfile. Legacy shared VPN credentials require separate rotation; service restarts briefly disconnect other sessions. Actual profile hosts, config paths and service names must be configured before use.
+- Validation: `npm run check` passes all 372 tests (27 added since the baseline), covering administrator authorization, publication/expiry, transaction rollback, per-user credentials, SSH pinning/timeouts/retry, failure publication gates, local expiry, config rollback and frontend expiry conversion. Helper dependency lock verifies offline; `git diff --check` passes. Tests use fixtures and temporary files; live MySQL, actual VPN binaries, real VPS SSH and production deployment were not exercised.
+
+
 ## Hong Kong Traditional Chinese interface (since `c57699a`, 2026-10-05)
 
 - Added `zh-HK` / English selection throughout the website, including standalone login/share pages; accepts `zh_hk`, follows supported browser preferences initially and remembers manual choices with a blocked-storage fallback.

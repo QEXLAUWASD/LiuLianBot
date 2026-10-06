@@ -84,6 +84,8 @@ function createApp({ sessionOptions, sessionMiddleware, routers }) {
   if (routers.files) app.use('/api/files', routers.files);
   if (routers.events) app.use('/api/events', routers.events);
   if (routers.guildManager) app.use('/api/guild-manager', routers.guildManager);
+  if (routers.clashAdmin) app.use('/api/admin/clash', routers.clashAdmin);
+  if (routers.clashSubscription) app.use('/clash-sub', routers.clashSubscription);
   app.use('/api/admin', routers.admin);
   app.use('/api/connections', routers.connections);
   if (routers.pageVisibility) app.use('/api/page-visibility', routers.pageVisibility);

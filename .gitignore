@@ -238,3 +238,6 @@ android-part/**/*.iml
 android-part/**/*.jks
 android-part/**/*.keystore
 android-part/keystore.properties
+
+# Local SSH VPN management profiles contain credential paths/settings.
+clash-ssh-profiles.json

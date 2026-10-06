@@ -6,7 +6,7 @@ const { transformSync } = require('esbuild');
 // `node --check` cannot parse JSX, so React sources and the JSX test files go
 // through the esbuild parser that also powers the production build.
 const JSX_ROOTS = [path.join('frontend', 'src'), path.join('test', 'frontend')];
-const NODE_ROOTS = ['src', 'test', 'tools'];
+const NODE_ROOTS = ['src', 'test', 'tools', 'deploy/clash-vps'];
 
 function filesUnder(root) {
   if (!fs.existsSync(root)) return [];

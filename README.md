@@ -2,6 +2,16 @@
 
 LiuLianBot is a Discord bot and companion website for gaming communities. It provides Rainbow Six Siege rolls, temporary private voice channels, server logging, configurable rollers, events, and a web dashboard for account and connection management.
 
+
+## Clash VPN subscription management
+
+In **Admin Panel → Clash subscriptions**, administrators can add/edit/delete VPN nodes, assign allowed nodes to each website user, set an expiry time (UTC+8), disable subscriptions, rotate leaked subscription URLs, select SSH management profiles, and inspect/retry provisioning and revocation. Node input is one Clash/Mihomo proxy YAML object without a name; TLS/transport credentials must match your existing VPN server. Supported proxy types: SS, VMess, VLESS, Trojan, Hysteria2, TUIC, SOCKS5 and HTTP.
+
+The website automatically publishes each user's latest configuration at `/clash-sub/<random-token>.yaml` after saving. This path is an HTTP endpoint backed by MySQL, with no static files or manual deployment step. Website startup applies migrations `020` and `021` for servers, subscriptions, grants and encrypted SSH-managed accounts. Clients receive updates on their next subscription refresh; unknown, disabled and expired URLs return 404, and subscriptions without enabled granted nodes return 403.
+
+Forward `/clash-sub/` to the Node website service over HTTPS and disable proxy caching. Keep subscription URLs private and redact them from access logs. Unmanaged nodes control downloads only. SSH-managed nodes provision independent user credentials and automatically revoke expired/disabled/ungranted accounts; see the [SSH VPS setup guide](website-part/deploy/clash-vps/README.md) for mixed Hysteria2, sing-box and Xray servers. The website synchronizes in the background and a VPS-local timer enforces expiry during website outages. Configuration changes restart the VPN service and briefly disconnect other sessions. Legacy shared credentials require separate rotation on the VPS. See [Clash API documentation](docs/API.md#clash-vpn-subscriptions).
+
+
 ## Features
 
 ### Discord bot

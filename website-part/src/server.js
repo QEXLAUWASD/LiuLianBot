@@ -16,6 +16,8 @@ async function startServer() {
   const files = require('./routes/files').createRouter();
   const roller = require('./routes/roller');
   const admin = require('./routes/admin');
+  const clashSync = require('./services/clash_sync').createSyncWorker();
+  const clash = require('./routes/clash').createRouters({ syncWorker: clashSync });
   const adminConnections = require('./routes/admin_connections');
   const connections = require('./routes/connections');
   const mobileConnections = require('./routes/mobile_connections');
@@ -38,6 +40,8 @@ async function startServer() {
       files,
       roller,
       admin,
+      clashAdmin: clash.admin,
+      clashSubscription: clash.subscription,
       adminConnections,
       connections,
       mobileConnections,
@@ -79,8 +83,11 @@ async function startServer() {
   });
   server.chromiumServer = chromiumServer;
   sessionStore.startCleanup();
+  clashSync.start();
+  server.clashSync = clashSync;
   const closeResources = () => {
     sessionStore.stopCleanup();
+    clashSync.stop().catch(() => {});
     chromiumServer.closeAll();
   };
   server.once('close', closeResources);
@@ -96,6 +103,7 @@ async function startServer() {
 }
 
 async function stopServer(server) {
+  await server?.clashSync?.stop();
   server?.chromiumServer?.closeAll();
   if (server?.rdpServer) {
     await new Promise(resolve => server.rdpServer.close(resolve));
