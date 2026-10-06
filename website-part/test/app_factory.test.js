@@ -37,10 +37,13 @@ test('API auth returns 401 while page auth redirects', () => {
   assert.equal(pageRes.location, '/login.html');
 });
 
-test('app factory redirects protected HTML before static files are considered', async () => {
+test('app factory protects HTML and serves public Clash subscriptions before static files', async () => {
   const express = require('express');
   const { createApp } = require('../src/app');
   const router = () => express.Router();
+  const token = 'a'.repeat(64);
+  let active = true;
+  const { subscription } = require('../src/routes/clash').createRouters({ db: { getSubscription: async value => active && value === token ? { expires_at: new Date('2099-01-01'), servers: [{ name: 'VPN node', proxy_json: JSON.stringify({ type: 'trojan', server: 'vpn.example.com', port: 443, password: 'test' }) }] } : null } });
   const app = createApp({
     sessionOptions: {
       secret: 'test-secret',
@@ -55,6 +58,7 @@ test('app factory redirects protected HTML before static files are considered', 
       admin: router(),
       connections: router(),
       connectionProxy: router(),
+      clashSubscription: subscription,
     },
   });
   const server = app.listen(0);
@@ -67,6 +71,17 @@ test('app factory redirects protected HTML before static files are considered', 
       });
       assert.equal(response.status, 302);
       assert.equal(response.headers.get('location'), '/login.html');
+    }
+    for (const prefix of ['/clash-sub-public', '/clash-sub']) {
+      const response = await fetch(`http://127.0.0.1:${port}${prefix}/${token}.yaml`, { redirect: 'manual' });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.match(response.headers.get('content-type'), /application\/yaml/);
+      assert.match(await response.text(), /MATCH,VPN/);
+    }
+    active = false;
+    for (const prefix of ['/clash-sub-public', '/clash-sub']) {
+      assert.equal((await fetch(`http://127.0.0.1:${port}${prefix}/${token}.yaml`)).status, 404);
     }
   } finally {
     await new Promise(resolve => server.close(resolve));

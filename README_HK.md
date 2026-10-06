@@ -15,9 +15,11 @@ Clash 分頁上方顯示伺服器列表同同步狀態，下方顯示 VPN 用戶
 
 Migration `022` 會將現有 VPN 用戶複製到獨立 `website_clash_users`，解除同網站用戶嘅外鍵關聯；保留 ID、網址、授權同憑證。之後刪除網站帳號唔會影響 VPN 用戶。VPN 用戶名稱作識別用途，客戶端使用訂閱代碼同各節點憑證認證。
 
-儲存後會自動喺 `/clash-sub/<隨機代碼>.yaml` 提供最新用戶設定。呢個係從 MySQL 即時產生嘅 HTTP 端點，唔使建立靜態檔案或手動部署。網站啟動時會自動執行 migration `020`／`021`／`022`／`023`／`024` 建立節點、訂閱、授權及加密個別帳戶資料表。用戶下次更新訂閱就會取得變更；未知、停用或到期網址回傳 404，無可用授權節點回傳 403。
+新訂閱網址使用 `/clash-sub-public/<代碼>.yaml`；既有 `/clash-sub/<代碼>.yaml` 網址亦會套用相同到期／授權檢查。此路徑係動態 HTTP 端點，部署時須轉送 `/clash-sub-public/` 到網站服務。
 
-部署時用 HTTPS 將 `/clash-sub/` 轉送到 Node 網站服務，並停用代理快取。訂閱網址屬於憑證，請保密並避免記錄完整網址。未管理節點只限制訂閱下載；SSH 管理節點會建立個別用戶憑證，到期、停用或移除授權時自動撤銷。混合 Hysteria2、sing-box 同 Xray 的設定詳見 [SSH VPS 安裝文件](website-part/deploy/clash-vps/README.md)。網站定時同步，VPS 本機 timer 在網站離線時仍會清理到期帳戶；帳戶變更會重啟 VPN 服務並短暫中斷其他連線。舊共用憑證須另外喺 VPS 輪替。詳見 [Clash API 文件](docs/API.md#clash-vpn-subscriptions)。
+儲存後會自動喺 `/clash-sub-public/<隨機代碼>.yaml` 提供最新用戶設定。呢個係從 MySQL 即時產生嘅 HTTP 端點，唔使建立靜態檔案或手動部署。網站啟動時會自動執行 migration `020`／`021`／`022`／`023`／`024` 建立節點、訂閱、授權及加密個別帳戶資料表。用戶下次更新訂閱就會取得變更；未知、停用或到期網址回傳 404，無可用授權節點回傳 403。
+
+部署時用 HTTPS 將 `/clash-sub-public/` 轉送到 Node 網站服務，並停用代理快取。訂閱網址屬於憑證，請保密並避免記錄完整網址。未管理節點只限制訂閱下載；SSH 管理節點會建立個別用戶憑證，到期、停用或移除授權時自動撤銷。混合 Hysteria2、sing-box 同 Xray 的設定詳見 [SSH VPS 安裝文件](website-part/deploy/clash-vps/README.md)。網站定時同步，VPS 本機 timer 在網站離線時仍會清理到期帳戶；帳戶變更會重啟 VPN 服務並短暫中斷其他連線。舊共用憑證須另外喺 VPS 輪替。詳見 [Clash API 文件](docs/API.md#clash-vpn-subscriptions)。
 
 
 另支援 Mihomo Hysteria2／VLESS 同 OpenWrt／procd VPN 主機；網站背景同步本身唔需要 systemd。VPS targets 為空時，帳戶撤銷仍未啟用。詳見 [SSH VPN 設定](website-part/deploy/clash-vps/README.md)。

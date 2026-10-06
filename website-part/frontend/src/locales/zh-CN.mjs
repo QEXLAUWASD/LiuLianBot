@@ -45,7 +45,7 @@ export default Object.freeze({
   "error": "同步失败",
   "revoked": "已撤销",
   "Clash subscriptions": "Clash 订阅管理",
-  "Manage VPN servers and per-user access. Changes are published automatically at /clash-sub/.": "管理 VPN 服务器与个别用户权限；变更会自动发布至 /clash-sub/。",
+  "Manage VPN servers and per-user access. Changes are published automatically at /clash-sub-public/.": "管理 VPN 服务器与个别用户权限；变更会自动发布至 /clash-sub-public/。",
   "Expiry blocks subscription downloads. Revoke VPN credentials on the VPN server to disconnect clients with downloaded configurations.": "到期后无法下载订阅。要停止已下载设置的连接，请在 VPN 服务器撤销凭据。",
   "Changes saved; subscription URLs now serve the latest configuration.": "已保存；订阅网址现已提供最新设置。",
   "VPN servers": "VPN 服务器",

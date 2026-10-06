@@ -417,7 +417,7 @@ All `/api/admin/clash/*` endpoints require a signed-in user whose current databa
 | PUT | `/api/admin/clash/subscriptions/:userId` | `{ username?, enabled, expires_at, server_ids, ruleset_id?, custom_rules_yaml? }` → `{ success: true }`; renames an existing VPN user and replaces all grants atomically; preserves the subscription URL; unknown VPN IDs return 404 |
 | DELETE | `/api/admin/clash/subscriptions/:userId` | Removes the independent VPN identity, subscription and cascading grants; immediately invalidates URL; retains website user and account records for background SSH revocation → `{ success: true }` |
 | POST | `/api/admin/clash/subscriptions/:userId/rotate` | Replaces URL token; old URL immediately stops working → `{ success: true }` |
-| GET | `/clash-sub/:token.yaml` | Bearer URL, no session required → current `application/yaml` for granted enabled nodes only |
+| GET | `/clash-sub-public/:token.yaml` | Bearer URL, no session required → current `application/yaml` for granted enabled nodes only |
 
 `expires_at` is an ISO timestamp with timezone. The UI uses UTC+8; the database stores UTC. `server_ids` contains numeric positive IDs (up to 200). Empty grants are permitted, but cannot download a configuration. New subscription tokens contain 256 bits of cryptographic randomness. Fetch the subscriptions list after saving or rotating to obtain the current path.
 
@@ -447,9 +447,11 @@ rule-providers:
     interval: 86400
 ```
 
+Canonical subscription prefix is `/clash-sub-public/`. `/clash-sub/` remains a compatibility alias with identical validation, expiry and no-cache behavior; newly generated admin URLs and OpenAPI use the public prefix. No token or database migration is required.
+
 Publication is dynamic: each download reads current grants, node settings and UTC expiry from MySQL in one statement. No static files or deployment jobs are needed. Invalid, expired, disabled and rotated tokens return 404; zero available nodes returns 403. Responses include `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow` and, on success, `subscription-userinfo: expire=<Unix timestamp>`.
 
-Forward `/clash-sub/` to the Node website service over HTTPS, preserving the path and disabling caching; do not serve it as a static directory. Treat the whole URL as a credential and redact it from proxy/access logs. Unmanaged nodes control downloads only. Managed nodes publish individual credentials only after successful SSH provisioning and automatically revoke accounts on expiry, disablement, grant removal, user deletion or node deletion. Migration 021 stores AES-GCM encrypted credentials and retains node tombstones so failed revocation can retry. Legacy shared credentials require separate rotation. Clients receive node changes on their next subscription refresh.
+Forward `/clash-sub-public/` to the Node website service over HTTPS, preserving the path and disabling caching; do not serve it as a static directory. Treat the whole URL as a credential and redact it from proxy/access logs. Unmanaged nodes control downloads only. Managed nodes publish individual credentials only after successful SSH provisioning and automatically revoke accounts on expiry, disablement, grant removal, user deletion or node deletion. Migration 021 stores AES-GCM encrypted credentials and retains node tombstones so failed revocation can retry. Legacy shared credentials require separate rotation. Clients receive node changes on their next subscription refresh.
 
 ### SSH-managed nodes
 

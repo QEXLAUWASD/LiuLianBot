@@ -47,7 +47,7 @@ async function listSubscriptions() {
   for (const row of rows) {
     if (!grouped.has(row.user_id)) grouped.set(row.user_id, { user_id: row.user_id, username: row.username,
       enabled: Boolean(row.enabled), expires_at: row.expires_at, ruleset_id: row.ruleset_id, custom_rules_yaml: row.custom_rules_yaml,
-      path: `/clash-sub/${row.token}.yaml`, server_ids: [] });
+      path: `/clash-sub-public/${row.token}.yaml`, server_ids: [] });
     if (row.server_id !== null) grouped.get(row.user_id).server_ids.push(Number(row.server_id));
   }
   return [...grouped.values()];

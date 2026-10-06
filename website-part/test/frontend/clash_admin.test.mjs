@@ -10,7 +10,7 @@ function mount() {
     'GET /api/admin/clash/profiles': { profiles: [] },
     'GET /api/admin/clash/sync-status': { servers: [] },
     'GET /api/admin/clash/servers': { servers: [{ id: 1, name: 'HK', enabled: true, proxy_yaml: 'type: trojan\nserver: host\nport: 443\npassword: test\n' }] },
-    'GET /api/admin/clash/subscriptions': { subscriptions: [{ user_id: 'user-1', username: 'alice', enabled: true, expires_at: '2099-01-01T00:00:00Z', server_ids: [1], path: `/clash-sub/${'a'.repeat(64)}.yaml` }] },
+    'GET /api/admin/clash/subscriptions': { subscriptions: [{ user_id: 'user-1', username: 'alice', enabled: true, expires_at: '2099-01-01T00:00:00Z', server_ids: [1], path: `/clash-sub-public/${'a'.repeat(64)}.yaml` }] },
     'DELETE /api/admin/clash/subscriptions/user-1': { success: true },
     'POST /api/admin/clash/subscriptions': { user_id: 'vpn-new' },
     'PUT /api/admin/clash/subscriptions/user-1': { success: true },
@@ -50,7 +50,7 @@ test('Clash admin preserves grants and converts UTC+8 expiry to UTC', async () =
     assert.deepEqual(f.fetchMock.callsTo('PUT', '/api/admin/clash/subscriptions/user-1')[0].body, {
       username: 'alice VPN', ruleset_id: 'all-vpn', enabled: true, expires_at: '2099-02-01T04:30:00.000Z', server_ids: [1],
     });
-    assert.ok(f.document.querySelector('input[readonly]').value.includes('/clash-sub/'));
+    assert.ok(f.document.querySelector('input[readonly]').value.includes('/clash-sub-public/'));
   } finally { f.cleanup(); }
 });
 

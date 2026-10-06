@@ -113,7 +113,7 @@ function createOpenApi(cookieName = 'connect.sid') {
   for (const endpoint of ['capabilities', 'openapi']) paths[`/api/mobile/${endpoint}`] = { get: {
     operationId: `get_mobile_${endpoint}`, tags: ['discovery'], security: [], responses: { 200: { description: 'Public API discovery document', content: { 'application/json': { schema: { type: 'object' } } } } },
   } };
-  paths['/clash-sub/{token}.yaml'] = { get: {
+  paths['/clash-sub-public/{token}.yaml'] = { get: {
     operationId: 'get_clash_subscription', tags: ['clash'], security: [],
     description: 'Bearer subscription URL. No session required. Only enabled, unexpired subscriptions with enabled granted servers can download; responses are never cached.',
     parameters: [{ name: 'token', in: 'path', required: true, schema: { type: 'string', pattern: '^[a-f0-9]{64}$' } }],

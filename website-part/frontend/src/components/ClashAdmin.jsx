@@ -40,7 +40,7 @@ export function ClashAdmin({ askConfirm }) {
   };
   return <section>
     <h2>{t('Clash subscriptions')}</h2>
-    <p>{t('Manage VPN servers and per-user access. Changes are published automatically at /clash-sub/.')}</p>
+    <p>{t('Manage VPN servers and per-user access. Changes are published automatically at /clash-sub-public/.')}</p>
     <p>{t('SSH-managed nodes use individual credentials and revoke expired users automatically. Unmanaged nodes only restrict subscription downloads.')}</p>
     {error && <p role="alert" className="status-error">{t(error)}</p>}
     {notice && <p role="status">{t(notice)}</p>}

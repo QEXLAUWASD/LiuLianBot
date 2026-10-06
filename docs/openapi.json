@@ -13417,7 +13417,7 @@
         }
       }
     },
-    "/clash-sub/{token}.yaml": {
+    "/clash-sub-public/{token}.yaml": {
       "get": {
         "operationId": "get_clash_subscription",
         "tags": [
