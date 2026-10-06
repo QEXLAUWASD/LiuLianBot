@@ -1,4 +1,6 @@
 const { apiCatalog } = require('./api_catalog');
+const { RULESETS } = require('./clash_rulesets');
+const ruleset = { type: 'string', enum: RULESETS.map(item => item.id) };
 const string = { type: 'string' };
 const boolean = { type: 'boolean' };
 const integer = { type: 'integer' };
@@ -31,8 +33,8 @@ const bodies = {
   'PUT admin/groups/:id': object({ name: string, description: string }),
   'POST admin/clash/servers': object({ name: string, enabled: boolean, proxy_yaml: string, management_profile: { type: 'string', nullable: true } }),
   'PUT admin/clash/servers/:id': object({ name: string, enabled: boolean, proxy_yaml: string, management_profile: { type: 'string', nullable: true } }),
-  'POST admin/clash/subscriptions': object({ username: string, enabled: boolean, expires_at: { type: 'string', format: 'date-time' }, server_ids: integers }),
-  'PUT admin/clash/subscriptions/:userId': object({ username: string, enabled: boolean, expires_at: { type: 'string', format: 'date-time' }, server_ids: integers }),
+  'POST admin/clash/subscriptions': object({ username: string, enabled: boolean, expires_at: { type: 'string', format: 'date-time' }, server_ids: integers, ruleset_id: ruleset, custom_rules_yaml: { type: 'string', maxLength: 32000 } }),
+  'PUT admin/clash/subscriptions/:userId': object({ username: string, enabled: boolean, expires_at: { type: 'string', format: 'date-time' }, server_ids: integers, ruleset_id: ruleset, custom_rules_yaml: { type: 'string', maxLength: 32000 } }),
   'POST admin/connections': connection,
   'PUT admin/connections/:id': connection,
   'PUT admin/events/:id/visibility': object({ visible: boolean }),

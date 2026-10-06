@@ -7135,6 +7135,140 @@
         }
       }
     },
+    "/api/admin/clash/rulesets": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "get_admin_clash_rulesets",
+        "summary": "GET /api/admin/clash/rulesets",
+        "description": "Request fields and permissions are described in docs/API.md. Authorization is enforced by the endpoint, not this discovery document.",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful JSON response; exact response fields are documented in docs/API.md.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created (JSON for records; plain text for folder/upload)."
+          },
+          "204": {
+            "description": "Completed without a response body."
+          },
+          "400": {
+            "description": "HTTP 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "HTTP 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "HTTP 413",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "HTTP 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "HTTP 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "HTTP 502",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "HTTP 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/clash/profiles": {
       "get": {
         "tags": [
@@ -7826,6 +7960,20 @@
                     "items": {
                       "type": "integer"
                     }
+                  },
+                  "ruleset_id": {
+                    "type": "string",
+                    "enum": [
+                      "all-vpn",
+                      "lan-direct",
+                      "cn-direct",
+                      "cn-direct-adblock",
+                      "custom"
+                    ]
+                  },
+                  "custom_rules_yaml": {
+                    "type": "string",
+                    "maxLength": 32000
                   }
                 },
                 "additionalProperties": false,
@@ -8004,6 +8152,20 @@
                     "items": {
                       "type": "integer"
                     }
+                  },
+                  "ruleset_id": {
+                    "type": "string",
+                    "enum": [
+                      "all-vpn",
+                      "lan-direct",
+                      "cn-direct",
+                      "cn-direct-adblock",
+                      "custom"
+                    ]
+                  },
+                  "custom_rules_yaml": {
+                    "type": "string",
+                    "maxLength": 32000
                   }
                 },
                 "additionalProperties": false,

@@ -24,7 +24,7 @@ async function fixture(t) {
     deleteSubscription: async () => { writes++; sub = { ...sub, enabled: false, server_ids: [] }; },
     rotateToken: async () => { writes++; activeToken = 'b'.repeat(64); },
     getSubscription: async value => value === activeToken && sub.enabled && sub.expires_at > new Date()
-      ? { expires_at: sub.expires_at, servers: serverData?.enabled && sub.server_ids.includes(serverData.id) ? [serverData] : [] } : null,
+      ? { expires_at: sub.expires_at, ruleset_id: sub.ruleset_id, custom_rules_yaml: sub.custom_rules_yaml, servers: serverData?.enabled && sub.server_ids.includes(serverData.id) ? [serverData] : [] } : null,
   };
   const routers = createRouters({ db });
   const app = express();
@@ -47,7 +47,7 @@ test('all Clash management endpoints require a current administrator role', asyn
   const f = await fixture(t);
   for (const [method, path, body] of [
     ['GET', '/servers'], ['POST', '/servers', node], ['PUT', '/servers/1', node], ['DELETE', '/servers/1'],
-    ['GET', '/profiles'], ['GET', '/sync-status'], ['POST', '/sync'],
+    ['GET', '/rulesets'], ['GET', '/profiles'], ['GET', '/sync-status'], ['POST', '/sync'],
     ['GET', '/subscriptions'], ['POST', '/subscriptions', {}], ['DELETE', '/subscriptions/user'], ['PUT', '/subscriptions/user', {}], ['POST', '/subscriptions/user/rotate'],
   ]) {
     assert.equal((await f.request(`/api/admin/clash${path}`, method, body)).status, 401);
@@ -139,4 +139,33 @@ test('admin creates an independent VPN user; names are validated for create and 
   }
   assert.equal((await f.request('/api/admin/clash/subscriptions', 'POST', { ...data, username: undefined }, 'admin')).status, 400);
   assert.equal(f.writes(), 1);
+});
+
+
+test('rule set selection changes downloaded routing without broadening granted nodes', async t => {
+  const f = await fixture(t);
+  const response = await f.request('/api/admin/clash/rulesets', 'GET', null, 'admin');
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).rulesets.length, 5);
+  const data = { enabled: true, expires_at: '2099-01-01T00:00:00Z', server_ids: [1], ruleset_id: 'cn-direct-adblock' };
+  assert.equal((await f.request('/api/admin/clash/subscriptions/user', 'PUT', data, 'admin')).status, 200);
+  const config = yaml.load(await (await f.request(`/clash-sub/${token}.yaml`)).text());
+  assert.deepEqual(config.proxies.map(proxy => proxy.name), ['Hong Kong']);
+  assert.ok(config.rules.includes('RULE-SET,llb-reject,REJECT'));
+  assert.ok(config.rules.includes('RULE-SET,llb-direct,DIRECT'));
+  assert.equal(config.rules.at(-1), 'MATCH,VPN');
+  assert.equal((await f.request('/api/admin/clash/subscriptions/user', 'PUT', { ...data, ruleset_id: 'unknown' }, 'admin')).status, 400);
+});
+
+
+test('custom rules publish in order with only granted proxies and reject unknown policies/providers', async t => {
+  const f = await fixture(t);
+  const data = { enabled: true, expires_at: '2099-01-01T00:00:00Z', server_ids: [1], ruleset_id: 'custom', custom_rules_yaml: 'rules:\n  - DOMAIN-SUFFIX,example.com,DIRECT\n  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve\n' };
+  assert.equal((await f.request('/api/admin/clash/subscriptions/user', 'PUT', data, 'admin')).status, 200);
+  const config = yaml.load(await (await f.request(`/clash-sub/${token}.yaml`)).text());
+  assert.deepEqual(config.rules, ['DOMAIN-SUFFIX,example.com,DIRECT', 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve', 'MATCH,VPN']);
+  assert.deepEqual(config.proxies.map(proxy => proxy.name), ['Hong Kong']);
+  for (const custom_rules_yaml of ['rules: ["DOMAIN,x,Other VPN"]', 'rules: ["RULE-SET,missing,VPN"]', 'rules: ["MATCH,VPN"]\nproxies: []', 'bad yaml: [']) {
+    assert.equal((await f.request('/api/admin/clash/subscriptions/user', 'PUT', { ...data, custom_rules_yaml }, 'admin')).status, 400);
+  }
 });

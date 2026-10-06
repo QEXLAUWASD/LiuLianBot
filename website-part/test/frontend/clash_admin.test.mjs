@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ClashAdmin } from '../../frontend/src/components/ClashAdmin.jsx';
-import { click, flush, mockFetch, render, setupDom, typeInto } from '../support/react.mjs';
+import { click, flush, mockFetch, render, setupDom, selectOption, typeInto } from '../support/react.mjs';
 
 function mount() {
   const dom = setupDom('<div id="root"></div>');
   const fetchMock = mockFetch({
+    'GET /api/admin/clash/rulesets': { rulesets: [{ id: 'all-vpn', name: 'All traffic via VPN', description: 'All VPN' }, { id: 'lan-direct', name: 'LAN direct, others via VPN', description: 'LAN direct' }, { id: 'custom', name: 'Custom rule set', description: 'Custom' }] },
     'GET /api/admin/clash/profiles': { profiles: [] },
     'GET /api/admin/clash/sync-status': { servers: [] },
     'GET /api/admin/clash/servers': { servers: [{ id: 1, name: 'HK', enabled: true, proxy_yaml: 'type: trojan\nserver: host\nport: 443\npassword: test\n' }] },
@@ -47,7 +48,7 @@ test('Clash admin preserves grants and converts UTC+8 expiry to UTC', async () =
     click(f.document.querySelector('form').querySelector('button[type="submit"]'));
     await flush();
     assert.deepEqual(f.fetchMock.callsTo('PUT', '/api/admin/clash/subscriptions/user-1')[0].body, {
-      username: 'alice VPN', enabled: true, expires_at: '2099-02-01T04:30:00.000Z', server_ids: [1],
+      username: 'alice VPN', ruleset_id: 'all-vpn', enabled: true, expires_at: '2099-02-01T04:30:00.000Z', server_ids: [1],
     });
     assert.ok(f.document.querySelector('input[readonly]').value.includes('/clash-sub/'));
   } finally { f.cleanup(); }
@@ -89,5 +90,41 @@ test('Remove VPN user calls subscription deletion rather than website account de
     await flush();
     assert.equal(f.fetchMock.callsTo('DELETE', '/api/admin/clash/subscriptions/user-1').length, 1);
     assert.equal(f.fetchMock.callsTo('DELETE', '/api/admin/users/user-1').length, 0);
+  } finally { f.cleanup(); }
+});
+
+
+test('Clash rule set selector loads per-user routing and persists a changed selection', async () => {
+  const f = mount();
+  try {
+    await flush();
+    click(f.document.getElementById('clash-users-title').closest('section').querySelector('tbody button'));
+    assert.equal(f.document.getElementById('vpn-ruleset').value, 'all-vpn');
+    selectOption(f.document.getElementById('vpn-ruleset'), 'lan-direct');
+    assert.ok(f.document.querySelector('form').textContent.includes('LAN direct'));
+    click(f.document.querySelector('form button[type="submit"]'));
+    await flush();
+    assert.equal(f.fetchMock.callsTo('PUT', '/api/admin/clash/subscriptions/user-1')[0].body.ruleset_id, 'lan-direct');
+  } finally { f.cleanup(); }
+});
+
+
+test('custom editor keeps a draft when switching presets and submits routing YAML', async () => {
+  const f = mount();
+  try {
+    await flush();
+    click(f.document.getElementById('clash-users-title').closest('section').querySelector('tbody button'));
+    selectOption(f.document.getElementById('vpn-ruleset'), 'custom');
+    const draft = 'rules:\n  - DOMAIN-SUFFIX,example.org,DIRECT\n';
+    typeInto(f.document.getElementById('vpn-custom-rules'), draft);
+    selectOption(f.document.getElementById('vpn-ruleset'), 'lan-direct');
+    assert.equal(f.document.getElementById('vpn-custom-rules'), null);
+    selectOption(f.document.getElementById('vpn-ruleset'), 'custom');
+    assert.equal(f.document.getElementById('vpn-custom-rules').value, draft);
+    click(f.document.querySelector('form button[type="submit"]'));
+    await flush();
+    const body = f.fetchMock.callsTo('PUT', '/api/admin/clash/subscriptions/user-1')[0].body;
+    assert.equal(body.ruleset_id, 'custom');
+    assert.equal(body.custom_rules_yaml, draft);
   } finally { f.cleanup(); }
 });

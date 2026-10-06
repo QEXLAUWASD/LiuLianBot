@@ -1,6 +1,23 @@
 // Hong Kong Traditional Chinese. Keys are the existing source UI copy.
 // Keep identifiers, user content, game data and protocol/configuration values intact.
 export default Object.freeze({
+  "Supported rule types": "支援的規則類型",
+  "Custom rule set": "自訂規則集",
+  "Define your own ordered rules and HTTPS rule providers.": "自訂規則順序與 HTTPS 規則來源。",
+  "Custom routing YAML": "自訂路由 YAML",
+  "Rule syntax": "規則語法",
+  "Use rules and optional rule-providers. Policies: VPN, DIRECT or REJECT. A missing final MATCH defaults to VPN. Provider URLs must use HTTPS.": "使用 rules 及可選的 rule-providers；策略可填 VPN、DIRECT 或 REJECT。未填最後 MATCH 時預設走 VPN；規則來源網址須使用 HTTPS。",
+  "Enter valid custom routing YAML with supported rules, VPN/DIRECT/REJECT policies and HTTPS providers": "請輸入有效的自訂路由 YAML，使用支援的規則、VPN／DIRECT／REJECT 策略與 HTTPS 規則來源。",
+  "Rule set": "規則集",
+  "All traffic via VPN": "全部走 VPN",
+  "LAN direct, others via VPN": "區域網路直連，其餘走 VPN",
+  "China direct, others via VPN": "中國直連，其餘走 VPN",
+  "China direct with ad blocking": "中國直連＋廣告封鎖",
+  "Route all traffic through the selected VPN server.": "所有流量透過選定 VPN 伺服器。",
+  "Connect to local networks directly; route other traffic through VPN.": "區域網路直接連線，其餘流量走 VPN。",
+  "Connect to local networks and listed Chinese domains/IPs directly; route other traffic through VPN.": "區域網路與清單內的中國網域／IP 直接連線，其餘流量走 VPN。",
+  "Use China direct routing and block domains in the advertising rule set.": "使用中國直連規則，並封鎖廣告規則集內的網域。",
+  "Select a supported rule set": "請選擇支援的規則集",
   "VPN username": "VPN 用戶名稱",
   "VPN users are managed independently. Enter a name to create a VPN subscription.": "VPN 用戶獨立管理，輸入名稱即可建立 VPN 訂閱。",
   "Enter a VPN username (1–100 characters)": "請輸入 VPN 用戶名稱（1–100 字元）",

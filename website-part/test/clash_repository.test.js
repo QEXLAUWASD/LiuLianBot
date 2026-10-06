@@ -56,10 +56,10 @@ test('download query checks UTC expiry and filters disabled nodes in one stateme
     assert.match(sql, /v\.enabled=1/);
     assert.match(sql, /g\.user_id=s\.user_id/);
     assert.deepEqual(params, ['a'.repeat(64)]);
-    return [[{ expires_at: data.expires_at, id: null, name: null, proxy_json: null }]];
+    return [[{ expires_at: data.expires_at, ruleset_id: 'all-vpn', id: null, name: null, proxy_json: null }]];
   };
   const result = await repository.getSubscription('a'.repeat(64));
-  assert.deepEqual(result, { expires_at: data.expires_at, servers: [] });
+  assert.deepEqual(result, { expires_at: data.expires_at, ruleset_id: 'all-vpn', custom_rules_yaml: undefined, servers: [] });
   assert.equal(calls.length, 1);
 });
 
@@ -158,4 +158,46 @@ test('VPN rename locks the independent identity and preserves existing subscript
   assert.deepEqual(calls[2], ['UPDATE website_clash_users SET username=? WHERE id=?', ['Renamed VPN user', 'u']]);
   const upsert = calls.find(call => Array.isArray(call) && call[0].includes('ON DUPLICATE KEY'));
   assert.doesNotMatch(upsert[0].split('ON DUPLICATE KEY UPDATE')[1], /token/);
+});
+
+test('rule set persists in the subscription transaction; omitted edits preserve the previous choice', async () => {
+  execute = async sql => sql.startsWith('SELECT id') ? [[{ id: 'u' }]] : [{ affectedRows: 1 }];
+  for (const ruleset of ['cn-direct', undefined]) {
+    calls = [];
+    await repository.saveSubscription('u', { ...data, ruleset_id: ruleset });
+    const upsert = calls.find(call => Array.isArray(call) && call[0].includes('ON DUPLICATE KEY'));
+    assert.match(upsert[0], /ruleset_id=COALESCE\(\?,ruleset_id\)/);
+    assert.equal(upsert[1][4], ruleset ?? 'all-vpn');
+    assert.equal(upsert[1][6], ruleset ?? null);
+    assert.deepEqual(calls.slice(-2), ['commit', 'release']);
+  }
+});
+
+test('migration 023 defaults existing subscriptions to all-VPN and tolerates a replay', async () => {
+  const { MIGRATIONS } = require('../src/db/migrate');
+  const migration = MIGRATIONS.find(item => item.version === '023');
+  const statements = [];
+  await migration.up({ execute: async sql => { statements.push(sql); } });
+  assert.match(statements[0], /ruleset_id.*NOT NULL DEFAULT 'all-vpn'/);
+  await migration.up({ execute: async () => { throw Object.assign(new Error('exists'), { code: 'ER_DUP_FIELDNAME' }); } });
+});
+
+test('custom routing is stored atomically and omitted updates retain the saved draft', async () => {
+  execute = async sql => sql.startsWith('SELECT id') ? [[{ id: 'u' }]] : [{ affectedRows: 1 }];
+  for (const custom of ['rules: ["MATCH,VPN"]', undefined]) {
+    calls = [];
+    await repository.saveSubscription('u', { ...data, ruleset_id: custom ? 'custom' : undefined, custom_rules_yaml: custom });
+    const upsert = calls.find(call => Array.isArray(call) && call[0].includes('ON DUPLICATE KEY'));
+    assert.match(upsert[0], /custom_rules_yaml=COALESCE\(\?,custom_rules_yaml\)/);
+    assert.equal(upsert[1][5], custom ?? null);
+    assert.equal(upsert[1][7], custom ?? null);
+    assert.deepEqual(calls.slice(-2), ['commit', 'release']);
+  }
+});
+
+test('migration 024 adds optional custom YAML and can resume after adding its column', async () => {
+  const { MIGRATIONS } = require('../src/db/migrate');
+  const migration = MIGRATIONS.find(item => item.version === '024');
+  await migration.up({ execute: async sql => { assert.match(sql, /custom_rules_yaml TEXT NULL/); } });
+  await migration.up({ execute: async () => { throw Object.assign(new Error('exists'), { code: 'ER_DUP_FIELDNAME' }); } });
 });

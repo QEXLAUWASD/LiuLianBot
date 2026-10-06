@@ -411,9 +411,10 @@ All `/api/admin/clash/*` endpoints require a signed-in user whose current databa
 | POST | `/api/admin/clash/servers` | `{ name, enabled, proxy_yaml, management_profile? }` → `201 { id }` |
 | PUT | `/api/admin/clash/servers/:id` | Same body → `{ id }` |
 | DELETE | `/api/admin/clash/servers/:id` | Retains a disabled tombstone until managed remote accounts are revoked → `{ success: true }` |
-| GET | `/api/admin/clash/subscriptions` | `{ subscriptions: [{ user_id, username, enabled, expires_at, server_ids, path }] }` |
-| POST | `/api/admin/clash/subscriptions` | `{ username, enabled, expires_at, server_ids }` → `201 { user_id }`; creates an independent VPN identity, subscription and grants atomically |
-| PUT | `/api/admin/clash/subscriptions/:userId` | `{ username?, enabled, expires_at, server_ids }` → `{ success: true }`; renames an existing VPN user and replaces all grants atomically; preserves the subscription URL; unknown VPN IDs return 404 |
+| GET | `/api/admin/clash/rulesets` | `{ rulesets: [{ id, name, description }] }`; administrator-only supported routing presets |
+| GET | `/api/admin/clash/subscriptions` | `{ subscriptions: [{ user_id, username, enabled, expires_at, server_ids, ruleset_id, custom_rules_yaml, path }] }` |
+| POST | `/api/admin/clash/subscriptions` | `{ username, enabled, expires_at, server_ids, ruleset_id?, custom_rules_yaml? }` → `201 { user_id }`; creates an independent VPN identity, subscription and grants atomically |
+| PUT | `/api/admin/clash/subscriptions/:userId` | `{ username?, enabled, expires_at, server_ids, ruleset_id?, custom_rules_yaml? }` → `{ success: true }`; renames an existing VPN user and replaces all grants atomically; preserves the subscription URL; unknown VPN IDs return 404 |
 | DELETE | `/api/admin/clash/subscriptions/:userId` | Removes the independent VPN identity, subscription and cascading grants; immediately invalidates URL; retains website user and account records for background SSH revocation → `{ success: true }` |
 | POST | `/api/admin/clash/subscriptions/:userId/rotate` | Replaces URL token; old URL immediately stops working → `{ success: true }` |
 | GET | `/clash-sub/:token.yaml` | Bearer URL, no session required → current `application/yaml` for granted enabled nodes only |
@@ -423,6 +424,28 @@ All `/api/admin/clash/*` endpoints require a signed-in user whose current databa
 `proxy_yaml` contains one Clash/Mihomo proxy object, without `name` or cross-node references, up to 16 KB; supported types are `ss`, `vmess`, `vless`, `trojan`, `hysteria2`, `tuic`, `socks5`, and `http`. Specify the protocol's cipher, password, UUID, transport and TLS options as required by your VPN server. YAML anchors/aliases are rejected. The generated profile has a `VPN` select group and `MATCH,VPN` routing, following the [Mihomo select group format](https://wiki.metacubex.one/en/config/proxy-groups/select/).
 
 `user_id` identifies an independent VPN identity in `website_clash_users`, not a website login. VPN users can be created by name; names are labels and authentication uses the subscription token/per-node credentials. Migration `022` copies existing VPN identities with unchanged IDs/URLs/grants/credentials and moves the subscription foreign key to the VPN user table. Website-account deletion no longer removes VPN users.
+
+Rule set IDs: `all-vpn` (default), `lan-direct`, `cn-direct`, `cn-direct-adblock`, `custom`. Unknown IDs return 400. Create without a selection defaults to `all-vpn`; edits without `ruleset_id` preserve the current selection. Migration `023` adds the stored selection with the original all-VPN default. Subscription downloads include the chosen ordered `rules` and only the required `rule-providers`; built-in presets end with `MATCH,VPN`, and the VPN group still contains only granted nodes. China/advertising rule sets use fixed [Loyalsoldier providers](https://github.com/Loyalsoldier/clash-rules), fetched by compatible clients every 86400 seconds. The website does not fetch rule providers. LAN routing works without external rule providers.
+
+Custom selection requires `custom_rules_yaml` when explicitly choosing `custom`. Allowed root keys are `rules` and `rule-providers`, up to 32 KB UTF-8, 200 rules (including fallback) and 32 providers; anchors/aliases and full-config overrides are rejected. Omitted fields on updates retain the saved draft. Migration `024` adds nullable custom YAML without changing existing rules.
+
+Supported rule types: DOMAIN, DOMAIN-SUFFIX, DOMAIN-KEYWORD, IP-CIDR, IP-CIDR6, SRC-IP-CIDR, GEOIP, GEOSITE, RULE-SET, DST-PORT, SRC-PORT, NETWORK, PROCESS-NAME, PROCESS-PATH and MATCH. Policies may reference only VPN, DIRECT or REJECT. RULE-SET references must exist in the custom provider map. MATCH must be last; an omitted MATCH becomes MATCH,VPN. Complex logical/sub-rules are not supported. See [Mihomo rule syntax](https://wiki.metacubex.one/config/rules/).
+
+Providers use `type: http`, `behavior: domain|ipcidr|classical`, credential-free HTTPS URLs and `format: yaml|text|mrs` (default yaml; mrs requires domain/ipcidr). Interval defaults to 86400, range 60–604800 seconds. Cache paths are generated from provider name and URL; any supplied path is replaced. The website validates metadata and does not fetch provider contents; clients download them. GEOSITE/GEOIP rules depend on client geodata. See [Mihomo providers](https://wiki.metacubex.one/config/rule-providers/).
+
+```yaml
+rules:
+  - RULE-SET,ads,REJECT
+  - DOMAIN-SUFFIX,example.com,DIRECT
+  - MATCH,VPN
+rule-providers:
+  ads:
+    type: http
+    behavior: domain
+    format: yaml
+    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt
+    interval: 86400
+```
 
 Publication is dynamic: each download reads current grants, node settings and UTC expiry from MySQL in one statement. No static files or deployment jobs are needed. Invalid, expired, disabled and rotated tokens return 404; zero available nodes returns 403. Responses include `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex, nofollow` and, on success, `subscription-userinfo: expire=<Unix timestamp>`.
 

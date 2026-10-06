@@ -9,9 +9,13 @@ LiuLianBot 係一個畀遊戲社群使用嘅 Discord 機械人同配套網站。
 
 Clash 分頁上方顯示伺服器列表同同步狀態，下方顯示 VPN 用戶。按「新增」直接輸入 VPN 用戶名稱，每列提供「編輯／移除」。VPN 用戶資料獨立於網站帳號。移除 VPN 用戶會刪除訂閱同授權，立即停用網址，並由背景同步撤銷受管理帳戶；網站帳號會保留。
 
+新增／編輯 VPN 用戶時可選規則集：全部走 VPN（預設）、區域網路直連、中國直連、中國直連＋廣告封鎖、或自訂路由 YAML。儲存後，客戶端下次更新訂閱就會取得規則；網址同授權節點保留。LAN 規則直接包含喺 YAML，中國／廣告規則由相容 Clash／Mihomo 客戶端每 24 小時下載 [Loyalsoldier 規則集](https://github.com/Loyalsoldier/clash-rules)。Migration `023` 保留既有全部走 VPN 行為。
+
+選「自訂規則集」可編輯 `rules` 同可選 HTTP `rule-providers`。策略支援 `VPN`、`DIRECT`、`REJECT`；未填最後 MATCH 時自動補上 `MATCH,VPN`。規則來源須用 HTTPS，快取路徑自動產生；切換預設規則集會保留已儲存嘅自訂草稿。只接受路由設定，詳見 [自訂語法](docs/API.md#clash-vpn-subscriptions)。Migration `024` 新增自訂 YAML 儲存欄位。
+
 Migration `022` 會將現有 VPN 用戶複製到獨立 `website_clash_users`，解除同網站用戶嘅外鍵關聯；保留 ID、網址、授權同憑證。之後刪除網站帳號唔會影響 VPN 用戶。VPN 用戶名稱作識別用途，客戶端使用訂閱代碼同各節點憑證認證。
 
-儲存後會自動喺 `/clash-sub/<隨機代碼>.yaml` 提供最新用戶設定。呢個係從 MySQL 即時產生嘅 HTTP 端點，唔使建立靜態檔案或手動部署。網站啟動時會自動執行 migration `020`／`021`／`022` 建立節點、訂閱、授權及加密個別帳戶資料表。用戶下次更新訂閱就會取得變更；未知、停用或到期網址回傳 404，無可用授權節點回傳 403。
+儲存後會自動喺 `/clash-sub/<隨機代碼>.yaml` 提供最新用戶設定。呢個係從 MySQL 即時產生嘅 HTTP 端點，唔使建立靜態檔案或手動部署。網站啟動時會自動執行 migration `020`／`021`／`022`／`023`／`024` 建立節點、訂閱、授權及加密個別帳戶資料表。用戶下次更新訂閱就會取得變更；未知、停用或到期網址回傳 404，無可用授權節點回傳 403。
 
 部署時用 HTTPS 將 `/clash-sub/` 轉送到 Node 網站服務，並停用代理快取。訂閱網址屬於憑證，請保密並避免記錄完整網址。未管理節點只限制訂閱下載；SSH 管理節點會建立個別用戶憑證，到期、停用或移除授權時自動撤銷。混合 Hysteria2、sing-box 同 Xray 的設定詳見 [SSH VPS 安裝文件](website-part/deploy/clash-vps/README.md)。網站定時同步，VPS 本機 timer 在網站離線時仍會清理到期帳戶；帳戶變更會重啟 VPN 服務並短暫中斷其他連線。舊共用憑證須另外喺 VPS 輪替。詳見 [Clash API 文件](docs/API.md#clash-vpn-subscriptions)。
 

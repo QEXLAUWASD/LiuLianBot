@@ -592,6 +592,20 @@ const MIGRATIONS = [
       }
     },
   },
+  {
+    version: '023',
+    name: 'Per-user Clash routing rule sets',
+    async up(conn) {
+      await addColumnIfMissing(conn, "ALTER TABLE website_clash_subscriptions ADD COLUMN ruleset_id VARCHAR(32) NOT NULL DEFAULT 'all-vpn'");
+    },
+  },
+  {
+    version: '024',
+    name: 'Custom per-user Clash routing YAML',
+    async up(conn) {
+      await addColumnIfMissing(conn, 'ALTER TABLE website_clash_subscriptions ADD COLUMN custom_rules_yaml TEXT NULL');
+    },
+  },
 ];
 
 async function runMigrations(conn, migrations = MIGRATIONS) {

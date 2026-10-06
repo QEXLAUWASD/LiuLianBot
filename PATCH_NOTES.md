@@ -1,5 +1,14 @@
 # Patch notes
 
+## Clash routing rule set selector and custom YAML (since `366152b`, 2026-10-06)
+
+- Added a per-VPN-user rule set selector and list column: all VPN, LAN direct, China direct, China direct with advertising-domain blocking, and custom YAML. The catalog is administrator-only and includes localized explanations.
+- Migration `023` stores `ruleset_id` with an all-VPN default for existing subscriptions. Selection is saved atomically with grants; omitted updates preserve the previous choice and unsupported IDs return 400.
+- Subscription YAML now renders the chosen ordered rules and required fixed Loyalsoldier providers. Local routing uses embedded IPv4/IPv6 rules; remote domain/IP providers refresh on compatible clients every 24 hours. Built-in presets retain the final VPN fallback and only authorized VPN nodes; URL tokens and credentials stay unchanged.
+- Added custom routing YAML with rules and optional HTTPS HTTP providers, ordered VPN/DIRECT/REJECT policies and an automatic VPN fallback when MATCH is omitted. Validate rule/provider references, addresses/ports, size, aliases and routing-only keys; generate safe URL-specific cache paths. Migration `024` stores the custom draft atomically and preserves it across preset switches.
+- Updated both READMEs, API documentation/catalog/OpenAPI and built frontend assets. No new ignore patterns are needed.
+- Validation: full JavaScript check, production build and all 402 tests passed (15 added), covering routing order/provider references, selection persistence/backward compatibility, migration replay, admin access, downloads and frontend selection. Native API checks pass after schema updates; focused custom/frontend tests and a rebuild pass after final size validation/help text updates. Live database migration and client provider downloads were not exercised.
+
 ## Independent VPN users (since `69dc421`, 2026-10-06)
 
 - Separated VPN identities from website login accounts using `website_clash_users`. Migration `022` copies existing identities and replaces the subscription foreign key while preserving IDs, subscription tokens, grants and encrypted per-node credentials. Website account deletion no longer removes VPN access.

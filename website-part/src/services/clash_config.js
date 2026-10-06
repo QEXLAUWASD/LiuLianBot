@@ -1,5 +1,7 @@
 const yaml = require('js-yaml');
 const { InputError } = require('../errors');
+const { normalizeRuleset, routingFor } = require('./clash_rulesets');
+const { normalizeCustomYaml } = require('./clash_custom_rules');
 
 function positiveId(value) {
   if (!/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value)) || Number(value) < 1) {
@@ -59,14 +61,18 @@ function normalizeSubscription(body = {}) {
       !Number.isFinite(Date.parse(body.expires_at))) throw new InputError('expires_at must be an ISO timestamp with timezone');
   if (!Array.isArray(body.server_ids) || body.server_ids.length > 200 ||
       body.server_ids.some(id => typeof id !== 'number')) throw new InputError('Select up to 200 VPN server IDs');
-  return { enabled: body.enabled, expires_at: new Date(body.expires_at), server_ids: [...new Set(body.server_ids.map(positiveId))] };
+  const ruleset_id = Object.hasOwn(body, 'ruleset_id') ? normalizeRuleset(body.ruleset_id) : undefined;
+  const custom = Object.hasOwn(body, 'custom_rules_yaml') || ruleset_id === 'custom';
+  return { enabled: body.enabled, expires_at: new Date(body.expires_at), server_ids: [...new Set(body.server_ids.map(positiveId))],
+    ...(ruleset_id !== undefined ? { ruleset_id } : {}),
+    ...(custom ? { custom_rules_yaml: normalizeCustomYaml(body.custom_rules_yaml) } : {}) };
 }
 
-function renderConfig(servers) {
+function renderConfig(servers, rulesetId, customYaml) {
   const proxies = servers.map(server => ({ ...JSON.parse(server.proxy_json), name: server.name }));
   return yaml.dump({ 'mixed-port': 7890, 'allow-lan': false, mode: 'rule',
     proxies, 'proxy-groups': [{ name: 'VPN', type: 'select', proxies: proxies.map(proxy => proxy.name) }],
-    rules: ['MATCH,VPN'] }, { noRefs: true, lineWidth: 120 });
+    ...routingFor(rulesetId, customYaml) }, { noRefs: true, lineWidth: 120 });
 }
 function normalizeVpnUser(body = {}, requireName = false) {
   const data = normalizeSubscription(body);

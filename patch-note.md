@@ -1,5 +1,14 @@
 # 完整更新紀錄
 
+## Clash 路由規則集選擇器同自訂 YAML（基準：`366152b`，2026-10-06）
+
+- VPN 用戶新增／編輯表單加入規則集選擇器，列表顯示目前選擇：全部 VPN、區域網路直連、中國直連、中國直連＋廣告封鎖、自訂 YAML；提供中英文說明及管理員專用規則集目錄。
+- Migration `023` 儲存 `ruleset_id`，既有訂閱維持全部 VPN。規則選擇同授權喺同一 transaction 儲存；未提供選擇嘅舊 API 更新保留原選擇，不支援嘅 ID 回傳 400。
+- 訂閱 YAML 按選擇產生有序規則及固定 Loyalsoldier providers。LAN 規則包含 IPv4／IPv6；遠端網域／IP 規則由相容客戶端每 24 小時更新。預設規則集保留最後 VPN 規則、授權節點、網址代碼同憑證。
+- 自訂 YAML 支援 rules 同可選 HTTPS HTTP providers、有序 VPN／DIRECT／REJECT 策略；未填最後 MATCH 時補上 VPN。驗證 provider 參照、IP／port、大小、禁止 aliases 同完整配置覆寫；快取路徑按來源自動產生。Migration `024` 喺同一 transaction 儲存草稿，切換預設規則集亦保留。
+- 更新兩份 README、API 文件／目錄／OpenAPI 同編譯後前端資產；唔需要新忽略規則。
+- 驗證：完整 JavaScript 檢查、production build 同全部 402 個測試通過（新增 15 個），涵蓋路由順序、provider 參照、儲存／相容性、migration 重試、管理員權限、訂閱下載同前端選擇；schema 更新後 native API 檢查亦通過，最後大小驗證同介面提示更新後亦重新驗證自訂／前端測試同 build。未進行實機資料庫遷移或客戶端規則下載驗證。
+
 ## 獨立 VPN 用戶系統（基準：`69dc421`，2026-10-06）
 
 - VPN 用戶改用獨立 `website_clash_users`，同網站登入帳號分開。Migration `022` 複製既有 VPN 身分並轉換訂閱外鍵，保留 ID、訂閱代碼、節點授權同加密憑證；網站帳號刪除不再影響 VPN 權限。

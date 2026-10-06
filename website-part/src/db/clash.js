@@ -46,7 +46,8 @@ async function listSubscriptions() {
   const grouped = new Map();
   for (const row of rows) {
     if (!grouped.has(row.user_id)) grouped.set(row.user_id, { user_id: row.user_id, username: row.username,
-      enabled: Boolean(row.enabled), expires_at: row.expires_at, path: `/clash-sub/${row.token}.yaml`, server_ids: [] });
+      enabled: Boolean(row.enabled), expires_at: row.expires_at, ruleset_id: row.ruleset_id, custom_rules_yaml: row.custom_rules_yaml,
+      path: `/clash-sub/${row.token}.yaml`, server_ids: [] });
     if (row.server_id !== null) grouped.get(row.user_id).server_ids.push(Number(row.server_id));
   }
   return [...grouped.values()];
@@ -64,9 +65,10 @@ async function saveSubscription(userId, data) {
       if (!users.length) throw missing();
       if (data.username !== undefined) await conn.execute('UPDATE website_clash_users SET username=? WHERE id=?', [data.username, userId]);
     }
-    await conn.execute(`INSERT INTO website_clash_subscriptions (user_id,token,expires_at,enabled) VALUES (?,?,?,?)
-      ON DUPLICATE KEY UPDATE expires_at=VALUES(expires_at), enabled=VALUES(enabled)`,
-    [userId, crypto.randomBytes(32).toString('hex'), data.expires_at, data.enabled]);
+    await conn.execute(`INSERT INTO website_clash_subscriptions (user_id,token,expires_at,enabled,ruleset_id,custom_rules_yaml) VALUES (?,?,?,?,?,?)
+      ON DUPLICATE KEY UPDATE expires_at=VALUES(expires_at), enabled=VALUES(enabled), ruleset_id=COALESCE(?,ruleset_id), custom_rules_yaml=COALESCE(?,custom_rules_yaml)`,
+    [userId, crypto.randomBytes(32).toString('hex'), data.expires_at, data.enabled, data.ruleset_id ?? 'all-vpn', data.custom_rules_yaml ?? null,
+      data.ruleset_id ?? null, data.custom_rules_yaml ?? null]);
     await conn.execute('DELETE FROM website_clash_grants WHERE user_id=?', [userId]);
     for (const serverId of data.server_ids) {
       await conn.execute('INSERT INTO website_clash_grants (user_id,server_id) VALUES (?,?)', [userId, serverId]);
@@ -98,7 +100,7 @@ async function deleteSubscription(userId) {
 async function getSubscription(token) {
   const pool = await getPool();
   // One statement gives an atomic view of expiry, grants and current node settings.
-  const [rows] = await pool.execute(`SELECT s.expires_at, v.id, v.name, v.proxy_json, v.management_profile,
+  const [rows] = await pool.execute(`SELECT s.expires_at, s.ruleset_id, s.custom_rules_yaml, v.id, v.name, v.proxy_json, v.management_profile,
     v.sync_status, a.credential_encrypted, a.applied FROM website_clash_subscriptions s
     LEFT JOIN website_clash_grants g ON g.user_id=s.user_id
     LEFT JOIN website_clash_servers v ON v.id=g.server_id AND v.enabled=1 AND v.deleted_at IS NULL
@@ -113,7 +115,7 @@ async function getSubscription(token) {
     const account = decryptProfile(row.credential_encrypted, credentialKey());
     servers.push({ ...row, proxy_json: account.proxy_json });
   }
-  return { expires_at: rows[0].expires_at, servers };
+  return { expires_at: rows[0].expires_at, ruleset_id: rows[0].ruleset_id, custom_rules_yaml: rows[0].custom_rules_yaml, servers };
 }
 async function listSyncStatus() {
   const pool = await getPool();

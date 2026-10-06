@@ -5,6 +5,7 @@ const { InputError } = require('../errors');
 const { AppError } = require('../errors');
 const { readProfiles } = require('../services/clash_ssh');
 const { positiveId, normalizeServer, normalizeVpnUser, renderConfig } = require('../services/clash_config');
+const { RULESETS } = require('../services/clash_rulesets');
 
 function createRouters({ db = repository, adminAuth = requireAdmin, syncWorker } = {}) {
   const admin = express.Router();
@@ -23,6 +24,7 @@ function createRouters({ db = repository, adminAuth = requireAdmin, syncWorker }
     return req.params.userId;
   };
   admin.get('/servers', handle(async (req, res) => res.json({ servers: await db.listServers() })));
+  admin.get('/rulesets', handle(async (req, res) => res.json({ rulesets: RULESETS })));
   admin.get('/profiles', handle(async (req, res) => {
     try { res.json({ profiles: Object.keys(readProfiles()).filter(name => /^[a-zA-Z0-9_-]{1,64}$/.test(name)) }); }
     catch { throw new AppError('Failed to read SSH profile configuration'); }
@@ -53,7 +55,7 @@ function createRouters({ db = repository, adminAuth = requireAdmin, syncWorker }
     if (!data.servers.length) return res.status(403).send('No VPN servers are available');
     res.set('subscription-userinfo', `expire=${Math.floor(new Date(data.expires_at).getTime() / 1000)}`);
     res.set('Content-Disposition', 'attachment; filename="clash.yaml"');
-    res.type('application/yaml').send(renderConfig(data.servers));
+    res.type('application/yaml').send(renderConfig(data.servers, data.ruleset_id, data.custom_rules_yaml));
   }));
   subscription.use((req, res) => res.status(404).end());
   return { admin, subscription };
