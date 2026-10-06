@@ -1970,3 +1970,10 @@ html[lang='zh-HK'] .sidebar-section { letter-spacing: 0.05em; }
     transition-duration: 0.01ms !important;
   }
 }
+
+.clash-management-section { margin-top: 28px; }
+.clash-list-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.clash-list-header h3 { margin: 0; }
+.clash-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.clash-editor { margin: 16px 0; padding: 18px; border: 1px solid var(--border); border-radius: 12px; }
+.clash-editor fieldset { min-width: 0; }

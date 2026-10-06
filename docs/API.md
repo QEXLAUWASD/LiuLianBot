@@ -413,6 +413,7 @@ All `/api/admin/clash/*` endpoints require a signed-in user whose current databa
 | DELETE | `/api/admin/clash/servers/:id` | Retains a disabled tombstone until managed remote accounts are revoked → `{ success: true }` |
 | GET | `/api/admin/clash/subscriptions` | `{ subscriptions: [{ user_id, username, enabled, expires_at, server_ids, path }] }` |
 | PUT | `/api/admin/clash/subscriptions/:userId` | `{ enabled, expires_at, server_ids }` → `{ success: true }`; replaces all grants atomically; preserves an existing subscription URL |
+| DELETE | `/api/admin/clash/subscriptions/:userId` | Removes subscription and cascading grants; immediately invalidates URL; retains website user and account records for background SSH revocation → `{ success: true }` |
 | POST | `/api/admin/clash/subscriptions/:userId/rotate` | Replaces URL token; old URL immediately stops working → `{ success: true }` |
 | GET | `/clash-sub/:token.yaml` | Bearer URL, no session required → current `application/yaml` for granted enabled nodes only |
 

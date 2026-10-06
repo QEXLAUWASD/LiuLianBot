@@ -1,6 +1,16 @@
 // Hong Kong Traditional Chinese. Keys are the existing source UI copy.
 // Keep identifiers, user content, game data and protocol/configuration values intact.
 export default Object.freeze({
+  "Server list / status": "伺服器列表／狀態",
+  "VPN users": "VPN 用戶",
+  "Add VPN user": "新增 VPN 用戶",
+  "Edit VPN user": "編輯 VPN 用戶",
+  "Remove VPN user": "移除 VPN 用戶",
+  "Remove this VPN subscription and revoke managed VPN access?": "移除此 VPN 訂閱並撤銷受管理節點的 VPN 權限？",
+  "Remove": "移除",
+  "No VPN servers yet": "尚未有 VPN 伺服器",
+  "No VPN users yet": "尚未有 VPN 用戶",
+  "Pending server removals": "伺服器移除狀態",
   "SSH-managed nodes use individual credentials and revoke expired users automatically. Unmanaged nodes only restrict subscription downloads.": "SSH 管理節點使用個別憑證，到期自動撤銷；未管理節點只限制訂閱下載。",
   "Changes saved. SSH accounts synchronize in the background; use Refresh to check results.": "已儲存。SSH 帳戶會在背景同步；請重新整理查看結果。",
   "SSH management profile": "SSH 管理設定",

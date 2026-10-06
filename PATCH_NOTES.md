@@ -1,5 +1,12 @@
 # Patch notes
 
+## Clash server and VPN user lists (since `aae9567`, 2026-10-06)
+
+- Reorganized Clash administration into a server list with status, last sync and errors, followed by VPN users with a right-aligned Add action and per-row Edit/Remove actions. Add/edit forms open on demand and can be cancelled; URL rotation remains in the user editor. Added empty states and English/Traditional Chinese copy.
+- Added administrator-only subscription deletion. Removal invalidates the subscription URL and cascades grants while retaining the website account and managed account records for background SSH revocation. Deletion serializes with edits using the same user lock and rolls back on missing subscriptions.
+- Updated both READMEs, API documentation/catalog, OpenAPI, and built frontend assets. No additional ignore entries are needed.
+- Validation: full JavaScript check, production build and all 382 tests passed (5 added). Focused native API checks and a rebuild also passed after updating discovery metadata and styling. Live VPS deployment was not changed.
+
 ## Mihomo account management and OpenWrt expiry (since `cde348d`, 2026-10-06)
 
 - Added Mihomo Hysteria2 and VLESS/Reality per-user reconciliation with expiry, namespace preservation, stable disabled sentinels, YAML validation before activation, and restart rollback. Mihomo Hysteria2 uses raw individual passwords, unlike standalone Hysteria2 userpass. Mihomo SS2022 shared-password listeners remain unsupported for individual revocation.

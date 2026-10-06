@@ -21,6 +21,7 @@ async function fixture(t) {
     saveServer: async (id, data) => { writes++; serverData = { id: id || 1, ...data }; return serverData.id; },
     deleteServer: async () => { writes++; serverData = null; },
     saveSubscription: async (userId, data) => { writes++; sub = data; },
+    deleteSubscription: async () => { writes++; sub = { ...sub, enabled: false, server_ids: [] }; },
     rotateToken: async () => { writes++; activeToken = 'b'.repeat(64); },
     getSubscription: async value => value === activeToken && sub.enabled && sub.expires_at > new Date()
       ? { expires_at: sub.expires_at, servers: serverData?.enabled && sub.server_ids.includes(serverData.id) ? [serverData] : [] } : null,
@@ -47,7 +48,7 @@ test('all Clash management endpoints require a current administrator role', asyn
   for (const [method, path, body] of [
     ['GET', '/servers'], ['POST', '/servers', node], ['PUT', '/servers/1', node], ['DELETE', '/servers/1'],
     ['GET', '/profiles'], ['GET', '/sync-status'], ['POST', '/sync'],
-    ['GET', '/subscriptions'], ['PUT', '/subscriptions/user', {}], ['POST', '/subscriptions/user/rotate'],
+    ['GET', '/subscriptions'], ['DELETE', '/subscriptions/user'], ['PUT', '/subscriptions/user', {}], ['POST', '/subscriptions/user/rotate'],
   ]) {
     assert.equal((await f.request(`/api/admin/clash${path}`, method, body)).status, 401);
     assert.equal((await f.request(`/api/admin/clash${path}`, method, body, 'user')).status, 403);
@@ -115,4 +116,13 @@ test('validation rejects invalid proxies, aliases, cross-node references and inv
   assert.throws(() => normalizeSubscription({ enabled: true, expires_at: '2099-01-01T00:00:00Z', server_ids: ['1'] }), { statusCode: 400 });
   assert.deepEqual(normalizeSubscription({ enabled: false, expires_at: '2099-01-01T08:00:00+08:00', server_ids: [1, 1] }).server_ids, [1]);
   assert.equal(yaml.load(renderConfig([{ name: 'a: b', proxy_json: valid.proxy_json }])).proxies[0].name, 'a: b');
+});
+
+
+test('removing VPN subscription invalidates its download and validates user ID', async t => {
+  const f = await fixture(t);
+  assert.equal((await f.request('/api/admin/clash/subscriptions/user', 'DELETE', null, 'admin')).status, 200);
+  assert.equal((await f.request(`/clash-sub/${token}.yaml`)).status, 404);
+  assert.equal((await f.request('/api/admin/clash/subscriptions/bad%20id', 'DELETE', null, 'admin')).status, 400);
+  assert.equal(f.writes(), 1);
 });

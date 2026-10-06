@@ -1,4 +1,4 @@
-import{c as I,u as Se,r as u,j as s,t as N,S as J}from"./main-DqBkKUc7.js";const V=new WeakMap;function Re(r,e){let i;r.addEventListener("webglcontextlost",l=>{l.preventDefault(),i=null}),r.addEventListener("webglcontextrestored",()=>{i=null});function d(){const l=e.createProgram();for(const[x,g]of[[e.VERTEX_SHADER,`attribute vec2 position;
+import{c as I,u as Se,r as u,j as s,t as N,S as J}from"./main-Bh1hF2lV.js";const V=new WeakMap;function Re(r,e){let i;r.addEventListener("webglcontextlost",l=>{l.preventDefault(),i=null}),r.addEventListener("webglcontextrestored",()=>{i=null});function d(){const l=e.createProgram();for(const[x,g]of[[e.VERTEX_SHADER,`attribute vec2 position;
         varying vec2 uv;
         void main() { uv = vec2(position.x, 1.0 - position.y);
           gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0); }`],[e.FRAGMENT_SHADER,`precision mediump float;

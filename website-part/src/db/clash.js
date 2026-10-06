@@ -74,6 +74,19 @@ async function rotateToken(userId) {
     [crypto.randomBytes(32).toString('hex'), userId]);
   if (!result.affectedRows) throw missing();
 }
+async function deleteSubscription(userId) {
+  const pool = await getPool();
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    // Serialize with subscription creation/editing; retain account records for SSH revocation.
+    const [users] = await conn.execute('SELECT id FROM website_users WHERE id=? FOR UPDATE', [userId]);
+    if (!users.length) throw missing();
+    const [result] = await conn.execute('DELETE FROM website_clash_subscriptions WHERE user_id=?', [userId]);
+    if (!result.affectedRows) throw missing();
+    await conn.commit();
+  } catch (err) { await conn.rollback(); throw err; } finally { conn.release(); }
+}
 async function getSubscription(token) {
   const pool = await getPool();
   // One statement gives an atomic view of expiry, grants and current node settings.
@@ -100,4 +113,4 @@ async function listSyncStatus() {
     deleted_at FROM website_clash_servers WHERE management_profile IS NOT NULL ORDER BY id`);
   return servers;
 }
-module.exports = { listServers, saveServer, deleteServer, listSubscriptions, saveSubscription, rotateToken, getSubscription, listSyncStatus };
+module.exports = { listServers, saveServer, deleteServer, listSubscriptions, saveSubscription, deleteSubscription, rotateToken, getSubscription, listSyncStatus };

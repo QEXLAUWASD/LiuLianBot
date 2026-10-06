@@ -92,3 +92,22 @@ test('managed downloads require an acknowledged account and never disclose the s
   row.sync_status = 'error';
   assert.deepEqual((await repository.getSubscription('token')).servers, []);
 });
+
+test('subscription deletion locks the user and retains individual account records for SSH revocation', async () => {
+  calls = [];
+  execute = async sql => sql.startsWith('SELECT id') ? [[{ id: 'u' }]] : [{ affectedRows: 1 }];
+  await repository.deleteSubscription('u');
+  assert.equal(calls[0], 'begin');
+  assert.match(calls[1][0], /website_users.*FOR UPDATE/);
+  assert.deepEqual(calls[2], ['DELETE FROM website_clash_subscriptions WHERE user_id=?', ['u']]);
+  assert.deepEqual(calls.slice(-2), ['commit', 'release']);
+  assert.equal(calls.some(call => Array.isArray(call) && /DELETE FROM website_(users|clash_accounts)/.test(call[0])), false);
+});
+
+test('missing subscription deletion rolls back and releases its transaction', async () => {
+  calls = [];
+  execute = async sql => sql.startsWith('SELECT id') ? [[{ id: 'u' }]] : [{ affectedRows: 0 }];
+  await assert.rejects(repository.deleteSubscription('u'), { statusCode: 404 });
+  assert.equal(calls.includes('commit'), false);
+  assert.deepEqual(calls.slice(-2), ['rollback', 'release']);
+});

@@ -40,6 +40,7 @@ function createRouters({ db = repository, adminAuth = requireAdmin, syncWorker }
   admin.put('/subscriptions/:userId', handle(async (req, res) => {
     await db.saveSubscription(userId(req), normalizeSubscription(req.body)); res.json({ success: true });
   }));
+  admin.delete('/subscriptions/:userId', handle(async (req, res) => { await db.deleteSubscription(userId(req)); res.json({ success: true }); }));
   admin.post('/subscriptions/:userId/rotate', handle(async (req, res) => { await db.rotateToken(userId(req)); res.json({ success: true }); }));
   subscription.use((req, res, next) => {
     res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex, nofollow' }); next();
