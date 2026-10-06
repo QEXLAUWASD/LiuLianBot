@@ -82,8 +82,8 @@ ISO timestamp 後儲存。Discord ID 使用 MySQL `BIGINT`，Node.js 以字串�
 ```bash
 python -m pytest -q
 python -m ruff check discord-part shared
-cd website-part
-npm run check
+
+# Website checks now run in QEXLAUWASD/LiuLianWEB.
 ```
 
 `config.json` 只可以喺本機或部署環境建立，唔好提交；Bot token、Website

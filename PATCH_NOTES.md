@@ -1,5 +1,12 @@
 # Patch notes
 
+## Website repository split (since c5cd9cd, 2026-10-06)
+
+- Extract website, runtime JSON data, API docs, deployments and Node CI to QEXLAUWASD/LiuLianWEB. Preserve paths and source commit; earlier history remains in LiuLianBot.
+- Remove website code and Node CI from LiuLianBot; retain Discord/Android and shared contracts. Update both READMEs and Android documentation links.
+- Configure external Bot settings using DISCORD_CONFIG_PATH; ignore local integration config and Vite caches. Exclude secrets and installed dependencies; exclude integration credentials from Docker context.
+- Validation: standalone JavaScript checks, production build and all 406 tests pass (402 existing plus 4 integration-path tests). Generated frontend/API contents match the extracted source. Bot code is unchanged; Python checks and live MySQL/Discord deployment were not run.
+
 ## Public Clash subscription prefix (since `95c9955`, 2026-10-06)
 
 - New subscription URLs and the canonical download route use `/clash-sub-public/<token>.yaml`. Updated the admin UI, both Chinese catalogs, API/OpenAPI and deployment documentation.

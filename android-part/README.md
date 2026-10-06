@@ -42,14 +42,14 @@ LLB 圖示；本站操作不使用 WebView、不跳到外部瀏覽器。
 - RDP `infos.bitmapFormat = "rgba"` 與原生 RGBA bitmap 回應。
 - Chromium key input 可選 `modifiers`（0–15）。
 
-部署網站時一併部署 `shared/website/terms.json` 與 `website-part/frontend/src/lib/rdp/rdpBitmap.mjs`。
+網站已移至 [LiuLianWEB](https://github.com/QEXLAUWASD/LiuLianWEB)。在該倉庫部署網站時一併部署 `shared/website/terms.json` 與 `website-part/frontend/src/lib/rdp/rdpBitmap.mjs`。
 Dockerfile 已包含共用條款。保留網站原有環境設定，執行網站 `npm ci && npm run build` 後
 依現有方式重啟網站。App 不會自動部署或修改正式站台。
 
 以 `curl https://www.liulian.dev/api/mobile/capabilities` 確認新 API 可用，再安裝測試 APK。
 舊後端仍可使用大部分既有 JSON 功能，但條款、連線資訊與原生 RDP 需要升級。
 
-完整合約見 [API 參考](../docs/API.md) 及 [OpenAPI 文件](../docs/openapi.json)。
+完整合約見 [API 參考](https://github.com/QEXLAUWASD/LiuLianWEB/blob/main/docs/API.md) 及 [OpenAPI 文件](https://github.com/QEXLAUWASD/LiuLianWEB/blob/main/docs/openapi.json)。
 網站原本的 Browser RDP 事件保持相容，只有明確選擇 `rgba` 的原生客戶端使用新格式。
 
 ## 建置及測試

@@ -1,7 +1,0 @@
-{
-  "name": "liulian-vpn-vps-helper",
-  "version": "1.0.0",
-  "private": true,
-  "description": "SSH VPN account synchronization and local expiry cleanup",
-  "dependencies": { "js-yaml": "^4.3.2" }
-}

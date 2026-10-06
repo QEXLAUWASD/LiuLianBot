@@ -241,3 +241,6 @@ android-part/keystore.properties
 
 # Local SSH VPN management profiles contain credential paths/settings.
 clash-ssh-profiles.json
+
+# Website tooling cache (including artifacts left after repository split)
+website-part/.vite/

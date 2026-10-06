@@ -1,9 +1,0 @@
-[Unit]
-Description=Revoke expired LiuLian VPN accounts
-After=network.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/libexec/liulian-vpn-sync --expire
-User=root
-TimeoutStartSec=300
